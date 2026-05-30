@@ -1,11 +1,11 @@
-import Foundation
 import AppKit
+import Foundation
 import Network
 
 protocol MailMonitorDelegate: AnyObject {
     func monitor(didChangeStatus status: AppState.Status, error: String?)
     func monitor(didUpdateAccount email: String?)
-    func monitor(didNotify header: MessageHeader)
+    func monitor(didNotify header: MessageHeader, result: NotificationPostResult)
 }
 
 /// Orchestrates the connection state machine described in docs/design.md:
@@ -34,7 +34,7 @@ final class MailMonitor {
 
     init(config: OAuthConfig?) {
         self.config = config
-        self.oauth = config.map(OAuthClient.init)
+        oauth = config.map(OAuthClient.init)
         setupNetworkMonitoring()
         setupSleepWakeObservers()
     }
@@ -46,7 +46,7 @@ final class MailMonitor {
     /// Applies a new OAuth client configuration (entered in Settings).
     func reconfigure(_ config: OAuthConfig?) {
         self.config = config
-        self.oauth = config.map(OAuthClient.init)
+        oauth = config.map(OAuthClient.init)
     }
 
     // MARK: - Public actions
@@ -159,8 +159,8 @@ final class MailMonitor {
         let headers = try await client.fetchHeaders(fromUID: from)
         let fresh = headers.filter { $0.uid > lastSeenUID }.sorted { $0.uid < $1.uid }
         for header in fresh {
-            NotificationManager.shared.notify(header, account: email)
-            delegate?.monitor(didNotify: header)
+            let result = await NotificationManager.shared.notify(header, account: email)
+            delegate?.monitor(didNotify: header, result: result)
             lastSeenUID = max(lastSeenUID, header.uid)
         }
     }
@@ -199,7 +199,7 @@ final class MailMonitor {
 
     /// Decides whether to gap-fill, rebaseline, or start clean using the
     /// `(UIDVALIDITY, lastSeenUID)` checkpoint.
-    private func reconcileCheckpoint(mailbox: MailboxState, client: IMAPClient, email: String) async throws {
+    private func reconcileCheckpoint(mailbox: MailboxState, client _: IMAPClient, email _: String) async throws {
         let baselineUID = max(mailbox.uidNext - 1, 0)
         if storedUIDValidity == 0 {
             // First run: baseline to the current top so we do not notify the backlog.

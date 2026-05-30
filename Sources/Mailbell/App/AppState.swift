@@ -1,5 +1,5 @@
-import Foundation
 import AppKit
+import Foundation
 import SwiftUI
 
 /// Observable UI state. Owns the `MailMonitor` and exposes user actions.
@@ -46,10 +46,10 @@ final class AppState: ObservableObject {
 
     init() {
         let config = OAuthConfig.load()
-        self.isConfigured = config != nil
-        self.monitor = MailMonitor(config: config)
-        self.monitor.delegate = self
-        self.accountEmail = monitor.accountEmail
+        isConfigured = config != nil
+        monitor = MailMonitor(config: config)
+        monitor.delegate = self
+        accountEmail = monitor.accountEmail
 
         if config == nil {
             status = .needsConfig
@@ -58,7 +58,9 @@ final class AppState: ObservableObject {
         } else {
             status = .signedOut
         }
-        NotificationManager.shared.requestAuthorization()
+        Task {
+            _ = await NotificationManager.shared.requestAuthorizationIfNeeded()
+        }
     }
 
     var isSignedIn: Bool { monitor.hasSession }
@@ -115,7 +117,12 @@ extension AppState: MailMonitorDelegate {
         Task { @MainActor in self.accountEmail = email }
     }
 
-    nonisolated func monitor(didNotify header: MessageHeader) {
-        Task { @MainActor in self.lastNotifiedSubject = header.subject }
+    nonisolated func monitor(didNotify header: MessageHeader, result: NotificationPostResult) {
+        Task { @MainActor in
+            self.lastNotifiedSubject = header.subject
+            if let message = result.userMessage {
+                self.lastError = message
+            }
+        }
     }
 }
