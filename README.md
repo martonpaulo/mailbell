@@ -51,6 +51,15 @@ make dmg
 
 Tokens are stored in the macOS Keychain. Use the menu's `Disconnect` to remove them.
 
+## Release
+
+Releases are tag-driven. Push a version tag and GitHub Actions will build, verify, and publish the DMG:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
 ## License
 
 MIT
