@@ -1,42 +1,132 @@
-import Foundation
 import AppKit
-import UserNotifications
+import Foundation
+@preconcurrency import UserNotifications
 
-/// Wraps UNUserNotificationCenter. Clicking a notification opens its Gmail URL.
-///
-/// Note: UNUserNotificationCenter requires a real app bundle identifier. When run
-/// as a bare executable (no bundle), it is unavailable; in that case we skip
-/// posting and just log, so development runs do not crash.
+struct NotificationAuthorizationState {
+    let isBundled: Bool
+    let status: UNAuthorizationStatus
+    let alertSetting: UNNotificationSetting
+    let soundSetting: UNNotificationSetting
+    let badgeSetting: UNNotificationSetting
+
+    static let unbundled = NotificationAuthorizationState(
+        isBundled: false,
+        status: .notDetermined,
+        alertSetting: .notSupported,
+        soundSetting: .notSupported,
+        badgeSetting: .notSupported
+    )
+
+    var canPostAlert: Bool {
+        guard isBundled else { return false }
+        guard status == .authorized || status == .provisional else { return false }
+        return alertSetting == .enabled || alertSetting == .notSupported
+    }
+
+    var summary: String {
+        guard isBundled else { return "Unavailable outside app bundle" }
+        return status.mailbellDescription
+    }
+
+    var detail: String {
+        guard isBundled else {
+            return "Install and run Mailbell.app to use macOS notifications."
+        }
+        if status == .denied {
+            return "Enable Mailbell in System Settings > Notifications."
+        }
+        if status == .notDetermined {
+            return "Notification permission has not been requested yet."
+        }
+        if !canPostAlert {
+            return "Notification alerts are disabled for Mailbell."
+        }
+        return "Alerts: \(alertSetting.mailbellDescription), Sound: \(soundSetting.mailbellDescription)"
+    }
+}
+
+enum NotificationPostResult {
+    case posted
+    case unavailable(String)
+    case notAuthorized(NotificationAuthorizationState)
+    case failed(String)
+
+    var userMessage: String? {
+        switch self {
+        case .posted:
+            return nil
+        case let .unavailable(message):
+            return message
+        case let .notAuthorized(state):
+            return state.detail
+        case let .failed(message):
+            return message
+        }
+    }
+}
+
 final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationManager()
 
+    private let notificationCenter = UNUserNotificationCenter.current()
     private let urlKey = "gmailURL"
 
     private var isBundled: Bool {
         Bundle.main.bundleIdentifier != nil
     }
 
-    func requestAuthorization() {
-        guard isBundled else {
-            Log.info("Notifications unavailable (no app bundle); run the packaged .app for native notifications.")
-            return
-        }
-        let center = UNUserNotificationCenter.current()
-        center.delegate = self
-        center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-            if let error {
-                Log.error("Notification authorization error: \(error.localizedDescription)")
-            } else {
-                Log.info("Notification authorization granted: \(granted)")
-            }
+    override private init() {
+        super.init()
+        if isBundled {
+            notificationCenter.delegate = self
         }
     }
 
-    func notify(_ header: MessageHeader, account: String) {
+    func authorizationState() async -> NotificationAuthorizationState {
+        guard isBundled else { return .unbundled }
+        let settings = await notificationCenter.notificationSettings()
+        return NotificationAuthorizationState(
+            isBundled: true,
+            status: settings.authorizationStatus,
+            alertSetting: settings.alertSetting,
+            soundSetting: settings.soundSetting,
+            badgeSetting: settings.badgeSetting
+        )
+    }
+
+    func requestAuthorization() async -> NotificationAuthorizationState {
+        guard isBundled else {
+            Log.info("Notifications unavailable (no app bundle); run the packaged .app for native notifications.")
+            return .unbundled
+        }
+        do {
+            let granted = try await notificationCenter.requestAuthorization(options: [.alert, .sound, .badge])
+            Log.info("Notification authorization granted: \(granted)")
+        } catch {
+            Log.error("Notification authorization error: \(error.localizedDescription)")
+        }
+        return await authorizationState()
+    }
+
+    func requestAuthorizationIfNeeded() async -> NotificationAuthorizationState {
+        let state = await authorizationState()
+        guard state.status == .notDetermined else { return state }
+        return await requestAuthorization()
+    }
+
+    func notify(_ header: MessageHeader, account: String) async -> NotificationPostResult {
         let url = header.gmailURL(account: account)
         guard isBundled else {
-            Log.info("[notify] \(header.from) — \(header.subject) (\(url.absoluteString))")
-            return
+            let message = "[notify] \(header.from) - \(header.subject) (\(url.absoluteString))"
+            Log.info(message)
+            return .unavailable("Notifications unavailable outside app bundle.")
+        }
+
+        let state = await requestAuthorizationIfNeeded()
+        guard state.canPostAlert else {
+            let message = state.detail
+            Log.error("Notification skipped: \(message)")
+            return .notAuthorized(state)
         }
 
         let content = UNMutableNotificationContent()
@@ -50,25 +140,30 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             content: content,
             trigger: nil
         )
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error {
-                Log.error("Failed to post notification: \(error.localizedDescription)")
-            }
+        return await add(request)
+    }
+
+    private func add(_ request: UNNotificationRequest) async -> NotificationPostResult {
+        do {
+            try await notificationCenter.add(request)
+            return .posted
+        } catch {
+            let message = error.localizedDescription
+            Log.error("Failed to post notification: \(message)")
+            return .failed(message)
         }
     }
 
-    // MARK: - UNUserNotificationCenterDelegate
-
     func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        willPresent notification: UNNotification,
+        _: UNUserNotificationCenter,
+        willPresent _: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
         completionHandler([.banner, .sound])
     }
 
     func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
+        _: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
@@ -77,5 +172,39 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             NSWorkspace.shared.open(url)
         }
         completionHandler()
+    }
+}
+
+private extension UNAuthorizationStatus {
+    var mailbellDescription: String {
+        switch self {
+        case .notDetermined:
+            return "Not requested"
+        case .denied:
+            return "Denied"
+        case .authorized:
+            return "Allowed"
+        case .provisional:
+            return "Allowed quietly"
+        case .ephemeral:
+            return "Allowed temporarily"
+        @unknown default:
+            return "Unknown"
+        }
+    }
+}
+
+private extension UNNotificationSetting {
+    var mailbellDescription: String {
+        switch self {
+        case .notSupported:
+            return "Not supported"
+        case .disabled:
+            return "Disabled"
+        case .enabled:
+            return "Enabled"
+        @unknown default:
+            return "Unknown"
+        }
     }
 }

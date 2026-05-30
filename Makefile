@@ -9,6 +9,8 @@ BUNDLE_ID  := com.samzong.mailbell
 BUILD_DIR  := .build
 APP_BUNDLE := /Applications/$(APP_NAME).app
 INFO_PLIST := Resources/Info.plist
+APP_ICON   := Resources/AppIcon.icns
+ASSETS     := Resources/Assets.xcassets
 ARCH       ?= arm64
 
 DMG_DIR     := $(BUILD_DIR)/dmg
@@ -70,6 +72,13 @@ dmg: ## Build an ad-hoc signed DMG
 	mkdir -p $(DMG_STAGING)/$(APP_NAME).app/Contents/Resources
 	cp $$($(SWIFT) build -c release --arch $(ARCH) --product $(PRODUCT) --show-bin-path)/$(PRODUCT) $(DMG_STAGING)/$(APP_NAME).app/Contents/MacOS/$(APP_NAME)
 	cp $(INFO_PLIST) $(DMG_STAGING)/$(APP_NAME).app/Contents/Info.plist
+	cp $(APP_ICON) $(DMG_STAGING)/$(APP_NAME).app/Contents/Resources/AppIcon.icns
+	xcrun actool --compile $(DMG_STAGING)/$(APP_NAME).app/Contents/Resources \
+		--platform macosx \
+		--minimum-deployment-target 13.0 \
+		--app-icon AppIcon \
+		--output-partial-info-plist /dev/null \
+		$(ASSETS) >/dev/null
 	$(CODE_SIGN) $(DMG_STAGING)/$(APP_NAME).app
 	ln -s /Applications $(DMG_STAGING)/Applications
 	rm -f $(DMG_PATH)
@@ -87,7 +96,15 @@ install: ## Install an ad-hoc signed app bundle to /Applications
 	mkdir -p $(APP_BUNDLE)/Contents/Resources
 	cp $$($(SWIFT) build -c release --arch $(ARCH) --product $(PRODUCT) --show-bin-path)/$(PRODUCT) $(APP_BUNDLE)/Contents/MacOS/$(APP_NAME)
 	cp $(INFO_PLIST) $(APP_BUNDLE)/Contents/Info.plist
+	cp $(APP_ICON) $(APP_BUNDLE)/Contents/Resources/AppIcon.icns
+	xcrun actool --compile $(APP_BUNDLE)/Contents/Resources \
+		--platform macosx \
+		--minimum-deployment-target 13.0 \
+		--app-icon AppIcon \
+		--output-partial-info-plist /dev/null \
+		$(ASSETS) >/dev/null
 	$(CODE_SIGN) $(APP_BUNDLE)
+	-/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f $(APP_BUNDLE) >/dev/null 2>&1
 	@printf "Installed to %s\n" "$(APP_BUNDLE)"
 
 uninstall: ## Remove the installed app bundle
