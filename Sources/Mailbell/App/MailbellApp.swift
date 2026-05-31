@@ -40,19 +40,12 @@ struct MenuContent: View {
 
         Button("Open Gmail") { appState.openGmail() }
 
-        switch appState.status {
-        case .needsConfig:
+        if appState.status == .needsConfig {
             Text("Open Settings to add your Google client")
-        case .signedOut:
+        } else if appState.status == .signedOut {
             Button("Sign in with Google") { appState.signIn() }
-        case .reauthRequired:
-            Button("Reconnect (sign in again)") { appState.signIn() }
-        default:
-            Button("Reconnect") { appState.reconnect() }
-        }
-
-        if appState.isSignedIn {
-            Button("Disconnect") { appState.disconnect() }
+        } else if appState.status == .reauthRequired {
+            Text("Open Settings to sign in again")
         }
 
         Divider()

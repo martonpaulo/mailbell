@@ -10,8 +10,11 @@ BUNDLE_ID="com.samzong.mailbell"
 APP_NAME="Mailbell"
 BUILD_DIR="build"
 APP_DIR="${BUILD_DIR}/${APP_NAME}.app"
-APP_ICON="Resources/AppIcon.icns"
 ASSETS="Resources/Assets.xcassets"
+
+echo "Generating app icons…"
+chmod +x Scripts/generate_app_icon.sh
+Scripts/generate_app_icon.sh
 
 echo "Building (${CONFIG})…"
 swift build -c "${CONFIG}"
@@ -29,7 +32,6 @@ mkdir -p "${APP_DIR}/Contents/Resources"
 
 cp "${BIN_PATH}" "${APP_DIR}/Contents/MacOS/${APP_NAME}"
 cp "Resources/Info.plist" "${APP_DIR}/Contents/Info.plist"
-cp "${APP_ICON}" "${APP_DIR}/Contents/Resources/AppIcon.icns"
 
 xcrun actool --compile "${APP_DIR}/Contents/Resources" \
   --platform macosx \

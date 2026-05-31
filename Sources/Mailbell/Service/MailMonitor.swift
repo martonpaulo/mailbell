@@ -119,14 +119,24 @@ final class MailMonitor {
                 notifyStatus(.connected)
                 try await idleLoop(client: client, email: email)
             } catch let error as OAuthClient.OAuthError {
-                if case .refreshFailed = error {
+                switch error {
+                case .refreshFailed, .noRefreshToken:
                     // The refresh token is gone; only the user can fix this.
                     Log.error("Token revoked: \(error.localizedDescription)")
                     notifyStatus(.reauthRequired, error: error.localizedDescription)
                     return
+                case .refreshUnavailable:
+                    if Task.isCancelled { break }
+                    Log.error("Token refresh deferred: \(error.localizedDescription)")
+                    notifyStatus(.reconnecting, error: error.localizedDescription)
+                    client?.disconnect()
+                    client = nil
+                    try? await Task.sleep(nanoseconds: UInt64(backoff * 1_000_000_000))
+                    backoff = min(backoff * 2, 60)
+                default:
+                    notifyStatus(.reauthRequired, error: error.localizedDescription)
+                    return
                 }
-                notifyStatus(.reauthRequired, error: error.localizedDescription)
-                return
             } catch {
                 if Task.isCancelled { break }
                 Log.error("Connection dropped: \(error.localizedDescription)")

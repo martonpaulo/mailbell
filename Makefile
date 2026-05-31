@@ -63,22 +63,37 @@ check: ## Run build, lint, and tests
 
 # -- Packaging ----------------------------------------------------------------
 
-.PHONY: dmg install uninstall
+.PHONY: icons dmg install uninstall refresh-icons
 
-dmg: ## Build an ad-hoc signed DMG
+icons: ## Regenerate AppIcon PNGs and AppIcon.icns from Resources/logo.png
+	@chmod +x Scripts/generate_app_icon.sh
+	Scripts/generate_app_icon.sh
+
+define compile-app-resources
+	xcrun actool --compile $(1)/Contents/Resources \
+		--platform macosx \
+		--minimum-deployment-target 13.0 \
+		--app-icon AppIcon \
+		--output-partial-info-plist /dev/null \
+		$(ASSETS) >/dev/null
+endef
+
+refresh-icons: install ## Reinstall and flush macOS icon caches for Mailbell
+	rm -rf $(HOME)/Library/Caches/com.apple.iconservices.store
+	-/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user >/dev/null 2>&1
+	-/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f $(APP_BUNDLE) >/dev/null 2>&1
+	touch $(APP_BUNDLE)
+	-killall Finder >/dev/null 2>&1
+	@printf "Icon cache refreshed for %s\n" "$(APP_BUNDLE)"
+
+dmg: icons ## Build an ad-hoc signed DMG
 	$(SWIFT) build -c release --arch $(ARCH) --product $(PRODUCT)
 	rm -rf $(DMG_STAGING)
 	mkdir -p $(DMG_STAGING)/$(APP_NAME).app/Contents/MacOS
 	mkdir -p $(DMG_STAGING)/$(APP_NAME).app/Contents/Resources
 	cp $$($(SWIFT) build -c release --arch $(ARCH) --product $(PRODUCT) --show-bin-path)/$(PRODUCT) $(DMG_STAGING)/$(APP_NAME).app/Contents/MacOS/$(APP_NAME)
 	cp $(INFO_PLIST) $(DMG_STAGING)/$(APP_NAME).app/Contents/Info.plist
-	cp $(APP_ICON) $(DMG_STAGING)/$(APP_NAME).app/Contents/Resources/AppIcon.icns
-	xcrun actool --compile $(DMG_STAGING)/$(APP_NAME).app/Contents/Resources \
-		--platform macosx \
-		--minimum-deployment-target 13.0 \
-		--app-icon AppIcon \
-		--output-partial-info-plist /dev/null \
-		$(ASSETS) >/dev/null
+	$(call compile-app-resources,$(DMG_STAGING)/$(APP_NAME).app)
 	$(CODE_SIGN) $(DMG_STAGING)/$(APP_NAME).app
 	ln -s /Applications $(DMG_STAGING)/Applications
 	rm -f $(DMG_PATH)
@@ -89,20 +104,14 @@ dmg: ## Build an ad-hoc signed DMG
 	rm -rf $(DMG_DIR)
 	@printf "DMG created: %s\n" "$(DMG_PATH)"
 
-install: ## Install an ad-hoc signed app bundle to /Applications
+install: icons ## Install an ad-hoc signed app bundle to /Applications
 	$(SWIFT) build -c release --arch $(ARCH) --product $(PRODUCT)
 	rm -rf $(APP_BUNDLE)
 	mkdir -p $(APP_BUNDLE)/Contents/MacOS
 	mkdir -p $(APP_BUNDLE)/Contents/Resources
 	cp $$($(SWIFT) build -c release --arch $(ARCH) --product $(PRODUCT) --show-bin-path)/$(PRODUCT) $(APP_BUNDLE)/Contents/MacOS/$(APP_NAME)
 	cp $(INFO_PLIST) $(APP_BUNDLE)/Contents/Info.plist
-	cp $(APP_ICON) $(APP_BUNDLE)/Contents/Resources/AppIcon.icns
-	xcrun actool --compile $(APP_BUNDLE)/Contents/Resources \
-		--platform macosx \
-		--minimum-deployment-target 13.0 \
-		--app-icon AppIcon \
-		--output-partial-info-plist /dev/null \
-		$(ASSETS) >/dev/null
+	$(call compile-app-resources,$(APP_BUNDLE))
 	$(CODE_SIGN) $(APP_BUNDLE)
 	-/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f $(APP_BUNDLE) >/dev/null 2>&1
 	@printf "Installed to %s\n" "$(APP_BUNDLE)"

@@ -11,6 +11,7 @@ final class OAuthClient {
         case missingCode
         case tokenExchangeFailed(String)
         case refreshFailed(String)
+        case refreshUnavailable(String)
         case noRefreshToken
         case missingEmail
 
@@ -21,6 +22,7 @@ final class OAuthClient {
             case .missingCode: return "No authorization code was returned."
             case .tokenExchangeFailed(let detail): return "Token exchange failed: \(detail)"
             case .refreshFailed(let detail): return "Token refresh failed: \(detail)"
+            case .refreshUnavailable(let detail): return "Token refresh unavailable: \(detail)"
             case .noRefreshToken: return "No refresh token is stored; sign in again."
             case .missingEmail: return "Could not read the account email."
             }
@@ -117,7 +119,7 @@ final class OAuthClient {
         } catch let oauthError as OAuthError {
             throw oauthError
         } catch {
-            throw OAuthError.refreshFailed(error.localizedDescription)
+            throw Self.transientRefreshError(error)
         }
     }
 
@@ -145,10 +147,43 @@ final class OAuthClient {
         let (data, response) = try await session.data(for: request)
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
             let body = String(data: data, encoding: .utf8) ?? "status \(http.statusCode)"
-            // An invalid_grant here usually means the refresh token was revoked.
-            throw OAuthError.refreshFailed(body)
+            if Self.isInvalidGrant(body) {
+                // An invalid_grant here usually means the refresh token was revoked.
+                throw OAuthError.refreshFailed(body)
+            }
+            throw OAuthError.refreshUnavailable(body)
         }
         return try JSONDecoder().decode(T.self, from: data)
+    }
+
+    private static func transientRefreshError(_ error: Error) -> OAuthError {
+        if let urlError = error as? URLError, isTransientNetworkError(urlError) {
+            return .refreshUnavailable(urlError.localizedDescription)
+        }
+        return .refreshUnavailable(error.localizedDescription)
+    }
+
+    private static func isTransientNetworkError(_ error: URLError) -> Bool {
+        switch error.code {
+        case .notConnectedToInternet, .networkConnectionLost, .timedOut,
+             .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed,
+             .internationalRoamingOff, .dataNotAllowed, .secureConnectionFailed:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private static func isInvalidGrant(_ body: String) -> Bool {
+        struct TokenError: Decodable {
+            let error: String?
+        }
+        if let data = body.data(using: .utf8),
+           let parsed = try? JSONDecoder().decode(TokenError.self, from: data),
+           parsed.error == "invalid_grant" {
+            return true
+        }
+        return body.contains("invalid_grant")
     }
 
     // MARK: - PKCE helpers
