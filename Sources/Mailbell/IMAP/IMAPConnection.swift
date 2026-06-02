@@ -10,7 +10,6 @@ final class IMAPConnection {
     enum ConnectionError: Error {
         case notReady(String)
         case closed
-        case timedOut
     }
 
     private let host: NWEndpoint.Host

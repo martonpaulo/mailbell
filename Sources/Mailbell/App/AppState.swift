@@ -39,7 +39,6 @@ final class AppState: ObservableObject {
     @Published private(set) var status: Status = .signedOut
     @Published private(set) var accountEmail: String?
     @Published private(set) var lastError: String?
-    @Published private(set) var lastNotifiedSubject: String?
     @Published private(set) var isConfigured: Bool
 
     private let monitor: MailMonitor
@@ -92,10 +91,6 @@ final class AppState: ObservableObject {
         accountEmail = nil
     }
 
-    func reconnect() {
-        monitor.start()
-    }
-
     func openGmail() {
         NSWorkspace.shared.open(URL(string: "https://mail.google.com/")!)
     }
@@ -117,9 +112,8 @@ extension AppState: MailMonitorDelegate {
         Task { @MainActor in self.accountEmail = email }
     }
 
-    nonisolated func monitor(didNotify header: MessageHeader, result: NotificationPostResult) {
+    nonisolated func monitor(didNotify _: MessageHeader, result: NotificationPostResult) {
         Task { @MainActor in
-            self.lastNotifiedSubject = header.subject
             if let message = result.userMessage {
                 self.lastError = message
             }

@@ -1,0 +1,83 @@
+import Foundation
+
+enum IMAPParser {
+    static func parseFetch(firstLine: String, headerBlock: Data) -> MessageHeader? {
+        guard parseLiteralSize(firstLine) != nil else { return nil }
+
+        let uid = parseNumber(in: firstLine, key: "UID") ?? 0
+        let thrid = parseToken(in: firstLine, key: "X-GM-THRID")
+        let raw = String(bytes: headerBlock, encoding: .utf8) ?? ""
+        let fields = parseHeaderFields(raw)
+
+        return MessageHeader(
+            uid: uid,
+            from: MIMEHeaderDecoder.decode(fields["from"] ?? "Unknown sender"),
+            subject: MIMEHeaderDecoder.decode(fields["subject"] ?? "(no subject)"),
+            date: fields["date"] ?? "",
+            gmThreadId: thrid
+        )
+    }
+
+    static func parseUntagged(_ line: String, suffix: String) -> Int? {
+        guard line.hasPrefix("* ") else { return nil }
+        let parts = line.dropFirst(2).split(separator: " ")
+        guard parts.count >= 2, parts[1].uppercased() == suffix,
+              let value = Int(parts[0]) else { return nil }
+        return value
+    }
+
+    static func parseBracket(_ line: String, key: String) -> Int? {
+        guard let range = line.range(of: "[\(key) ") else { return nil }
+        let tail = line[range.upperBound...]
+        let digits = tail.prefix { $0.isNumber }
+        return Int(digits)
+    }
+
+    static func parseNumber(in line: String, key: String) -> Int? {
+        guard let range = line.range(of: "\(key) ") else { return nil }
+        let tail = line[range.upperBound...]
+        let digits = tail.prefix { $0.isNumber }
+        return Int(digits)
+    }
+
+    static func parseToken(in line: String, key: String) -> String? {
+        guard let range = line.range(of: "\(key) ") else { return nil }
+        let tail = line[range.upperBound...]
+        let token = tail.prefix { $0.isNumber || $0.isLetter }
+        return token.isEmpty ? nil : String(token)
+    }
+
+    static func parseLiteralSize(_ line: String) -> Int? {
+        guard let open = line.range(of: "{", options: .backwards),
+              let close = line.range(of: "}", options: .backwards),
+              open.upperBound < close.lowerBound else { return nil }
+        return Int(line[open.upperBound ..< close.lowerBound])
+    }
+
+    static func parseHeaderFields(_ raw: String) -> [String: String] {
+        var fields: [String: String] = [:]
+        var currentKey: String?
+        var currentValue = ""
+
+        func commit() {
+            if let key = currentKey {
+                fields[key.lowercased()] = currentValue.trimmingCharacters(in: .whitespaces)
+            }
+        }
+
+        for rawLine in raw
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .split(separator: "\n", omittingEmptySubsequences: false) {
+            let line = String(rawLine)
+            if line.first == " " || line.first == "\t" {
+                currentValue += " " + line.trimmingCharacters(in: .whitespaces)
+            } else if let colon = line.firstIndex(of: ":") {
+                commit()
+                currentKey = String(line[line.startIndex ..< colon])
+                currentValue = String(line[line.index(after: colon)...]).trimmingCharacters(in: .whitespaces)
+            }
+        }
+        commit()
+        return fields
+    }
+}

@@ -13,9 +13,4 @@ enum Log {
         let text = message()
         logger.error("\(text, privacy: .public)")
     }
-
-    static func debug(_ message: @autoclosure () -> String) {
-        let text = message()
-        logger.debug("\(text, privacy: .public)")
-    }
 }

@@ -88,13 +88,13 @@ final class IMAPClient {
 
         while true {
             let line = try await connection.readLine()
-            if let exists = parseUntagged(line, suffix: "EXISTS") {
+            if let exists = IMAPParser.parseUntagged(line, suffix: "EXISTS") {
                 state.exists = exists
             }
-            if let uidValidity = parseBracket(line, key: "UIDVALIDITY") {
+            if let uidValidity = IMAPParser.parseBracket(line, key: "UIDVALIDITY") {
                 state.uidValidity = uidValidity
             }
-            if let uidNext = parseBracket(line, key: "UIDNEXT") {
+            if let uidNext = IMAPParser.parseBracket(line, key: "UIDNEXT") {
                 state.uidNext = uidNext
             }
             if line.hasPrefix("\(tag) OK") { return state }
@@ -134,7 +134,7 @@ final class IMAPClient {
         var sawNewMessages = false
         while true {
             let line = try await connection.readLine()
-            if parseUntagged(line, suffix: "EXISTS") != nil {
+            if IMAPParser.parseUntagged(line, suffix: "EXISTS") != nil {
                 sawNewMessages = true
                 await sendDone()
             }
@@ -173,93 +173,11 @@ final class IMAPClient {
     }
 
     private func parseFetch(_ firstLine: String) async throws -> MessageHeader? {
-        let uid = parseNumber(in: firstLine, key: "UID") ?? 0
-        let thrid = parseToken(in: firstLine, key: "X-GM-THRID")
-
-        // The header block is delivered as a literal `{n}` at the end of the line.
-        guard let literalSize = parseLiteralSize(firstLine) else {
+        guard let literalSize = IMAPParser.parseLiteralSize(firstLine) else {
             return nil
         }
         let block = try await connection.readBytes(literalSize)
-        // Consume the rest of the FETCH response up to its closing line.
         _ = try await connection.readLine()
-
-        let raw = String(bytes: block, encoding: .utf8) ?? ""
-        let fields = parseHeaderFields(raw)
-        return MessageHeader(
-            uid: uid,
-            from: MIMEHeaderDecoder.decode(fields["from"] ?? "Unknown sender"),
-            subject: MIMEHeaderDecoder.decode(fields["subject"] ?? "(no subject)"),
-            date: fields["date"] ?? "",
-            gmThreadId: thrid
-        )
-    }
-
-    // MARK: - Parsing helpers
-
-    private func parseUntagged(_ line: String, suffix: String) -> Int? {
-        // e.g. "* 12 EXISTS"
-        guard line.hasPrefix("* ") else { return nil }
-        let parts = line.dropFirst(2).split(separator: " ")
-        guard parts.count >= 2, parts[1].uppercased() == suffix,
-              let value = Int(parts[0]) else { return nil }
-        return value
-    }
-
-    private func parseBracket(_ line: String, key: String) -> Int? {
-        // e.g. "* OK [UIDVALIDITY 12345] ..."
-        guard let range = line.range(of: "[\(key) ") else { return nil }
-        let tail = line[range.upperBound...]
-        let digits = tail.prefix { $0.isNumber }
-        return Int(digits)
-    }
-
-    private func parseNumber(in line: String, key: String) -> Int? {
-        guard let range = line.range(of: "\(key) ") else { return nil }
-        let tail = line[range.upperBound...]
-        let digits = tail.prefix { $0.isNumber }
-        return Int(digits)
-    }
-
-    private func parseToken(in line: String, key: String) -> String? {
-        guard let range = line.range(of: "\(key) ") else { return nil }
-        let tail = line[range.upperBound...]
-        let token = tail.prefix { $0.isNumber || $0.isLetter }
-        return token.isEmpty ? nil : String(token)
-    }
-
-    private func parseLiteralSize(_ line: String) -> Int? {
-        guard let open = line.range(of: "{", options: .backwards),
-              let close = line.range(of: "}", options: .backwards),
-              open.upperBound < close.lowerBound else { return nil }
-        return Int(line[open.upperBound..<close.lowerBound])
-    }
-
-    private func parseHeaderFields(_ raw: String) -> [String: String] {
-        var fields: [String: String] = [:]
-        var currentKey: String?
-        var currentValue = ""
-
-        func commit() {
-            if let key = currentKey {
-                fields[key.lowercased()] = currentValue.trimmingCharacters(in: .whitespaces)
-            }
-        }
-
-        for rawLine in raw
-            .replacingOccurrences(of: "\r\n", with: "\n")
-            .split(separator: "\n", omittingEmptySubsequences: false) {
-            let line = String(rawLine)
-            if line.first == " " || line.first == "\t" {
-                // Folded continuation of the previous header.
-                currentValue += " " + line.trimmingCharacters(in: .whitespaces)
-            } else if let colon = line.firstIndex(of: ":") {
-                commit()
-                currentKey = String(line[line.startIndex..<colon])
-                currentValue = String(line[line.index(after: colon)...]).trimmingCharacters(in: .whitespaces)
-            }
-        }
-        commit()
-        return fields
+        return IMAPParser.parseFetch(firstLine: firstLine, headerBlock: block)
     }
 }
