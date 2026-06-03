@@ -1,30 +1,33 @@
 import Foundation
 
-/// Persists the signed-in account email and its tokens.
+/// Persists one account's OAuth session.
 ///
 /// - The refresh token lives in the Keychain.
 /// - The (short-lived) access token + expiry are cached in the Keychain too so a
 ///   relaunch can reuse a still-valid access token instead of forcing a refresh.
-/// - The account email is non-secret and kept in UserDefaults for quick UI access.
 final class TokenStore {
-    private let refreshAccount = "google.refreshToken"
-    private let accessAccount = "google.accessToken"
-    private let emailKey = "mailbell.accountEmail"
+    private static let legacyRefreshAccount = "google.refreshToken"
+    private static let legacyAccessAccount = "google.accessToken"
 
-    private(set) var email: String? {
-        didSet { UserDefaults.standard.set(email, forKey: emailKey) }
-    }
+    private let refreshAccount: String
+    private let accessAccount: String
 
-    init() {
-        email = UserDefaults.standard.string(forKey: emailKey)
+    init(accountID: UUID? = nil, providerID: MailProviderID = .gmail) {
+        if let accountID {
+            let namespace = "mailbell.account.\(accountID.uuidString).\(providerID.rawValue)"
+            refreshAccount = "\(namespace).refreshToken"
+            accessAccount = "\(namespace).accessToken"
+        } else {
+            refreshAccount = Self.legacyRefreshAccount
+            accessAccount = Self.legacyAccessAccount
+        }
     }
 
     var hasSession: Bool {
         Keychain.get(account: refreshAccount) != nil
     }
 
-    func save(tokens: GoogleTokens, email: String) {
-        self.email = email
+    func save(tokens: GoogleTokens) {
         if let refresh = tokens.refreshToken {
             try? Keychain.set(refresh, account: refreshAccount)
         }
@@ -56,6 +59,32 @@ final class TokenStore {
     func clear() {
         Keychain.delete(account: refreshAccount)
         Keychain.delete(account: accessAccount)
-        email = nil
+    }
+
+    static func migrateLegacyTokens(to accountID: UUID) {
+        let scoped = TokenStore(accountID: accountID)
+        let scopedAlreadyExists = scoped.hasSession
+        var canClearLegacyRefresh = scopedAlreadyExists
+        var canClearLegacyAccess = scopedAlreadyExists
+
+        if !scopedAlreadyExists, let refresh = Keychain.get(account: legacyRefreshAccount) {
+            do {
+                try Keychain.set(refresh, account: scoped.refreshAccount)
+                canClearLegacyRefresh = true
+            } catch {}
+        }
+        if !scopedAlreadyExists, let access = Keychain.get(account: legacyAccessAccount) {
+            do {
+                try Keychain.set(access, account: scoped.accessAccount)
+                canClearLegacyAccess = true
+            } catch {}
+        }
+
+        if canClearLegacyRefresh {
+            Keychain.delete(account: legacyRefreshAccount)
+        }
+        if canClearLegacyAccess {
+            Keychain.delete(account: legacyAccessAccount)
+        }
     }
 }

@@ -21,22 +21,25 @@ The app should let the user keep reading and managing mail in Gmail Web. It shou
 - No content polling loop for new mail. (The IMAP IDLE keepalive re-arm is a liveness timer, not content polling.)
 - No browser tab requirement.
 - No dependency on iPhone notification mirroring.
+- No account-directed browser/profile routing in the first multi-account release.
 
 ## Minimal User Experience
 
-- A macOS menu bar item shows connection state and unread count.
-- The user signs in with a Google account through OAuth.
+- A macOS menu bar item shows aggregate connection state.
+- The user signs in with one or more Google accounts through OAuth.
 - New Gmail inbox messages create native macOS notifications.
-- Clicking a notification opens Gmail Web in the configured browser.
-- The menu provides `Open Gmail`, `Reconnect`, `Settings`, and `Quit`.
-- Settings stay small: account, notification scope, browser choice, start at login, disconnect.
+- Clicking a notification opens Gmail Web in the system default browser.
+- The menu provides aggregate account health, first-run account setup when needed, `Settings`, and `Quit`.
+- Settings stay small: OAuth client configuration, account status/actions, and start at login.
 
 ## Recommended Architecture
 
 ```text
 MenuBarExtra
+  -> AccountSupervisor
+  -> AccountRuntime per account
   -> OAuth login
-  -> Keychain token storage
+  -> account-scoped Keychain token storage
   -> IMAP XOAUTH2 authentication
   -> IMAP IDLE session to imap.gmail.com:993
   -> new message event
@@ -141,7 +144,7 @@ refreshFailed / tokenRevoked
   -> authorizing
 ```
 
-The app must handle sleep, wake, network changes, VPN changes, access-token refresh, and refresh-token revocation. The reconnect checkpoint is the pair `(UIDVALIDITY, lastSeenUID)`: if `UIDVALIDITY` is unchanged, fetch headers for UIDs above the checkpoint and notify the gap; if it changed, rebaseline without notifying the backlog. A dead refresh token is not recoverable automatically and must route to `reauthRequired`, never to a silent retry loop.
+The app must handle sleep, wake, network changes, VPN changes, access-token refresh, and refresh-token revocation. The reconnect checkpoint is the per-account, per-mailbox pair `(UIDVALIDITY, lastSeenUID)`: if `UIDVALIDITY` is unchanged, fetch headers for UIDs above the checkpoint and notify the gap; if it changed, rebaseline without notifying the backlog. A dead refresh token is not recoverable automatically and must route that account to `reauthRequired`, never to a silent retry loop.
 
 ## Performance and Energy Budget
 
@@ -151,8 +154,30 @@ The design is push-based (IMAP IDLE) and never content-polls. The happy path is 
 - **Network awareness:** use `NWPathMonitor` to react immediately to network, interface, and VPN changes and reconnect, instead of waiting for a TCP timeout.
 - **Liveness:** enable TCP keepalive and re-arm IDLE on an app-side timer below the 29-minute IMAP limit (RFC 2177). Treat a missed re-arm round-trip as a dead connection.
 - **Sleep/wake:** observe `NSWorkspace` sleep/wake notifications and pre-warm a reconnect on wake rather than waiting for the next IDLE cycle.
-- **Idle cost:** one long-lived TLS connection, quiet except for the periodic re-arm; no short-interval timers that wake the CPU or radio. Do not defeat App Nap for the parts of the app that can sleep.
+- **Idle cost:** one long-lived TLS connection per enabled account, quiet except for the periodic re-arm; no short-interval timers that wake the CPU or radio. Do not defeat App Nap for the parts of the app that can sleep.
 - **No data loss on reconnect:** use the `(UIDVALIDITY, lastSeenUID)` checkpoint to fill gaps, and rate-limit notifications so a large backlog or first sync cannot flood Notification Center.
+
+## Accounts and Providers
+
+Accounts are modeled as a provider-backed collection, not as fixed slots. The first multi-account release registers only `GmailProvider`, but the runtime is account/provider-shaped so a future provider can add its own auth and transport without rewriting account supervision.
+
+Each account owns:
+
+- account metadata in `UserDefaults`
+- provider-scoped credentials in Keychain
+- per-mailbox checkpoints in `UserDefaults`
+- one runtime state machine
+- one IMAP IDLE connection while enabled and connected
+
+`AccountSupervisor` owns global lifecycle events such as app launch, network recovery, and wake-from-sleep, then fans reconnect requests out to account runtimes. UI state observes supervisor snapshots instead of managing `MailMonitor` instances directly.
+
+## Webmail Opening
+
+The first multi-account release intentionally keeps Webmail opening account-agnostic. Mailbell opens the provider's generic Webmail URL in the system default browser. It does not include `authuser`, does not select a browser profile, and does not guarantee that the browser opens the same account that produced the notification.
+
+Manual `Open Gmail` menu or per-account actions are not exposed in the first multi-account release because they imply account-directed browser behavior that Mailbell does not implement yet.
+
+Future: support per-account browser/profile open commands. This is likely the correct way to guarantee that each account opens in the intended browser session, but it is intentionally out of scope for the first multi-account release because it introduces browser-specific configuration, command validation, and failure handling.
 
 ## macOS App Shape
 
@@ -180,14 +205,13 @@ Use AppKit only where SwiftUI does not cover the needed menu bar, settings, logi
 - **Transport:** Gmail IMAP IDLE, performance-first. See Transport Choice.
 - **OAuth publishing:** External + In production + Unverified for private use; Workspace Internal if available. Solves the 7-day token expiry without CASA. See Token Lifecycle.
 - **Notification scope:** `INBOX` for the first release. Gmail's category tabs (Primary/Social/Promotions/...) are not separate IMAP folders, so a "Primary only" filter is not achievable over IMAP and would require the Gmail API. Revisit only if category filtering becomes a requirement.
-- **Accounts:** single Gmail account for the first release; multi-account deferred.
-- **Browser:** open in the system default browser; per-account/browser choice deferred.
-- **Deep link:** feasible via `X-GM-THRID` converted to hex in a Gmail Web URL. First release opens the inbox; per-message deep links are a fast follow once verified.
+- **Accounts:** account collection with one runtime per enabled account. First implemented provider is Gmail.
+- **Browser:** open the provider's generic Webmail URL in the system default browser. Per-account browser/profile commands are deferred.
+- **Deep link:** account-directed Gmail thread links are deferred. The first multi-account release opens generic Gmail Webmail only.
 
 ## Open Questions
 
 - Will the project ever need public distribution (and therefore OAuth verification + annual CASA), or is private/Workspace use the permanent boundary?
-- For multi-account (later), is one IMAP IDLE connection per account acceptable given Gmail's per-account connection limits?
 - Is per-message deep linking reliable enough across Gmail Web states to enable by default, or should it stay opt-in?
 
 ## Verified Source Facts

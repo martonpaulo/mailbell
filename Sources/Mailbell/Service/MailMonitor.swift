@@ -1,47 +1,42 @@
-import AppKit
 import Foundation
-import Network
 
 protocol MailMonitorDelegate: AnyObject {
-    func monitor(didChangeStatus status: AppState.Status, error: String?)
-    func monitor(didUpdateAccount email: String?)
-    func monitor(didNotify header: MessageHeader, result: NotificationPostResult)
+    func monitor(_ accountID: UUID, didChangeStatus status: MonitorStatus, error: String?)
+    func monitor(_ accountID: UUID, didNotify header: MessageHeader, result: NotificationPostResult)
 }
 
-/// Orchestrates the connection state machine described in docs/design.md:
-/// sign-in, token refresh, IMAP connect/select/IDLE, gap-fill on reconnect, and
-/// recovery from network changes, sleep/wake, and token revocation.
+/// Runs one account's IMAP connection state machine:
+/// token refresh, IMAP connect/select/IDLE, gap-fill on reconnect, and token revocation.
 final class MailMonitor {
     weak var delegate: MailMonitorDelegate?
 
+    private(set) var account: MailAccount
     private var config: OAuthConfig?
-    private let store = TokenStore()
+    private let store: TokenStore
+    private var checkpoint: CheckpointStore
     private var oauth: OAuthClient?
 
     private var client: IMAPClient?
     private var runTask: Task<Void, Never>?
-    private var signInTask: Task<Void, Never>?
-
-    private let pathMonitor = NWPathMonitor()
-    private let pathQueue = DispatchQueue(label: "com.samzong.mailbell.path")
-    private var lastPathSatisfied = true
 
     /// IDLE re-arm window: below the 29-minute IMAP limit (RFC 2177).
     private let idleTimeout: TimeInterval = 25 * 60
 
-    private let uidValidityKey = "mailbell.uidValidity"
-    private let lastUIDKey = "mailbell.lastSeenUID"
-
-    init(config: OAuthConfig?) {
+    init(account: MailAccount, config: OAuthConfig?) {
+        self.account = account
         self.config = config
+        store = TokenStore(accountID: account.id, providerID: account.providerID)
+        checkpoint = CheckpointStore(accountID: account.id)
         oauth = config.map(OAuthClient.init)
-        setupNetworkMonitoring()
-        setupSleepWakeObservers()
     }
 
     var hasSession: Bool { store.hasSession }
-    var accountEmail: String? { store.email }
     var isConfigured: Bool { config != nil }
+
+    func updateAccount(_ account: MailAccount) {
+        self.account = account
+        checkpoint = CheckpointStore(accountID: account.id)
+    }
 
     /// Applies a new OAuth client configuration (entered in Settings).
     func reconfigure(_ config: OAuthConfig?) {
@@ -51,47 +46,31 @@ final class MailMonitor {
 
     // MARK: - Public actions
 
-    func signIn() {
-        guard let oauth else { return }
-        signInTask?.cancel()
-        notifyStatus(.connecting)
-        signInTask = Task { [weak self] in
-            guard let self else { return }
-            do {
-                let result = try await oauth.signIn()
-                self.store.save(tokens: result.tokens, email: result.email)
-                self.delegate?.monitor(didUpdateAccount: result.email)
-                self.resetCheckpoint()
-                self.start()
-            } catch {
-                Log.error("Sign-in failed: \(error.localizedDescription)")
-                self.notifyStatus(.signedOut, error: error.localizedDescription)
-            }
-        }
-    }
-
     func start() {
-        guard config != nil, store.hasSession else { return }
+        guard config != nil, account.isEnabled, store.hasSession else { return }
         runTask?.cancel()
+        client?.disconnect()
+        client = nil
         runTask = Task { [weak self] in
             await self?.runLoop()
         }
     }
 
-    func disconnect() {
+    func stop(clearSession: Bool = false) {
         runTask?.cancel()
         runTask = nil
         client?.disconnect()
         client = nil
-        store.clear()
-        resetCheckpoint()
+        if clearSession {
+            store.clear()
+            checkpoint.reset()
+        }
         notifyStatus(.signedOut)
-        delegate?.monitor(didUpdateAccount: nil)
     }
 
     /// Forces the current connection to drop so the run loop reconnects promptly
     /// (used on network-available and wake).
-    private func forceReconnect() {
+    func forceReconnect() {
         client?.disconnect()
     }
 
@@ -103,10 +82,7 @@ final class MailMonitor {
             do {
                 notifyStatus(.connecting)
                 let accessToken = try await validAccessToken()
-                guard let email = store.email else {
-                    notifyStatus(.reauthRequired, error: "Missing account email")
-                    return
-                }
+                let email = account.email
 
                 let client = IMAPClient()
                 self.client = client
@@ -117,7 +93,7 @@ final class MailMonitor {
 
                 backoff = 1
                 notifyStatus(.connected)
-                try await idleLoop(client: client, email: email)
+                try await idleLoop(client: client)
             } catch let error as OAuthClient.OAuthError {
                 switch error {
                 case .refreshFailed, .noRefreshToken:
@@ -149,9 +125,9 @@ final class MailMonitor {
         }
     }
 
-    private func idleLoop(client: IMAPClient, email: String) async throws {
+    private func idleLoop(client: IMAPClient) async throws {
         // Catch up on anything that arrived before this connection settled.
-        try await fetchAndNotify(client: client, email: email)
+        try await fetchAndNotify(client: client)
 
         while !Task.isCancelled {
             let event = try await client.idle(timeout: idleTimeout)
@@ -159,18 +135,18 @@ final class MailMonitor {
             case .timedOut:
                 continue // re-arm IDLE
             case .newMessages:
-                try await fetchAndNotify(client: client, email: email)
+                try await fetchAndNotify(client: client)
             }
         }
     }
 
-    private func fetchAndNotify(client: IMAPClient, email: String) async throws {
+    private func fetchAndNotify(client: IMAPClient) async throws {
         let from = lastSeenUID + 1
         let headers = try await client.fetchHeaders(fromUID: from)
         let fresh = headers.filter { $0.uid > lastSeenUID }.sorted { $0.uid < $1.uid }
         for header in fresh {
-            let result = await NotificationManager.shared.notify(header, account: email)
-            delegate?.monitor(didNotify: header, result: result)
+            let result = await NotificationManager.shared.notify(header, account: account)
+            delegate?.monitor(account.id, didNotify: header, result: result)
             lastSeenUID = max(lastSeenUID, header.uid)
         }
     }
@@ -186,25 +162,20 @@ final class MailMonitor {
             return tokens.accessToken
         }
         let refreshed = try await oauth.refresh(refreshToken: refresh)
-        store.save(tokens: refreshed, email: store.email ?? "")
+        store.save(tokens: refreshed)
         return refreshed.accessToken
     }
 
     // MARK: - Checkpoint / gap fill
 
     private var lastSeenUID: Int {
-        get { UserDefaults.standard.integer(forKey: lastUIDKey) }
-        set { UserDefaults.standard.set(newValue, forKey: lastUIDKey) }
+        get { checkpoint.lastSeenUID }
+        set { checkpoint.lastSeenUID = newValue }
     }
 
     private var storedUIDValidity: Int {
-        get { UserDefaults.standard.integer(forKey: uidValidityKey) }
-        set { UserDefaults.standard.set(newValue, forKey: uidValidityKey) }
-    }
-
-    private func resetCheckpoint() {
-        UserDefaults.standard.removeObject(forKey: uidValidityKey)
-        UserDefaults.standard.removeObject(forKey: lastUIDKey)
+        get { checkpoint.storedUIDValidity }
+        set { checkpoint.storedUIDValidity = newValue }
     }
 
     /// Decides whether to gap-fill, rebaseline, or start clean using the
@@ -224,33 +195,9 @@ final class MailMonitor {
         // Otherwise keep the checkpoint; idleLoop's initial fetch fills the gap.
     }
 
-    // MARK: - Network / sleep-wake
-
-    private func setupNetworkMonitoring() {
-        pathMonitor.pathUpdateHandler = { [weak self] path in
-            guard let self else { return }
-            let satisfied = path.status == .satisfied
-            let recovered = satisfied && !self.lastPathSatisfied
-            self.lastPathSatisfied = satisfied
-            if recovered {
-                Log.info("Network recovered; forcing reconnect.")
-                self.forceReconnect()
-            }
-        }
-        pathMonitor.start(queue: pathQueue)
-    }
-
-    private func setupSleepWakeObservers() {
-        let center = NSWorkspace.shared.notificationCenter
-        center.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
-            Log.info("System woke; forcing reconnect.")
-            self?.forceReconnect()
-        }
-    }
-
     // MARK: - Helpers
 
-    private func notifyStatus(_ status: AppState.Status, error: String? = nil) {
-        delegate?.monitor(didChangeStatus: status, error: error)
+    private func notifyStatus(_ status: MonitorStatus, error: String? = nil) {
+        delegate?.monitor(account.id, didChangeStatus: status, error: error)
     }
 }

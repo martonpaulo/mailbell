@@ -2,6 +2,9 @@ import AppKit
 import Foundation
 @preconcurrency import UserNotifications
 
+private let notificationWebmailURLKey = "webmailURL"
+private let notificationAccountIDKey = "accountID"
+
 struct NotificationAuthorizationState {
     let isBundled: Bool
     let status: UNAuthorizationStatus
@@ -65,11 +68,11 @@ enum NotificationPostResult {
     }
 }
 
+@MainActor
 final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationManager()
 
     private let notificationCenter = UNUserNotificationCenter.current()
-    private let urlKey = "gmailURL"
 
     private var isBundled: Bool {
         Bundle.main.bundleIdentifier != nil
@@ -114,10 +117,11 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         return await requestAuthorization()
     }
 
-    func notify(_ header: MessageHeader, account: String) async -> NotificationPostResult {
-        let url = header.gmailURL(account: account)
+    func notify(_ header: MessageHeader, account: MailAccount) async -> NotificationPostResult {
+        let provider = MailProviderRegistry.provider(for: account.providerID)
+        let url = provider.webmailURL
         guard isBundled else {
-            let message = "[notify] \(header.from) - \(header.subject) (\(url.absoluteString))"
+            let message = "[notify] \(account.email) \(header.from) - \(header.subject) (\(url.absoluteString))"
             Log.info(message)
             return .unavailable("Notifications unavailable outside app bundle.")
         }
@@ -132,11 +136,15 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         let content = UNMutableNotificationContent()
         content.title = header.from
         content.body = header.subject
+        content.subtitle = account.email
         content.sound = .default
-        content.userInfo = [urlKey: url.absoluteString]
+        content.userInfo = [
+            notificationWebmailURLKey: url.absoluteString,
+            notificationAccountIDKey: account.id.uuidString
+        ]
 
         let request = UNNotificationRequest(
-            identifier: "mailbell.\(header.uid)",
+            identifier: "mailbell.\(account.id.uuidString).\(header.uid)",
             content: content,
             trigger: nil
         )
@@ -154,7 +162,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    func userNotificationCenter(
+    nonisolated func userNotificationCenter(
         _: UNUserNotificationCenter,
         willPresent _: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
@@ -162,14 +170,18 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         completionHandler([.banner, .sound])
     }
 
-    func userNotificationCenter(
+    nonisolated func userNotificationCenter(
         _: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        if let urlString = response.notification.request.content.userInfo[urlKey] as? String,
+        if let urlString = response.notification.request.content.userInfo[notificationWebmailURLKey] as? String,
            let url = URL(string: urlString) {
-            NSWorkspace.shared.open(url)
+            Task { @MainActor in
+                NSWorkspace.shared.open(url)
+                completionHandler()
+            }
+            return
         }
         completionHandler()
     }
