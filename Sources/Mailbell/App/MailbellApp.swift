@@ -32,20 +32,20 @@ struct MenuContent: View {
     var body: some View {
         Text(appState.status.menuLabel)
 
-        if let email = appState.accountEmail {
-            Text(email)
+        if appState.accounts.isEmpty {
+            Text("No accounts")
+        } else {
+            Text(Self.accountSummary(for: appState.accounts))
         }
 
         Divider()
 
-        Button("Open Gmail") { appState.openGmail() }
-
-        if appState.status == .needsConfig {
-            Text("Open Settings to add your Google client")
-        } else if appState.status == .signedOut {
-            Button("Sign in with Google") { appState.signIn() }
-        } else if appState.status == .reauthRequired {
-            Text("Open Settings to sign in again")
+        if appState.accounts.isEmpty {
+            if appState.status == .needsConfig {
+                Text("Set up Google client in Settings")
+            } else {
+                Button("Add Google Account") { appState.addGoogleAccount() }
+            }
         }
 
         Divider()
@@ -66,6 +66,20 @@ struct MenuContent: View {
         NSApp.activate(ignoringOtherApps: true)
         NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
     }
+
+    private static func accountSummary(for states: [AccountRuntimeState]) -> String {
+        let enabled = states.filter(\.account.isEnabled)
+        guard !enabled.isEmpty else { return "All accounts disabled" }
+
+        let connected = enabled.filter { $0.status == .connected }.count
+        if connected == enabled.count {
+            return "\(connected) accounts connected"
+        }
+        if connected > 0 {
+            return "\(connected) of \(enabled.count) connected"
+        }
+        return "\(enabled.count) accounts enabled"
+    }
 }
 
 struct SettingsView: View {
@@ -79,7 +93,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 18) {
             settingsHeader
 
-            accountPanel
+            accountsPanel
 
             oauthPanel
 
@@ -123,21 +137,20 @@ struct SettingsView: View {
         }
     }
 
-    private var accountPanel: some View {
-        settingsPanel("Account") {
-            HStack(alignment: .center, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(appState.accountEmail ?? "No account connected")
-                        .font(.headline)
-                        .textSelection(.enabled)
-                    Text(accountDetail)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+    private var accountsPanel: some View {
+        settingsPanel("Accounts") {
+            if appState.accounts.isEmpty {
+                Text("No accounts connected")
+                    .font(.headline)
+                Text(accountEmptyDetail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(appState.accounts) { accountState in
+                        accountRow(accountState)
+                    }
                 }
-
-                Spacer()
-
-                accountAction
             }
 
             if let error = appState.lastError {
@@ -145,6 +158,15 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.orange)
                     .textSelection(.enabled)
+            }
+
+            HStack {
+                Spacer()
+                Button("Add Google Account") {
+                    appState.addGoogleAccount()
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!appState.isConfigured)
             }
         }
     }
@@ -187,23 +209,66 @@ struct SettingsView: View {
         }
     }
 
-    @ViewBuilder
-    private var accountAction: some View {
-        if appState.isSignedIn {
-            Button("Disconnect", role: .destructive) {
-                appState.disconnect()
+    private func accountRow(_ state: AccountRuntimeState) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: state.status.systemImage)
+                    .foregroundStyle(statusTint(for: state.status))
+                    .frame(width: 22)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(state.account.email)
+                        .font(.headline)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .textSelection(.enabled)
+                    Text(accountDetail(for: state))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Text(state.account.providerID.displayName)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
-        } else {
-            Button("Sign in with Google") {
-                appState.signIn()
+
+            HStack {
+                Spacer()
+
+                if state.status == .reauthRequired {
+                    Button("Sign in again") {
+                        appState.reauthenticate(accountID: state.account.id)
+                    }
+                } else {
+                    Button("Reconnect") {
+                        appState.reconnect(accountID: state.account.id)
+                    }
+                    .disabled(!state.account.isEnabled)
+                }
+
+                Button(state.account.isEnabled ? "Disable" : "Enable") {
+                    appState.setAccountEnabled(!state.account.isEnabled, accountID: state.account.id)
+                }
+
+                Button("Remove", role: .destructive) {
+                    appState.removeAccount(accountID: state.account.id)
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(!appState.isConfigured)
         }
     }
 
-    private var accountDetail: String {
-        switch appState.status {
+    private var accountEmptyDetail: String {
+        if appState.status == .needsConfig {
+            return "Add a Google OAuth client before signing in."
+        }
+        return "Add a Google account to start watching Gmail Inbox."
+    }
+
+    private func accountDetail(for state: AccountRuntimeState) -> String {
+        guard state.account.isEnabled else { return "Disabled." }
+        switch state.status {
         case .needsConfig:
             return "Add a Google OAuth client before signing in."
         case .signedOut:
@@ -228,7 +293,11 @@ struct SettingsView: View {
     }
 
     private var statusTint: Color {
-        switch appState.status {
+        statusTint(for: appState.status)
+    }
+
+    private func statusTint(for status: MonitorStatus) -> Color {
+        switch status {
         case .connected:
             return .green
         case .connecting, .reconnecting:
