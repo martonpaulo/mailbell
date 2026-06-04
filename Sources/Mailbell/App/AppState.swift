@@ -39,6 +39,7 @@ final class AppState: ObservableObject {
         let config = OAuthConfig.load()
         isConfigured = config != nil
         supervisor.reconfigure(config)
+        lastError = nil
         if isConfigured, status == .needsConfig {
             status = .signedOut
         }
@@ -56,6 +57,7 @@ final class AppState: ObservableObject {
         Task {
             do {
                 try await supervisor.addGmailAccount()
+                lastError = nil
             } catch {
                 lastError = error.localizedDescription
             }
@@ -66,6 +68,7 @@ final class AppState: ObservableObject {
         Task {
             do {
                 try await supervisor.reauthenticate(accountID: accountID)
+                lastError = nil
             } catch {
                 lastError = error.localizedDescription
             }
@@ -93,6 +96,5 @@ extension AppState: AccountSupervisorDelegate {
     func accountSupervisorDidUpdate(states: [AccountRuntimeState], aggregateStatus: MonitorStatus) {
         accounts = states
         status = aggregateStatus
-        lastError = states.compactMap(\.lastError).first
     }
 }

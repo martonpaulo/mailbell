@@ -36,7 +36,8 @@ final class AccountSupervisor {
     private var accounts: [MailAccount]
     private var monitors: [UUID: MailMonitor] = [:]
     private var statuses: [UUID: MonitorStatus] = [:]
-    private var errors: [UUID: String] = [:]
+    private var connectionErrors: [UUID: String] = [:]
+    private var notificationErrors: [UUID: String] = [:]
     private var isAuthenticating = false
 
     private let pathMonitor = NWPathMonitor()
@@ -59,7 +60,7 @@ final class AccountSupervisor {
                 AccountRuntimeState(
                     account: account,
                     status: statuses[account.id] ?? initialStatus(for: account),
-                    lastError: errors[account.id]
+                    lastError: connectionErrors[account.id] ?? notificationErrors[account.id]
                 )
             }
             .sorted { left, right in
@@ -140,6 +141,8 @@ final class AccountSupervisor {
         } else {
             monitors[accountID]?.stop()
             statuses[accountID] = .signedOut
+            connectionErrors[accountID] = nil
+            notificationErrors[accountID] = nil
         }
         publish()
     }
@@ -160,7 +163,8 @@ final class AccountSupervisor {
         monitors[accountID]?.stop(clearSession: true)
         monitors[accountID] = nil
         statuses[accountID] = nil
-        errors[accountID] = nil
+        connectionErrors[accountID] = nil
+        notificationErrors[accountID] = nil
         CheckpointStore(accountID: accountID).reset()
         TokenStore(accountID: accountID).clear()
         accounts = accountStore.remove(accountID: accountID)
@@ -288,7 +292,9 @@ extension AccountSupervisor: MailMonitorDelegate {
         Task { @MainActor [weak self] in
             self?.statuses[accountID] = status
             if let error {
-                self?.errors[accountID] = error
+                self?.connectionErrors[accountID] = error
+            } else if status.clearsLastError {
+                self?.connectionErrors[accountID] = nil
             }
             self?.publish()
         }
@@ -297,9 +303,22 @@ extension AccountSupervisor: MailMonitorDelegate {
     nonisolated func monitor(_ accountID: UUID, didNotify _: MessageHeader, result: NotificationPostResult) {
         Task { @MainActor [weak self] in
             if let message = result.userMessage {
-                self?.errors[accountID] = message
+                self?.notificationErrors[accountID] = message
+            } else {
+                self?.notificationErrors[accountID] = nil
             }
             self?.publish()
+        }
+    }
+}
+
+private extension MonitorStatus {
+    var clearsLastError: Bool {
+        switch self {
+        case .needsConfig, .signedOut, .connecting, .connected:
+            return true
+        case .reconnecting, .reauthRequired, .error:
+            return false
         }
     }
 }
