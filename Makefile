@@ -93,6 +93,7 @@ dmg: icons ## Build an ad-hoc signed DMG
 	mkdir -p $(DMG_STAGING)/$(APP_NAME).app/Contents/Resources
 	cp $$($(SWIFT) build -c release --arch $(ARCH) --product $(PRODUCT) --show-bin-path)/$(PRODUCT) $(DMG_STAGING)/$(APP_NAME).app/Contents/MacOS/$(APP_NAME)
 	cp $(INFO_PLIST) $(DMG_STAGING)/$(APP_NAME).app/Contents/Info.plist
+	Scripts/inject_oauth_config.sh $(DMG_STAGING)/$(APP_NAME).app/Contents/Info.plist
 	$(call compile-app-resources,$(DMG_STAGING)/$(APP_NAME).app)
 	$(CODE_SIGN) $(DMG_STAGING)/$(APP_NAME).app
 	ln -s /Applications $(DMG_STAGING)/Applications
@@ -111,6 +112,7 @@ install: icons ## Install an ad-hoc signed app bundle to /Applications
 	mkdir -p $(APP_BUNDLE)/Contents/Resources
 	cp $$($(SWIFT) build -c release --arch $(ARCH) --product $(PRODUCT) --show-bin-path)/$(PRODUCT) $(APP_BUNDLE)/Contents/MacOS/$(APP_NAME)
 	cp $(INFO_PLIST) $(APP_BUNDLE)/Contents/Info.plist
+	Scripts/inject_oauth_config.sh $(APP_BUNDLE)/Contents/Info.plist
 	$(call compile-app-resources,$(APP_BUNDLE))
 	$(CODE_SIGN) $(APP_BUNDLE)
 	-/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f $(APP_BUNDLE) >/dev/null 2>&1

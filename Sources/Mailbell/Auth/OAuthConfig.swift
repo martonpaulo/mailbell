@@ -1,14 +1,9 @@
 import Foundation
 
-/// OAuth client configuration. For a desktop/installed app the client secret is
-/// not actually confidential (see docs/design.md), but Google still issues one
-/// and expects it in the token exchange.
 struct OAuthConfig {
     let clientID: String
-    let clientSecret: String?
+    let clientSecret: String
 
-    /// Restricted full-mail scope is required for Gmail IMAP. `openid email` lets
-    /// us learn the account address for the XOAUTH2 SASL string.
     let scopes = ["https://mail.google.com/", "openid", "email"]
 
     let authEndpoint = URL(string: "https://accounts.google.com/o/oauth2/v2/auth")!
@@ -17,49 +12,63 @@ struct OAuthConfig {
 
     var scopeString: String { scopes.joined(separator: " ") }
 
-    private static let clientIDKey = "mailbell.clientID"
-    private static let secretAccount = "google.clientSecret"
+    private static let clientIDKey = "MAILBELL_GOOGLE_CLIENT_ID"
+    private static let clientSecretKey = "MAILBELL_GOOGLE_CLIENT_SECRET"
+    private static let bundleClientIDKey = "MailbellGoogleClientID"
+    private static let bundleClientSecretKey = "MailbellGoogleClientSecret"
 
-    /// Loads configuration, preferring values saved in the app (Settings) and
-    /// falling back to environment variables (useful for `swift run`). Returns nil
-    /// if unconfigured so the UI can prompt the user.
     static func load() -> OAuthConfig? {
-        if let id = persistedClientID, !id.isEmpty {
-            return OAuthConfig(clientID: id, clientSecret: persistedClientSecret)
-        }
-        return fromEnvironment()
+        fromBundle() ?? fromEnvironment(ProcessInfo.processInfo.environment) ?? fromDotEnv()
     }
 
-    static func fromEnvironment() -> OAuthConfig? {
-        guard let clientID = ProcessInfo.processInfo.environment["MAILBELL_CLIENT_ID"],
-              !clientID.isEmpty else {
+    private static func fromBundle() -> OAuthConfig? {
+        guard let clientID = Bundle.main.object(forInfoDictionaryKey: bundleClientIDKey) as? String,
+              let clientSecret = Bundle.main.object(forInfoDictionaryKey: bundleClientSecretKey) as? String else {
             return nil
         }
-        let secret = ProcessInfo.processInfo.environment["MAILBELL_CLIENT_SECRET"]
-        return OAuthConfig(clientID: clientID, clientSecret: secret?.isEmpty == true ? nil : secret)
+        return make(clientID: clientID, clientSecret: clientSecret)
     }
 
-    // MARK: - Persistence (entered via Settings)
-
-    static var persistedClientID: String? {
-        UserDefaults.standard.string(forKey: clientIDKey)
+    private static func fromEnvironment(_ environment: [String: String]) -> OAuthConfig? {
+        make(clientID: environment[clientIDKey], clientSecret: environment[clientSecretKey])
     }
 
-    /// Stored in Keychain. The desktop client secret is not truly confidential
-    /// (see docs/design.md), but Keychain keeps it out of plaintext anyway.
-    static var persistedClientSecret: String? {
-        Keychain.get(account: secretAccount)
+    private static func fromDotEnv() -> OAuthConfig? {
+        let url = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(".env")
+        guard let content = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        let values = content
+            .split(whereSeparator: \.isNewline)
+            .reduce(into: [String: String]()) { result, line in
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                guard !trimmed.isEmpty, !trimmed.hasPrefix("#"), let separator = trimmed.firstIndex(of: "=") else {
+                    return
+                }
+                let key = String(trimmed[..<separator]).trimmingCharacters(in: .whitespaces)
+                let rawValue = String(trimmed[trimmed.index(after: separator)...]).trimmingCharacters(in: .whitespaces)
+                result[key] = rawValue.strippingMatchingQuotes()
+            }
+        return fromEnvironment(values)
     }
 
-    static func save(clientID: String, clientSecret: String?) {
-        let trimmedID = clientID.trimmingCharacters(in: .whitespacesAndNewlines)
-        UserDefaults.standard.set(trimmedID, forKey: clientIDKey)
-
-        let trimmedSecret = clientSecret?.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let secret = trimmedSecret, !secret.isEmpty {
-            try? Keychain.set(secret, account: secretAccount)
-        } else {
-            Keychain.delete(account: secretAccount)
+    private static func make(clientID: String?, clientSecret: String?) -> OAuthConfig? {
+        guard let clientID = clientID?.trimmingCharacters(in: .whitespacesAndNewlines),
+              let clientSecret = clientSecret?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !clientID.isEmpty,
+              !clientSecret.isEmpty else {
+            return nil
         }
+        return OAuthConfig(clientID: clientID, clientSecret: clientSecret)
+    }
+}
+
+private extension String {
+    func strippingMatchingQuotes() -> String {
+        guard count >= 2,
+              let first,
+              let last,
+              (first == "\"" && last == "\"") || (first == "'" && last == "'") else {
+            return self
+        }
+        return String(dropFirst().dropLast())
     }
 }

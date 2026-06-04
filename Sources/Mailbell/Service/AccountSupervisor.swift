@@ -10,15 +10,15 @@ protocol AccountSupervisorDelegate: AnyObject {
 @MainActor
 final class AccountSupervisor {
     enum SupervisorError: LocalizedError {
-        case needsConfig
+        case missingOAuthCredentials
         case missingAccount
         case authenticationInProgress
         case accountMismatch(expected: String, actual: String)
 
         var errorDescription: String? {
             switch self {
-            case .needsConfig:
-                return "Add a Google OAuth client before signing in."
+            case .missingOAuthCredentials:
+                return "Google OAuth credentials are missing from this build."
             case .missingAccount:
                 return "Account not found."
             case .authenticationInProgress:
@@ -31,7 +31,7 @@ final class AccountSupervisor {
 
     weak var delegate: AccountSupervisorDelegate?
 
-    private var config: OAuthConfig?
+    private let configProvider: () -> OAuthConfig?
     private let accountStore: AccountStore
     private var accounts: [MailAccount]
     private var monitors: [UUID: MailMonitor] = [:]
@@ -46,8 +46,8 @@ final class AccountSupervisor {
     private var lastPathSatisfied = true
     private var wakeObserver: NSObjectProtocol?
 
-    init(config: OAuthConfig?, accountStore: AccountStore = AccountStore()) {
-        self.config = config
+    init(configProvider: @escaping () -> OAuthConfig? = OAuthConfig.load, accountStore: AccountStore = AccountStore()) {
+        self.configProvider = configProvider
         self.accountStore = accountStore
         accounts = accountStore.loadAccounts()
         setupNetworkMonitoring()
@@ -74,7 +74,6 @@ final class AccountSupervisor {
     }
 
     var aggregateStatus: MonitorStatus {
-        guard config != nil else { return .needsConfig }
         let enabledStates = accountStates.filter(\.account.isEnabled)
         guard !enabledStates.isEmpty else { return .signedOut }
 
@@ -93,33 +92,23 @@ final class AccountSupervisor {
         return .signedOut
     }
 
-    func reconfigure(_ config: OAuthConfig?) {
-        self.config = config
-        for monitor in monitors.values {
-            monitor.reconfigure(config)
-        }
-        if config != nil {
-            startEnabledAccounts()
-        }
-        publish()
-    }
-
     func addGmailAccount() async throws {
-        guard let config else { throw SupervisorError.needsConfig }
-
+        guard let config = configProvider() else { throw SupervisorError.missingOAuthCredentials }
         let result = try await signIn(config: config)
         let account = upsertSignedInAccount(email: result.email, providerID: .gmail)
         TokenStore(accountID: account.id, providerID: account.providerID).save(tokens: result.tokens)
+        statuses[account.id] = .signedOut
+        connectionErrors[account.id] = nil
         start(account)
         publish()
     }
 
     func reauthenticate(accountID: UUID) async throws {
-        guard let config else { throw SupervisorError.needsConfig }
         guard accounts.contains(where: { $0.id == accountID }) else {
             throw SupervisorError.missingAccount
         }
 
+        guard let config = configProvider() else { throw SupervisorError.missingOAuthCredentials }
         let result = try await signIn(config: config)
         guard let account = accounts.first(where: { $0.id == accountID }) else {
             throw SupervisorError.missingAccount
@@ -129,6 +118,8 @@ final class AccountSupervisor {
         }
         accounts = accountStore.upsert(account)
         TokenStore(accountID: account.id, providerID: account.providerID).save(tokens: result.tokens)
+        statuses[account.id] = .signedOut
+        connectionErrors[account.id] = nil
         start(account)
         publish()
     }
@@ -152,7 +143,10 @@ final class AccountSupervisor {
 
     func reconnect(accountID: UUID) {
         guard let account = accounts.first(where: { $0.id == accountID }) else { return }
-        let monitor = ensureMonitor(for: account)
+        guard let monitor = ensureMonitor(for: account) else {
+            publish()
+            return
+        }
         if monitor.hasSession {
             monitor.forceReconnect()
             monitor.start()
@@ -218,7 +212,7 @@ final class AccountSupervisor {
     }
 
     private func start(_ account: MailAccount) {
-        let monitor = ensureMonitor(for: account)
+        guard let monitor = ensureMonitor(for: account) else { return }
         if monitor.hasSession {
             monitor.start()
         } else {
@@ -228,19 +222,23 @@ final class AccountSupervisor {
 
     private func reconnectIfSessionExists(accountID: UUID) {
         guard let account = accounts.first(where: { $0.id == accountID && $0.isEnabled }) else { return }
-        let monitor = ensureMonitor(for: account)
+        guard let monitor = ensureMonitor(for: account) else { return }
         guard monitor.hasSession else { return }
         monitor.forceReconnect()
         monitor.start()
     }
 
-    private func ensureMonitor(for account: MailAccount) -> MailMonitor {
+    private func ensureMonitor(for account: MailAccount) -> MailMonitor? {
         if let monitor = monitors[account.id] {
             monitor.updateAccount(account)
-            monitor.reconfigure(config)
             return monitor
         }
 
+        guard let config = configProvider() else {
+            statuses[account.id] = .error
+            connectionErrors[account.id] = SupervisorError.missingOAuthCredentials.localizedDescription
+            return nil
+        }
         let monitor = MailMonitor(account: account, config: config)
         monitor.delegate = self
         monitors[account.id] = monitor
@@ -249,7 +247,6 @@ final class AccountSupervisor {
     }
 
     private func initialStatus(for account: MailAccount) -> MonitorStatus {
-        guard config != nil else { return .needsConfig }
         guard account.isEnabled else { return .signedOut }
         return .signedOut
     }
@@ -356,7 +353,7 @@ extension AccountSupervisor: MailMonitorDelegate {
 private extension MonitorStatus {
     var clearsLastError: Bool {
         switch self {
-        case .needsConfig, .signedOut, .connected:
+        case .signedOut, .connected:
             return true
         case .connecting, .reconnecting, .reauthRequired, .error:
             return false

@@ -89,7 +89,10 @@ final class AccountSupervisorTests: XCTestCase {
         let store = AccountStore(userDefaults: defaults, migrateLegacySecrets: false)
         let account = MailAccount(providerID: .gmail, email: "test@example.com")
         store.saveAccounts([account])
-        let supervisor = AccountSupervisor(config: nil, accountStore: store)
+        let supervisor = AccountSupervisor(
+            configProvider: { OAuthConfig(clientID: "client", clientSecret: "secret") },
+            accountStore: store
+        )
         return (supervisor, account)
     }
 

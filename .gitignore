@@ -21,3 +21,6 @@ DerivedData/
 .vscode/
 .idea/
 *.swp
+
+# Local credentials
+.env

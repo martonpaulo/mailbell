@@ -29,7 +29,7 @@ The app should let the user keep reading and managing mail in Gmail Web. It shou
 - New Gmail inbox messages create native macOS notifications.
 - Clicking a notification opens Gmail Web using the account's configured browser (system default by default).
 - The menu provides aggregate account health, first-run account setup when needed, `Settings`, and `Quit`.
-- Settings stay small: OAuth client configuration, account status/actions, and start at login.
+- Settings stay small: account status/actions, browser routing, and start at login.
 
 ## Recommended Architecture
 
@@ -76,7 +76,7 @@ https://mail.google.com/
 
 This is a restricted full-mail scope. IMAP offers no narrower option: even though the app only reads message headers, the consent surface covers full mail access. This is the one real cost of choosing IMAP over the Gmail API (whose `gmail.metadata` scope is narrower), accepted because the priority is latency and low overhead, not consent-surface minimization (see Transport Choice).
 
-The OAuth client is a macOS "Desktop / installed app" client and must use PKCE. A desktop client secret is not actually confidential; never treat it as a real credential.
+The OAuth client is a built-in macOS "Desktop / installed app" client and must use PKCE. Release builds inject the client ID and desktop client secret from GitHub Actions secrets into the app bundle. Local development reads the same values from environment variables or `.env`. Users do not configure either value in the app.
 
 Token storage must use Keychain. Refresh tokens must not be stored in `UserDefaults`, plaintext files, or logs.
 

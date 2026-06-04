@@ -13,23 +13,22 @@ See [docs/design.md](docs/design.md) for the full design.
 ## Requirements
 
 - macOS 13 (Ventura) or newer.
-- A Google Cloud OAuth client (Desktop app type). See "Google setup" below.
 
 No Apple Developer account is needed: builds are ad-hoc signed for local use. An app you build and install locally is not quarantined, so Gatekeeper will not block it (only matters if you copy the DMG to another Mac).
 
-## Google setup
+## Google sign-in
 
-1. In the Google Cloud Console, create a project and enable the OAuth consent screen.
-2. Set the consent screen to **In production** (publishing status). For personal use you can leave it **Unverified** — this avoids the 7-day refresh-token expiry without needing CASA verification. If you own a Workspace org, set the user type to **Internal** instead.
-3. Add the scope `https://mail.google.com/` (plus `openid` and `email`).
-4. Create an OAuth client ID of type **Desktop app**. Note the client ID (and the non-secret client secret it gives you).
-5. Provide them to the app one of two ways:
-   - **In the app (recommended):** open the menu → `Settings…` → "Google OAuth client", paste the Client ID and secret, click `Save client`, then `Sign in with Google`. The client ID is stored in app preferences and the secret in the Keychain.
-   - **Environment variables (for `swift run` from a terminal only):** GUI apps launched from Finder do not inherit these.
+Mailbell includes its Google Desktop OAuth client. Open Mailbell, choose `Add Google Account`, and complete the Google browser sign-in flow.
+
+The app requests `https://mail.google.com/`, `openid`, and `email`. The broad Gmail scope is required for Gmail IMAP XOAUTH2; Mailbell still fetches only headers for notifications. If Google shows an unverified-app warning, review it and continue only if you trust this local build.
+
+For local development, set the OAuth values in the shell environment or create `.env` from `.env.example` before running `make run`, `make install`, or `make dmg`.
+
+For GitHub Actions releases, set repository secrets with:
 
 ```bash
-export MAILBELL_CLIENT_ID="xxxx.apps.googleusercontent.com"
-export MAILBELL_CLIENT_SECRET="yyyy"   # Google issues one for desktop clients; it is not treated as confidential
+gh secret set MAILBELL_GOOGLE_CLIENT_ID
+gh secret set MAILBELL_GOOGLE_CLIENT_SECRET
 ```
 
 ## Build and run

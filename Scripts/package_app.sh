@@ -32,6 +32,7 @@ mkdir -p "${APP_DIR}/Contents/Resources"
 
 cp "${BIN_PATH}" "${APP_DIR}/Contents/MacOS/${APP_NAME}"
 cp "Resources/Info.plist" "${APP_DIR}/Contents/Info.plist"
+Scripts/inject_oauth_config.sh "${APP_DIR}/Contents/Info.plist"
 
 xcrun actool --compile "${APP_DIR}/Contents/Resources" \
   --platform macosx \

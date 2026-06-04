@@ -8,21 +8,15 @@ final class AppState: ObservableObject {
     @Published private(set) var status: MonitorStatus = .signedOut
     @Published private(set) var accounts: [AccountRuntimeState] = []
     @Published private(set) var lastError: String?
-    @Published private(set) var isConfigured: Bool
 
     private let supervisor: AccountSupervisor
 
     init() {
-        let config = OAuthConfig.load()
-        isConfigured = config != nil
-        supervisor = AccountSupervisor(config: config)
+        supervisor = AccountSupervisor()
         supervisor.delegate = self
         accounts = supervisor.accountStates
         status = supervisor.aggregateStatus
 
-        if config == nil {
-            status = .needsConfig
-        }
         NotificationManager.shared.webmailOpenHandler = { [weak self] accountID, url in
             await self?.supervisor.openWebmail(accountID: accountID, url: url)
         }
@@ -33,30 +27,11 @@ final class AppState: ObservableObject {
 
     var hasAccounts: Bool { !accounts.isEmpty }
 
-    /// Persists the Google client and applies it. Returns to a signed-out (ready)
-    /// state so the user can sign in.
-    func saveConfig(clientID: String, clientSecret: String) {
-        let trimmedID = clientID.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedID.isEmpty else { return }
-        OAuthConfig.save(clientID: trimmedID, clientSecret: clientSecret)
-        let config = OAuthConfig.load()
-        isConfigured = config != nil
-        supervisor.reconfigure(config)
-        lastError = nil
-        if isConfigured, status == .needsConfig {
-            status = .signedOut
-        }
-    }
-
     func signIn() {
         addGoogleAccount()
     }
 
     func addGoogleAccount() {
-        guard isConfigured else {
-            lastError = "Add your Google Client ID in Settings first."
-            return
-        }
         Task {
             do {
                 try await supervisor.addGmailAccount()

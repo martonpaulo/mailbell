@@ -41,11 +41,7 @@ struct MenuContent: View {
         Divider()
 
         if appState.accounts.isEmpty {
-            if appState.status == .needsConfig {
-                Text("Set up Google client in Settings")
-            } else {
-                Button("Add Google Account") { appState.addGoogleAccount() }
-            }
+            Button("Add Google Account") { appState.addGoogleAccount() }
         }
 
         Divider()
@@ -85,9 +81,6 @@ struct MenuContent: View {
 struct SettingsView: View {
     @ObservedObject var appState: AppState
     @State private var launchAtLogin = LoginItem.isEnabled
-    @State private var clientID = OAuthConfig.persistedClientID ?? ""
-    @State private var clientSecret = OAuthConfig.persistedClientSecret ?? ""
-    @State private var didSaveClient = false
 
     var body: some View {
         TabView {
@@ -95,12 +88,6 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .tabItem {
                     Label("Accounts", systemImage: "person.crop.circle")
-                }
-
-            oauthPanel
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .tabItem {
-                    Label("Google OAuth", systemImage: "key")
                 }
 
             behaviorPanel
@@ -112,8 +99,6 @@ struct SettingsView: View {
         .padding(24)
         .frame(width: 640)
         .frame(minHeight: 430)
-        .onChange(of: clientID) { _ in didSaveClient = false }
-        .onChange(of: clientSecret) { _ in didSaveClient = false }
         .onAppear {
             // Accessory apps have no Dock icon; make sure the window comes forward.
             NSApp.activate(ignoringOtherApps: true)
@@ -144,7 +129,6 @@ struct SettingsView: View {
                     appState.addGoogleAccount()
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(!appState.isConfigured)
             }
 
             VStack(alignment: .leading, spacing: 12) {
@@ -184,44 +168,6 @@ struct SettingsView: View {
             .padding(14)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 10))
-        }
-    }
-
-    private var oauthPanel: some View {
-        settingsPanel("Google OAuth client") {
-            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
-                SettingsFieldRow("Client ID") {
-                    TextField("…apps.googleusercontent.com", text: $clientID)
-                        .textFieldStyle(.roundedBorder)
-                        .textSelection(.enabled)
-                }
-
-                SettingsFieldRow("Client secret") {
-                    SecureField("Desktop client secret", text: $clientSecret)
-                        .textFieldStyle(.roundedBorder)
-                }
-            }
-
-            HStack {
-                Text("Use a Desktop OAuth client from Google Cloud.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Spacer()
-
-                if didSaveClient {
-                    Label("Saved", systemImage: "checkmark")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Button("Save") {
-                    appState.saveConfig(clientID: clientID, clientSecret: clientSecret)
-                    didSaveClient = true
-                }
-                .buttonStyle(.bordered)
-                .disabled(!canSaveClient)
-            }
         }
     }
 
@@ -277,17 +223,12 @@ struct SettingsView: View {
     }
 
     private var accountEmptyDetail: String {
-        if appState.status == .needsConfig {
-            return "Add a Google OAuth client before signing in."
-        }
         return "Add a Google account to start watching Gmail Inbox."
     }
 
     private func accountDetail(for state: AccountRuntimeState) -> String {
         guard state.account.isEnabled else { return "Disabled." }
         switch state.status {
-        case .needsConfig:
-            return "Add a Google OAuth client before signing in."
         case .signedOut:
             return "Ready to sign in."
         case .connecting:
@@ -303,12 +244,6 @@ struct SettingsView: View {
         }
     }
 
-    private var canSaveClient: Bool {
-        let trimmedID = clientID.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedID.isEmpty else { return false }
-        return trimmedID != OAuthConfig.persistedClientID || clientSecret != (OAuthConfig.persistedClientSecret ?? "")
-    }
-
     private func statusTint(for status: MonitorStatus) -> Color {
         switch status {
         case .connected:
@@ -317,7 +252,7 @@ struct SettingsView: View {
             return .orange
         case .reauthRequired, .error:
             return .red
-        case .needsConfig, .signedOut:
+        case .signedOut:
             return .secondary
         }
     }

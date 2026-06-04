@@ -87,14 +87,14 @@ final class OAuthClient {
     // MARK: - Token exchange / refresh
 
     private func exchangeCode(_ code: String, verifier: String, redirectURI: String) async throws -> GoogleTokens {
-        var form: [String: String] = [
+        let form: [String: String] = [
             "client_id": config.clientID,
+            "client_secret": config.clientSecret,
             "code": code,
             "code_verifier": verifier,
             "grant_type": "authorization_code",
             "redirect_uri": redirectURI
         ]
-        if let secret = config.clientSecret { form["client_secret"] = secret }
 
         do {
             let response: TokenResponse = try await postForm(config.tokenEndpoint, form: form)
@@ -106,12 +106,12 @@ final class OAuthClient {
 
     /// Exchanges a refresh token for a fresh access token.
     func refresh(refreshToken: String) async throws -> GoogleTokens {
-        var form: [String: String] = [
+        let form: [String: String] = [
             "client_id": config.clientID,
+            "client_secret": config.clientSecret,
             "refresh_token": refreshToken,
             "grant_type": "refresh_token"
         ]
-        if let secret = config.clientSecret { form["client_secret"] = secret }
 
         do {
             let response: TokenResponse = try await postForm(config.tokenEndpoint, form: form)

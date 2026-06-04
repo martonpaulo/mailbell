@@ -11,10 +11,10 @@ final class MailMonitor {
     weak var delegate: MailMonitorDelegate?
 
     private(set) var account: MailAccount
-    private var config: OAuthConfig?
+    private let config: OAuthConfig
     private let store: TokenStore
     private var checkpoint: CheckpointStore
-    private var oauth: OAuthClient?
+    private let oauth: OAuthClient
 
     private var client: IMAPClient?
     private var runTask: Task<Void, Never>?
@@ -22,32 +22,25 @@ final class MailMonitor {
     /// IDLE re-arm window: below the 29-minute IMAP limit (RFC 2177).
     private let idleTimeout: TimeInterval = 25 * 60
 
-    init(account: MailAccount, config: OAuthConfig?) {
+    init(account: MailAccount, config: OAuthConfig) {
         self.account = account
         self.config = config
         store = TokenStore(accountID: account.id, providerID: account.providerID)
         checkpoint = CheckpointStore(accountID: account.id)
-        oauth = config.map(OAuthClient.init)
+        oauth = OAuthClient(config: config)
     }
 
     var hasSession: Bool { store.hasSession }
-    var isConfigured: Bool { config != nil }
 
     func updateAccount(_ account: MailAccount) {
         self.account = account
         checkpoint = CheckpointStore(accountID: account.id)
     }
 
-    /// Applies a new OAuth client configuration (entered in Settings).
-    func reconfigure(_ config: OAuthConfig?) {
-        self.config = config
-        oauth = config.map(OAuthClient.init)
-    }
-
     // MARK: - Public actions
 
     func start() {
-        guard config != nil, account.isEnabled, store.hasSession else { return }
+        guard account.isEnabled, store.hasSession else { return }
         runTask?.cancel()
         client?.disconnect()
         client = nil
@@ -154,7 +147,6 @@ final class MailMonitor {
     // MARK: - Tokens
 
     private func validAccessToken() async throws -> String {
-        guard let oauth else { throw OAuthClient.OAuthError.noRefreshToken }
         guard let tokens = store.loadTokens(), let refresh = tokens.refreshToken else {
             throw OAuthClient.OAuthError.noRefreshToken
         }
