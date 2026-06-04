@@ -80,6 +80,10 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         Bundle.main.bundleIdentifier != nil
     }
 
+    nonisolated static func webmailURL(for header: MessageHeader, account: MailAccount) -> URL {
+        MailProviderRegistry.provider(for: account.providerID).webmailURL(for: header)
+    }
+
     override private init() {
         super.init()
         if isBundled {
@@ -120,8 +124,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     }
 
     func notify(_ header: MessageHeader, account: MailAccount) async -> NotificationPostResult {
-        let provider = MailProviderRegistry.provider(for: account.providerID)
-        let url = provider.webmailURL
+        let url = Self.webmailURL(for: header, account: account)
         guard isBundled else {
             let message = "[notify] \(account.email) \(header.from) - \(header.subject) (\(url.absoluteString))"
             Log.info(message)

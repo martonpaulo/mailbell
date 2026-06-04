@@ -19,7 +19,7 @@ The current implementation stores an optional Webmail opening preference on each
 - `nil` preference means system default browser.
 - `.application(bundleIdentifier:appPath:)` stores the selected browser bundle identifier and its current app path.
 - `chromeProfileDirectory` stores an optional Chrome profile directory name such as `Default` or `Profile 2`.
-- `GmailProvider.webmailURL` remains `https://mail.google.com/`; Mailbell still opens generic Gmail Web, not account-specific URLs.
+- `GmailProvider.webmailURL` remains `https://mail.google.com/`; notification URLs use Gmail thread links when IMAP provides `X-GM-THRID`.
 - Notification payloads include both `webmailURL` and `accountID`.
 - Notification clicks route through the account-aware Webmail opener when the app can resolve the account.
 - If account lookup fails, old notifications still fall back to the stored `webmailURL`.
@@ -45,7 +45,7 @@ Known limitation: the opener currently trusts the stored `appPath`. If the selec
 - No Safari profile support in v1.
 - No Arc Space/Profile support in v1.
 - No custom user-data-dir creation or profile management.
-- No deep links to a specific Gmail thread in v1.
+- No deep links to a specific message inside a Gmail thread in v1.
 
 ## Platform Findings
 
@@ -306,7 +306,7 @@ Manual on macOS:
 - selecting Chrome `Profile 2` opens Gmail in that profile
 - deleting or renaming the selected Chrome profile shows an account warning and falls back safely
 - notification click uses the account's configured browser/profile
-- `Open Gmail` account action uses the same path as notification click
+- `Open Gmail` account action uses the same account browser/profile preference with the generic Gmail URL
 
 Gate:
 
@@ -329,7 +329,7 @@ For notification click behavior, verify with a bundled app, not only `swift run`
 
 - Resolve selected browser app moves/reinstalls by bundle identifier before falling back to the system default browser.
 - Gmail `authuser` URL support.
-- Gmail thread deep links.
+- Gmail message-level deep links inside a thread.
 - Safari profile support.
 - Arc Space/Profile support.
 - Brave, Edge, and Chrome channel profile support.

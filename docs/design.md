@@ -172,7 +172,7 @@ Each account owns:
 
 ## Webmail Opening
 
-Each account can choose how Gmail opens: system default browser, a selected installed browser, or Google Chrome with an optional profile directory. Notification clicks and per-account `Open Gmail` in Settings use the same opener path. Mailbell still opens the provider's generic Webmail URL; it does not include `authuser` or thread deep links in v1.
+Each account can choose how Gmail opens: system default browser, a selected installed browser, or Google Chrome with an optional profile directory. Notification clicks and per-account `Open Gmail` in Settings use the same opener path. Notification clicks use Gmail thread links when IMAP provides `X-GM-THRID`; manual `Open Gmail` still opens generic Gmail Web. Mailbell does not include `authuser` in v1.
 
 See [Browser and Profile Routing Design](browser-profile-routing.md) for Chrome profile discovery, fallback behavior, and deferred work.
 
@@ -204,12 +204,12 @@ Use AppKit only where SwiftUI does not cover the needed menu bar, settings, logi
 - **Notification scope:** `INBOX` for the first release. Gmail's category tabs (Primary/Social/Promotions/...) are not separate IMAP folders, so a "Primary only" filter is not achievable over IMAP and would require the Gmail API. Revisit only if category filtering becomes a requirement.
 - **Accounts:** account collection with one runtime per enabled account. First implemented provider is Gmail.
 - **Browser:** per-account Webmail open preference (system default, selected browser, optional Chrome profile). Generic Gmail Web URL only.
-- **Deep link:** account-directed Gmail thread links are deferred. The first multi-account release opens generic Gmail Webmail only.
+- **Deep link:** notification clicks use Gmail thread links when `X-GM-THRID` is available. Manual account actions still open generic Gmail Webmail.
 
 ## Open Questions
 
 - Will the project ever need public distribution (and therefore OAuth verification + annual CASA), or is private/Workspace use the permanent boundary?
-- Is per-message deep linking reliable enough across Gmail Web states to enable by default, or should it stay opt-in?
+- Is per-message deep linking beyond thread-level Gmail URLs reliable enough across Gmail Web states to enable by default, or should it stay out of scope?
 
 ## Verified Source Facts
 
