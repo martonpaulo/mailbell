@@ -90,22 +90,28 @@ struct SettingsView: View {
     @State private var didSaveClient = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            settingsHeader
-
+        TabView {
             accountsPanel
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .tabItem {
+                    Label("Accounts", systemImage: "person.crop.circle")
+                }
 
             oauthPanel
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .tabItem {
+                    Label("Google OAuth", systemImage: "key")
+                }
 
-            settingsPanel("Behavior") {
-                Toggle("Start at login", isOn: $launchAtLogin)
-                    .onChange(of: launchAtLogin) { newValue in
-                        LoginItem.set(newValue)
-                    }
-            }
+            behaviorPanel
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .tabItem {
+                    Label("Behavior", systemImage: "gearshape")
+                }
         }
         .padding(24)
-        .frame(width: 520)
+        .frame(width: 560)
+        .frame(minHeight: 430)
         .onChange(of: clientID) { _ in didSaveClient = false }
         .onChange(of: clientSecret) { _ in didSaveClient = false }
         .onAppear {
@@ -117,23 +123,12 @@ struct SettingsView: View {
         }
     }
 
-    private var settingsHeader: some View {
-        HStack(spacing: 12) {
-            Image(systemName: appState.status.systemImage)
-                .font(.system(size: 28, weight: .semibold))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(statusTint)
-                .frame(width: 40, height: 40)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Mailbell")
-                    .font(.title2.weight(.semibold))
-                Text(appState.status.menuLabel)
-                    .font(.callout)
-                    .foregroundStyle(statusTint)
-            }
-
-            Spacer()
+    private var behaviorPanel: some View {
+        settingsPanel("Behavior") {
+            Toggle("Start at login", isOn: $launchAtLogin)
+                .onChange(of: launchAtLogin) { newValue in
+                    LoginItem.set(newValue)
+                }
         }
     }
 
@@ -256,6 +251,14 @@ struct SettingsView: View {
                     appState.removeAccount(accountID: state.account.id)
                 }
             }
+
+            if let error = state.lastError {
+                Label(error, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .textSelection(.enabled)
+                    .padding(.leading, 34)
+            }
         }
     }
 
@@ -290,10 +293,6 @@ struct SettingsView: View {
         let trimmedID = clientID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedID.isEmpty else { return false }
         return trimmedID != OAuthConfig.persistedClientID || clientSecret != (OAuthConfig.persistedClientSecret ?? "")
-    }
-
-    private var statusTint: Color {
-        statusTint(for: appState.status)
     }
 
     private func statusTint(for status: MonitorStatus) -> Color {
