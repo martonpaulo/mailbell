@@ -315,9 +315,9 @@ extension AccountSupervisor: MailMonitorDelegate {
 private extension MonitorStatus {
     var clearsLastError: Bool {
         switch self {
-        case .needsConfig, .signedOut, .connecting, .connected:
+        case .needsConfig, .signedOut, .connected:
             return true
-        case .reconnecting, .reauthRequired, .error:
+        case .connecting, .reconnecting, .reauthRequired, .error:
             return false
         }
     }

@@ -25,6 +25,26 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
+    func testConnectingStatusDoesNotClearPreviousAccountError() async {
+        let (supervisor, account) = makeSupervisor()
+
+        supervisor.monitor(
+            account.id,
+            didChangeStatus: .reconnecting,
+            error: "Token refresh unavailable: The Internet connection appears to be offline."
+        )
+        await Task.yield()
+
+        supervisor.monitor(account.id, didChangeStatus: .connecting, error: nil)
+        await Task.yield()
+
+        XCTAssertEqual(
+            supervisor.accountStates.first?.lastError,
+            "Token refresh unavailable: The Internet connection appears to be offline."
+        )
+    }
+
+    @MainActor
     func testConnectedStatusDoesNotClearNotificationError() async {
         let (supervisor, account) = makeSupervisor()
 
