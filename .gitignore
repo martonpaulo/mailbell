@@ -24,3 +24,7 @@ DerivedData/
 
 # Local credentials
 .env
+
+# idoc site build
+dist/
+/idoc.yml
