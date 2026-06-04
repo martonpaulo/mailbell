@@ -1,0 +1,216 @@
+import SwiftUI
+
+struct AccountWebmailSettingsView: View {
+    @ObservedObject var appState: AppState
+    let accountState: AccountRuntimeState
+
+    @State private var browsers: [BrowserCandidate] = []
+    @State private var chromeProfiles: [ChromeProfileCandidate] = []
+    @State private var selectedBrowserID = BrowserCandidate.systemDefaultID
+    @State private var selectedChromeProfileDirectory = ""
+    @State private var didLoadBrowsers = false
+    @State private var isSyncingFromAccount = false
+
+    var body: some View {
+        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 8) {
+            SettingsFieldRow("Open with") {
+                Picker("Open with", selection: $selectedBrowserID) {
+                    ForEach(browserOptions) { browser in
+                        Text(browserLabel(for: browser)).tag(browser.id)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .frame(width: 260, alignment: .leading)
+                .onChange(of: selectedBrowserID) { _ in
+                    userChangedPreference()
+                }
+            }
+
+            if selectedBrowserSupportsChromeProfiles {
+                SettingsFieldRow("Chrome profile") {
+                    Picker("Chrome profile", selection: $selectedChromeProfileDirectory) {
+                        ForEach(chromeProfileOptions) { option in
+                            Text(option.label).tag(option.directory)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(width: 360, alignment: .leading)
+                    .onChange(of: selectedChromeProfileDirectory) { _ in
+                        userChangedPreference()
+                    }
+                }
+            }
+
+            if let warning = missingSelectionWarning {
+                GridRow {
+                    Color.clear
+                        .frame(width: SettingsFormMetrics.labelWidth)
+                    Label(warning, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+
+            if let error = accountState.webmailOpenError {
+                GridRow {
+                    Color.clear
+                        .frame(width: SettingsFormMetrics.labelWidth)
+                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        }
+        .padding(.leading, 34)
+        .task {
+            await loadBrowserDataIfNeeded()
+            syncFromAccount()
+        }
+        .onChange(of: accountState.account.webmailOpenPreference) { _ in
+            syncFromAccount()
+        }
+    }
+
+    private var browserOptions: [BrowserCandidate] {
+        BrowserRegistry.browserOptions(
+            matching: accountState.account.webmailOpenPreference,
+            browsers: browsers
+        )
+    }
+
+    private var selectedBrowserCandidate: BrowserCandidate {
+        BrowserRegistry.candidate(
+            matching: accountState.account.webmailOpenPreference,
+            browsers: browsers
+        )
+    }
+
+    private var missingSelectedBrowserID: String? {
+        guard !browsers.contains(where: { $0.id == selectedBrowserCandidate.id }) else { return nil }
+        guard accountState.account.webmailOpenPreference != nil else { return nil }
+        return selectedBrowserCandidate.id
+    }
+
+    private var selectedBrowserSupportsChromeProfiles: Bool {
+        browserOptions.first(where: { $0.id == selectedBrowserID })?.supportsChromeProfiles == true
+    }
+
+    private var chromeProfileOptions: [ChromeProfilePickerOption] {
+        Self.chromeProfileOptions(
+            savedDirectory: accountState.account.webmailOpenPreference?.chromeProfileDirectory,
+            profiles: chromeProfiles
+        )
+    }
+
+    private var missingChromeProfileDirectory: String? {
+        Self.missingChromeProfileDirectory(
+            savedDirectory: accountState.account.webmailOpenPreference?.chromeProfileDirectory,
+            profiles: chromeProfiles
+        )
+    }
+
+    private var missingSelectionWarning: String? {
+        if let browserID = missingSelectedBrowserID,
+           let browser = browserOptions.first(where: { $0.id == browserID }) {
+            return "Selected browser is not currently detected: \(browser.displayName)."
+        }
+        if selectedBrowserSupportsChromeProfiles, let missingChromeProfileDirectory {
+            return "Selected Chrome profile is not currently detected: \(missingChromeProfileDirectory)."
+        }
+        return nil
+    }
+
+    @MainActor
+    private func loadBrowserDataIfNeeded() async {
+        guard !didLoadBrowsers else { return }
+        didLoadBrowsers = true
+        browsers = BrowserRegistry.browsers()
+        chromeProfiles = ChromeProfileStore.loadProfiles()
+    }
+
+    private func syncFromAccount() {
+        isSyncingFromAccount = true
+
+        if selectedBrowserID != selectedBrowserCandidate.id {
+            selectedBrowserID = selectedBrowserCandidate.id
+        }
+
+        let profileDirectory = accountState.account.webmailOpenPreference?.chromeProfileDirectory ?? ""
+        if selectedChromeProfileDirectory != profileDirectory {
+            selectedChromeProfileDirectory = profileDirectory
+        }
+
+        if selectedBrowserCandidate.supportsChromeProfiles, chromeProfiles.isEmpty {
+            chromeProfiles = ChromeProfileStore.loadProfiles()
+        }
+
+        Task { @MainActor in
+            isSyncingFromAccount = false
+        }
+    }
+
+    private func userChangedPreference() {
+        guard !isSyncingFromAccount else { return }
+        persistPreference()
+    }
+
+    private func persistPreference() {
+        let candidate = browserOptions.first(where: { $0.id == selectedBrowserID }) ?? .systemDefault
+        let profile = candidate.supportsChromeProfiles && !selectedChromeProfileDirectory.isEmpty
+            ? selectedChromeProfileDirectory
+            : nil
+        let preference = BrowserRegistry.preference(for: candidate, chromeProfileDirectory: profile)
+        guard preference != accountState.account.webmailOpenPreference else { return }
+        appState.updateWebmailPreference(accountID: accountState.account.id, preference: preference)
+    }
+
+    private func browserLabel(for browser: BrowserCandidate) -> String {
+        if browser.id == missingSelectedBrowserID {
+            return "\(browser.displayName) (missing)"
+        }
+        return browser.displayName
+    }
+
+    static func chromeProfileOptions(
+        savedDirectory: String?,
+        profiles: [ChromeProfileCandidate]
+    ) -> [ChromeProfilePickerOption] {
+        var options = [
+            ChromeProfilePickerOption(directory: "", label: "Default (no explicit profile)")
+        ]
+        options += profiles.map { profile in
+            ChromeProfilePickerOption(directory: profile.directory, label: profile.pickerLabel)
+        }
+        if let missingDirectory = missingChromeProfileDirectory(
+            savedDirectory: savedDirectory,
+            profiles: profiles
+        ) {
+            options.append(
+                ChromeProfilePickerOption(directory: missingDirectory, label: "\(missingDirectory) (missing)")
+            )
+        }
+        return options
+    }
+
+    static func missingChromeProfileDirectory(
+        savedDirectory: String?,
+        profiles: [ChromeProfileCandidate]
+    ) -> String? {
+        guard let savedDirectory, !savedDirectory.isEmpty else { return nil }
+        guard !profiles.contains(where: { $0.directory == savedDirectory }) else { return nil }
+        return savedDirectory
+    }
+}
+
+struct ChromeProfilePickerOption: Identifiable, Equatable {
+    let directory: String
+    let label: String
+
+    var id: String { directory }
+}

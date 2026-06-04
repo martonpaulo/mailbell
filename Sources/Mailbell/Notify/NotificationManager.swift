@@ -72,6 +72,8 @@ enum NotificationPostResult {
 final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationManager()
 
+    var webmailOpenHandler: (@MainActor (UUID?, URL) async -> Void)?
+
     private let notificationCenter = UNUserNotificationCenter.current()
 
     private var isBundled: Bool {
@@ -177,8 +179,14 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     ) {
         if let urlString = response.notification.request.content.userInfo[notificationWebmailURLKey] as? String,
            let url = URL(string: urlString) {
+            let accountID = (response.notification.request.content.userInfo[notificationAccountIDKey] as? String)
+                .flatMap(UUID.init(uuidString:))
             Task { @MainActor in
-                NSWorkspace.shared.open(url)
+                if let webmailOpenHandler {
+                    await webmailOpenHandler(accountID, url)
+                } else {
+                    NSWorkspace.shared.open(url)
+                }
                 completionHandler()
             }
             return

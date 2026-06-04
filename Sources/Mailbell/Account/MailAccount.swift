@@ -18,6 +18,7 @@ struct MailAccount: Identifiable, Codable, Equatable {
     var displayName: String?
     var isEnabled: Bool
     var createdAt: Date
+    var webmailOpenPreference: WebmailOpenPreference?
 
     init(
         id: UUID = UUID(),
@@ -25,7 +26,8 @@ struct MailAccount: Identifiable, Codable, Equatable {
         email: String,
         displayName: String? = nil,
         isEnabled: Bool = true,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        webmailOpenPreference: WebmailOpenPreference? = nil
     ) {
         self.id = id
         self.providerID = providerID
@@ -33,6 +35,7 @@ struct MailAccount: Identifiable, Codable, Equatable {
         self.displayName = displayName
         self.isEnabled = isEnabled
         self.createdAt = createdAt
+        self.webmailOpenPreference = webmailOpenPreference
     }
 }
 
@@ -40,6 +43,7 @@ struct AccountRuntimeState: Identifiable, Equatable {
     var account: MailAccount
     var status: MonitorStatus
     var lastError: String?
+    var webmailOpenError: String?
 
     var id: UUID { account.id }
 }

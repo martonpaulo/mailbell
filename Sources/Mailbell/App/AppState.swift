@@ -23,6 +23,9 @@ final class AppState: ObservableObject {
         if config == nil {
             status = .needsConfig
         }
+        NotificationManager.shared.webmailOpenHandler = { [weak self] accountID, url in
+            await self?.supervisor.openWebmail(accountID: accountID, url: url)
+        }
         Task {
             _ = await NotificationManager.shared.requestAuthorizationIfNeeded()
         }
@@ -85,6 +88,16 @@ final class AppState: ObservableObject {
 
     func removeAccount(accountID: UUID) {
         supervisor.remove(accountID: accountID)
+    }
+
+    func updateWebmailPreference(accountID: UUID, preference: WebmailOpenPreference?) {
+        supervisor.updateWebmailPreference(accountID: accountID, preference: preference)
+    }
+
+    func openGmail(accountID: UUID) {
+        Task {
+            await supervisor.openGmail(accountID: accountID)
+        }
     }
 
     func quit() {

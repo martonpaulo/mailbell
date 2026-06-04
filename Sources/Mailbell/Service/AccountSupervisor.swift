@@ -38,6 +38,7 @@ final class AccountSupervisor {
     private var statuses: [UUID: MonitorStatus] = [:]
     private var connectionErrors: [UUID: String] = [:]
     private var notificationErrors: [UUID: String] = [:]
+    private var webmailOpenErrors: [UUID: String] = [:]
     private var isAuthenticating = false
 
     private let pathMonitor = NWPathMonitor()
@@ -60,7 +61,8 @@ final class AccountSupervisor {
                 AccountRuntimeState(
                     account: account,
                     status: statuses[account.id] ?? initialStatus(for: account),
-                    lastError: connectionErrors[account.id] ?? notificationErrors[account.id]
+                    lastError: connectionErrors[account.id] ?? notificationErrors[account.id],
+                    webmailOpenError: webmailOpenErrors[account.id]
                 )
             }
             .sorted { left, right in
@@ -143,6 +145,7 @@ final class AccountSupervisor {
             statuses[accountID] = .signedOut
             connectionErrors[accountID] = nil
             notificationErrors[accountID] = nil
+            webmailOpenErrors[accountID] = nil
         }
         publish()
     }
@@ -165,6 +168,7 @@ final class AccountSupervisor {
         statuses[accountID] = nil
         connectionErrors[accountID] = nil
         notificationErrors[accountID] = nil
+        webmailOpenErrors[accountID] = nil
         CheckpointStore(accountID: accountID).reset()
         TokenStore(accountID: accountID).clear()
         accounts = accountStore.remove(accountID: accountID)
@@ -253,8 +257,45 @@ final class AccountSupervisor {
     private func publish() {
         delegate?.accountSupervisorDidUpdate(states: accountStates, aggregateStatus: aggregateStatus)
     }
+}
 
-    private func setupNetworkMonitoring() {
+extension AccountSupervisor {
+    func updateWebmailPreference(accountID: UUID, preference: WebmailOpenPreference?) {
+        guard var account = accounts.first(where: { $0.id == accountID }) else { return }
+        guard account.webmailOpenPreference != preference else { return }
+        account.webmailOpenPreference = preference
+        accounts = accountStore.upsert(account)
+        webmailOpenErrors[accountID] = nil
+        publish()
+    }
+
+    func openGmail(accountID: UUID) async {
+        guard let account = accounts.first(where: { $0.id == accountID }) else { return }
+        let url = MailProviderRegistry.provider(for: account.providerID).webmailURL
+        await applyWebmailOpen(url: url, account: account, accountID: accountID)
+    }
+
+    func openWebmail(accountID: UUID?, url: URL) async {
+        let account = accountID.flatMap { id in accounts.first(where: { $0.id == id }) }
+        await applyWebmailOpen(url: url, account: account, accountID: account?.id ?? accountID)
+    }
+
+    private func applyWebmailOpen(url: URL, account: MailAccount?, accountID: UUID?) async {
+        let outcome = await WebmailOpener.open(url: url, account: account)
+        if let accountID {
+            switch outcome {
+            case .opened:
+                webmailOpenErrors[accountID] = nil
+            case let .openedWithFallback(message), let .failed(message):
+                webmailOpenErrors[accountID] = message
+            }
+            publish()
+        }
+    }
+}
+
+private extension AccountSupervisor {
+    func setupNetworkMonitoring() {
         pathMonitor.pathUpdateHandler = { [weak self] path in
             let satisfied = path.status == .satisfied
             Task { @MainActor in
@@ -264,7 +305,7 @@ final class AccountSupervisor {
         pathMonitor.start(queue: pathQueue)
     }
 
-    private func handlePathUpdate(satisfied: Bool) {
+    func handlePathUpdate(satisfied: Bool) {
         let recovered = satisfied && !lastPathSatisfied
         lastPathSatisfied = satisfied
         if recovered {
@@ -273,7 +314,7 @@ final class AccountSupervisor {
         }
     }
 
-    private func setupSleepWakeObservers() {
+    func setupSleepWakeObservers() {
         wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification,
             object: nil,

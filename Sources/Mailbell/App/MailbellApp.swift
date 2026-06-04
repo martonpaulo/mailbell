@@ -110,7 +110,7 @@ struct SettingsView: View {
                 }
         }
         .padding(24)
-        .frame(width: 560)
+        .frame(width: 640)
         .frame(minHeight: 430)
         .onChange(of: clientID) { _ in didSaveClient = false }
         .onChange(of: clientSecret) { _ in didSaveClient = false }
@@ -133,36 +133,57 @@ struct SettingsView: View {
     }
 
     private var accountsPanel: some View {
-        settingsPanel("Accounts") {
-            if appState.accounts.isEmpty {
-                Text("No accounts connected")
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Accounts")
                     .font(.headline)
-                Text(accountEmptyDetail)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(appState.accounts) { accountState in
-                        accountRow(accountState)
-                    }
-                }
-            }
 
-            if let error = appState.lastError {
-                Label(error, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .textSelection(.enabled)
-            }
-
-            HStack {
                 Spacer()
+
                 Button("Add Google Account") {
                     appState.addGoogleAccount()
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!appState.isConfigured)
             }
+
+            VStack(alignment: .leading, spacing: 12) {
+                if appState.accounts.isEmpty {
+                    Text("No accounts connected")
+                        .font(.headline)
+                    Text(accountEmptyDetail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 0) {
+                            ForEach(
+                                Array(appState.accounts.enumerated()),
+                                id: \.element.id
+                            ) { index, accountState in
+                                if index > 0 {
+                                    Divider()
+                                        .padding(.vertical, 12)
+                                }
+                                accountRow(accountState)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                }
+
+                if let error = appState.lastError {
+                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .textSelection(.enabled)
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 10))
         }
     }
 
@@ -205,11 +226,11 @@ struct SettingsView: View {
     }
 
     private func accountRow(_ state: AccountRuntimeState) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 12) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
                 Image(systemName: state.status.systemImage)
                     .foregroundStyle(statusTint(for: state.status))
-                    .frame(width: 22)
+                    .frame(width: 22, height: 22, alignment: .top)
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(state.account.email)
@@ -217,47 +238,40 @@ struct SettingsView: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                         .textSelection(.enabled)
-                    Text(accountDetail(for: state))
+                    Text("\(state.account.providerID.displayName) · \(accountDetail(for: state))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                Spacer()
+                Button("Open Gmail") {
+                    appState.openGmail(accountID: state.account.id)
+                }
+                .buttonStyle(.bordered)
+                .fixedSize()
 
-                Text(state.account.providerID.displayName)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                AccountActionsMenu(appState: appState, accountState: state)
+                    .fixedSize()
             }
 
-            HStack {
-                Spacer()
-
-                if state.status == .reauthRequired {
-                    Button("Sign in again") {
-                        appState.reauthenticate(accountID: state.account.id)
-                    }
-                } else {
-                    Button("Reconnect") {
-                        appState.reconnect(accountID: state.account.id)
-                    }
-                    .disabled(!state.account.isEnabled)
-                }
-
-                Button(state.account.isEnabled ? "Disable" : "Enable") {
-                    appState.setAccountEnabled(!state.account.isEnabled, accountID: state.account.id)
-                }
-
-                Button("Remove", role: .destructive) {
-                    appState.removeAccount(accountID: state.account.id)
-                }
-            }
+            AccountWebmailSettingsView(appState: appState, accountState: state)
 
             if let error = state.lastError {
-                Label(error, systemImage: "exclamationmark.triangle.fill")
+                accountErrorLabel(error)
+            }
+        }
+    }
+
+    private func accountErrorLabel(_ message: String) -> some View {
+        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 0) {
+            GridRow {
+                Color.clear
+                    .frame(width: SettingsFormMetrics.labelWidth)
+                Label(message, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
                     .foregroundStyle(.orange)
                     .textSelection(.enabled)
-                    .padding(.leading, 34)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
@@ -325,7 +339,11 @@ struct SettingsView: View {
     }
 }
 
-private struct SettingsFieldRow<Content: View>: View {
+enum SettingsFormMetrics {
+    static let labelWidth: CGFloat = 104
+}
+
+struct SettingsFieldRow<Content: View>: View {
     private let title: String
     private let content: Content
 
@@ -338,8 +356,9 @@ private struct SettingsFieldRow<Content: View>: View {
         GridRow {
             Text(title)
                 .foregroundStyle(.secondary)
-                .frame(width: 88, alignment: .trailing)
+                .frame(width: SettingsFormMetrics.labelWidth, alignment: .trailing)
             content
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }

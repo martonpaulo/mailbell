@@ -21,14 +21,13 @@ The app should let the user keep reading and managing mail in Gmail Web. It shou
 - No content polling loop for new mail. (The IMAP IDLE keepalive re-arm is a liveness timer, not content polling.)
 - No browser tab requirement.
 - No dependency on iPhone notification mirroring.
-- No account-directed browser/profile routing in the first multi-account release.
 
 ## Minimal User Experience
 
 - A macOS menu bar item shows aggregate connection state.
 - The user signs in with one or more Google accounts through OAuth.
 - New Gmail inbox messages create native macOS notifications.
-- Clicking a notification opens Gmail Web in the system default browser.
+- Clicking a notification opens Gmail Web using the account's configured browser (system default by default).
 - The menu provides aggregate account health, first-run account setup when needed, `Settings`, and `Quit`.
 - Settings stay small: OAuth client configuration, account status/actions, and start at login.
 
@@ -173,11 +172,9 @@ Each account owns:
 
 ## Webmail Opening
 
-The first multi-account release intentionally keeps Webmail opening account-agnostic. Mailbell opens the provider's generic Webmail URL in the system default browser. It does not include `authuser`, does not select a browser profile, and does not guarantee that the browser opens the same account that produced the notification.
+Each account can choose how Gmail opens: system default browser, a selected installed browser, or Google Chrome with an optional profile directory. Notification clicks and per-account `Open Gmail` in Settings use the same opener path. Mailbell still opens the provider's generic Webmail URL; it does not include `authuser` or thread deep links in v1.
 
-Manual `Open Gmail` menu or per-account actions are not exposed in the first multi-account release because they imply account-directed browser behavior that Mailbell does not implement yet.
-
-Future: support per-account browser/profile open commands. This is likely the correct way to guarantee that each account opens in the intended browser session, but it is intentionally out of scope for the first multi-account release because it introduces browser-specific configuration, command validation, and failure handling.
+See [Browser and Profile Routing Design](browser-profile-routing.md) for Chrome profile discovery, fallback behavior, and deferred work.
 
 ## macOS App Shape
 
@@ -206,7 +203,7 @@ Use AppKit only where SwiftUI does not cover the needed menu bar, settings, logi
 - **OAuth publishing:** External + In production + Unverified for private use; Workspace Internal if available. Solves the 7-day token expiry without CASA. See Token Lifecycle.
 - **Notification scope:** `INBOX` for the first release. Gmail's category tabs (Primary/Social/Promotions/...) are not separate IMAP folders, so a "Primary only" filter is not achievable over IMAP and would require the Gmail API. Revisit only if category filtering becomes a requirement.
 - **Accounts:** account collection with one runtime per enabled account. First implemented provider is Gmail.
-- **Browser:** open the provider's generic Webmail URL in the system default browser. Per-account browser/profile commands are deferred.
+- **Browser:** per-account Webmail open preference (system default, selected browser, optional Chrome profile). Generic Gmail Web URL only.
 - **Deep link:** account-directed Gmail thread links are deferred. The first multi-account release opens generic Gmail Webmail only.
 
 ## Open Questions
