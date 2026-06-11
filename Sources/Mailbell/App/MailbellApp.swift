@@ -41,7 +41,7 @@ struct MenuContent: View {
         Divider()
 
         if appState.accounts.isEmpty {
-            Button(appState.isAuthorizing ? "Authorizing..." : "Add Google Account") {
+            Button(appState.isAuthorizing ? "Authorizing..." : "Add Gmail Account") {
                 appState.addGoogleAccount()
             }
             .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
@@ -75,12 +75,16 @@ struct MenuContent: View {
 
         let connected = enabled.filter { $0.status == .connected }.count
         if connected == enabled.count {
-            return "\(connected) accounts connected"
+            return "\(connected) \(Self.accountNoun(count: connected)) connected"
         }
         if connected > 0 {
             return "\(connected) of \(enabled.count) connected"
         }
-        return "\(enabled.count) accounts enabled"
+        return "\(enabled.count) \(Self.accountNoun(count: enabled.count)) enabled"
+    }
+
+    private static func accountNoun(count: Int) -> String {
+        count == 1 ? "account" : "accounts"
     }
 }
 
@@ -100,7 +104,7 @@ struct SettingsView: View {
             behaviorPanel
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .tabItem {
-                    Label("Behavior", systemImage: "gearshape")
+                    Label("General", systemImage: "gearshape")
                 }
         }
         .padding(24)
@@ -170,7 +174,10 @@ struct SettingsView: View {
                     refreshLoginItemStatus()
                 }
 
-            Label(loginItemStatus.title, systemImage: loginItemStatus == .enabled ? "checkmark.circle.fill" : "info.circle")
+            Label(
+                loginItemStatus.title,
+                systemImage: loginItemStatus == .enabled ? "checkmark.circle.fill" : "info.circle"
+            )
                 .foregroundStyle(loginItemStatus == .enabled ? .green : .secondary)
 
             Text(loginItemStatus.detail)
@@ -194,7 +201,7 @@ struct SettingsView: View {
 
                 Spacer()
 
-                Button("Add Google Account") {
+                Button("Add Gmail Account") {
                     appState.addGoogleAccount()
                 }
                 .buttonStyle(.borderedProminent)
@@ -202,44 +209,44 @@ struct SettingsView: View {
                 .help(appState.isAuthorizing ? "Complete Google sign-in in your browser." : "Add a Gmail account.")
             }
 
-            VStack(alignment: .leading, spacing: 12) {
-                if let setupMessage = appState.oauthSetupMessage {
-                    OAuthSetupPanel(details: setupMessage)
-                }
-
-                if appState.accounts.isEmpty {
-                    Text("No accounts connected")
-                        .font(.headline)
-                    Text(accountEmptyDetail)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 0) {
-                            ForEach(
-                                Array(appState.accounts.enumerated()),
-                                id: \.element.id
-                            ) { index, accountState in
-                                if index > 0 {
-                                    Divider()
-                                        .padding(.vertical, 12)
-                                }
-                                accountRow(accountState)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+            GroupBox {
+                VStack(alignment: .leading, spacing: 12) {
+                    if let setupMessage = appState.oauthSetupMessage {
+                        OAuthSetupPanel(details: setupMessage)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                }
 
-                if let error = appState.lastError {
-                    accountErrorLabel(error)
+                    if appState.accounts.isEmpty {
+                        Text("No accounts connected")
+                            .font(.headline)
+                        Text(accountEmptyDetail)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ScrollView {
+                            LazyVStack(alignment: .leading, spacing: 0) {
+                                ForEach(
+                                    Array(appState.accounts.enumerated()),
+                                    id: \.element.id
+                                ) { index, accountState in
+                                    if index > 0 {
+                                        Divider()
+                                            .padding(.vertical, 12)
+                                    }
+                                    accountRow(accountState)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    }
+
+                    if let error = appState.lastError {
+                        accountErrorLabel(error)
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
-            .padding(14)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 10))
         }
     }
 
@@ -282,15 +289,7 @@ struct SettingsView: View {
 
     private func accountErrorLabel(_ message: String) -> some View {
         Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 0) {
-            GridRow {
-                Color.clear
-                    .frame(width: SettingsFormMetrics.labelWidth)
-                Label(message, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            SettingsMessageRow(message: message)
         }
     }
 
@@ -301,7 +300,7 @@ struct SettingsView: View {
         if appState.isAuthorizing {
             return "Complete Google sign-in in your browser."
         }
-        return "Add a Google account to start watching Gmail Inbox."
+        return "Add a Gmail account to start watching Inbox."
     }
 
     private func accountDetail(for state: AccountRuntimeState) -> String {
@@ -339,15 +338,14 @@ struct SettingsView: View {
         _ title: String,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.headline)
+        GroupBox {
             VStack(alignment: .leading, spacing: 12) {
                 content()
             }
-            .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 10))
+        } label: {
+            Text(title)
+                .font(.headline)
         }
     }
 
@@ -359,89 +357,5 @@ struct SettingsView: View {
     private func refreshLoginItemStatus() {
         loginItemStatus = LoginItem.status
         launchAtLogin = loginItemStatus == .enabled || loginItemStatus == .requiresApproval
-    }
-}
-
-private struct OAuthSetupPanel: View {
-    let details: String
-    @State private var showsDetails = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label("Google OAuth setup required", systemImage: "key.fill")
-                .font(.headline)
-                .foregroundStyle(.orange)
-
-            Text("Create your own Google Desktop OAuth client, set `MAILBELL_GOOGLE_CLIENT_ID` and `MAILBELL_GOOGLE_CLIENT_SECRET`, then rebuild or reinstall Mailbell.")
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
-                .fixedSize(horizontal: false, vertical: true)
-
-            HStack {
-                if let readmeURL = SetupGuide.readmeURL {
-                    Button("Open README") {
-                        NSWorkspace.shared.open(readmeURL)
-                    }
-                }
-                Text("See README > Google Cloud Setup.")
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-            }
-
-            DisclosureGroup("Details", isExpanded: $showsDetails) {
-                Text(details)
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.orange.opacity(0.10), in: RoundedRectangle(cornerRadius: 8))
-    }
-}
-
-private enum SetupGuide {
-    static var readmeURL: URL? {
-        var candidates = [
-            URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("README.md"),
-            Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent("README.md")
-        ]
-        if let bundledURL = Bundle.main.url(forResource: "README", withExtension: "md") {
-            candidates.append(bundledURL)
-        }
-
-        return candidates.first { FileManager.default.fileExists(atPath: $0.path) }
-    }
-}
-
-private enum SystemSettings {
-    static func open() {
-        NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
-    }
-}
-
-enum SettingsFormMetrics {
-    static let labelWidth: CGFloat = 104
-}
-
-struct SettingsFieldRow<Content: View>: View {
-    private let title: String
-    private let content: Content
-
-    init(_ title: String, @ViewBuilder content: () -> Content) {
-        self.title = title
-        self.content = content()
-    }
-
-    var body: some View {
-        GridRow {
-            Text(title)
-                .foregroundStyle(.secondary)
-                .frame(width: SettingsFormMetrics.labelWidth, alignment: .trailing)
-            content
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
     }
 }

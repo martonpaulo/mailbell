@@ -44,27 +44,11 @@ struct AccountWebmailSettingsView: View {
             }
 
             if let warning = missingSelectionWarning {
-                GridRow {
-                    Color.clear
-                        .frame(width: SettingsFormMetrics.labelWidth)
-                    Label(warning, systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+                SettingsMessageRow(message: warning)
             }
 
             if let error = accountState.webmailOpenError {
-                GridRow {
-                    Color.clear
-                        .frame(width: SettingsFormMetrics.labelWidth)
-                    Label(error, systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+                SettingsMessageRow(message: error)
             }
         }
         .padding(.leading, 34)
