@@ -118,16 +118,14 @@ final class IMAPClient {
         }
 
         let gate = DoneGate()
-        let sendDone: () async -> Void = { [weak self] in
-            guard let self else { return }
-            if await gate.claim() {
-                try? await self.connection.sendRaw("DONE\r\n")
-            }
-        }
+        let connection = self.connection
 
-        let timeoutTask = Task {
+        let timeoutTask = Task { [connection, gate] in
             try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-            if !Task.isCancelled { await sendDone() }
+            guard !Task.isCancelled else { return }
+            if await gate.claim() {
+                try? await connection.sendRaw("DONE\r\n")
+            }
         }
         defer { timeoutTask.cancel() }
 
@@ -136,7 +134,9 @@ final class IMAPClient {
             let line = try await connection.readLine()
             if IMAPParser.parseUntagged(line, suffix: "EXISTS") != nil {
                 sawNewMessages = true
-                await sendDone()
+                if await gate.claim() {
+                    try? await connection.sendRaw("DONE\r\n")
+                }
             }
             if line.hasPrefix("\(tag) OK") {
                 return sawNewMessages ? .newMessages(exists: 0) : .timedOut

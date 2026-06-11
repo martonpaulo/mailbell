@@ -15,7 +15,7 @@ protocol MailProvider {
 
 struct GmailProvider: MailProvider {
     let id: MailProviderID = .gmail
-    let displayName = "Google Gmail"
+    var displayName: String { id.displayName }
     let capabilities = ProviderCapabilities(supportsIdle: true, supportsThreadLink: true)
     let webmailURL = URL(string: "https://mail.google.com/")!
 

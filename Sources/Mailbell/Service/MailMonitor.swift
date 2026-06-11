@@ -7,7 +7,7 @@ protocol MailMonitorDelegate: AnyObject {
 
 /// Runs one account's IMAP connection state machine:
 /// token refresh, IMAP connect/select/IDLE, gap-fill on reconnect, and token revocation.
-final class MailMonitor {
+final class MailMonitor: @unchecked Sendable {
     struct NotificationPlan: Equatable {
         let headersToNotify: [MessageHeader]
         let lastSeenUID: Int

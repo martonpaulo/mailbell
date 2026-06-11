@@ -6,14 +6,11 @@ import Network
 final class LoopbackServer: @unchecked Sendable {
     enum LoopbackError: Error, LocalizedError {
         case failedToStart
-        case missingQuery
 
         var errorDescription: String? {
             switch self {
             case .failedToStart:
                 return "Could not start the local OAuth callback server."
-            case .missingQuery:
-                return "OAuth callback did not include query parameters."
             }
         }
     }

@@ -52,10 +52,6 @@ final class TokenStore {
         return tokens
     }
 
-    var refreshToken: String? {
-        Keychain.get(account: refreshAccount)
-    }
-
     func clear() {
         Keychain.delete(account: refreshAccount)
         Keychain.delete(account: accessAccount)

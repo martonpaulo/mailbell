@@ -199,8 +199,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
                 } else {
                     NSWorkspace.shared.open(url)
                 }
-                completionHandler()
             }
+            completionHandler()
             return
         }
         completionHandler()
