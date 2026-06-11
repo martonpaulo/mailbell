@@ -70,7 +70,7 @@ check: ## Run build, lint, and tests
 
 # -- Packaging ----------------------------------------------------------------
 
-.PHONY: icons require-oauth-config dmg install show-menu-bar-icon uninstall refresh-icons
+.PHONY: icons require-oauth-config dmg install uninstall refresh-icons
 
 icons: ## Regenerate AppIcon PNGs and AppIcon.icns from Resources/logo.png
 	@printf "$(BOLD)[icons]$(RESET) Regenerating app icons\n"
@@ -83,7 +83,7 @@ require-oauth-config: ## Verify local Google OAuth credentials are available
 define compile-app-resources
 	@xcrun actool --compile $(1)/Contents/Resources \
 		--platform macosx \
-		--minimum-deployment-target 13.0 \
+		--minimum-deployment-target 26.0 \
 		--app-icon AppIcon \
 		--output-partial-info-plist /dev/null \
 		$(ASSETS) >/dev/null
@@ -143,14 +143,6 @@ install: require-oauth-config icons ## Install an ad-hoc signed app bundle to /A
 	@-$(LSREGISTER) -f $(APP_BUNDLE) >/dev/null 2>&1
 	@printf "$(GREEN)[ok]$(RESET) Installed to %s\n" "$(APP_BUNDLE)"
 	@printf "Open with: open %s\n" "$(APP_BUNDLE)"
-	@printf "If the menu bar icon is hidden, run: make show-menu-bar-icon\n"
-
-show-menu-bar-icon: ## Restore the menu bar icon preference and open the installed app
-	@bundle_id="$$( $(PLISTBUDDY) -c 'Print :CFBundleIdentifier' $(APP_BUNDLE)/Contents/Info.plist )"; \
-	printf "$(BOLD)[settings]$(RESET) Showing menu bar icon for %s\n" "$$bundle_id"; \
-	defaults write "$$bundle_id" mailbell.showMenuBarIcon -bool true; \
-	open $(APP_BUNDLE); \
-	printf "$(GREEN)[ok]$(RESET) Mailbell opened. Use Settings to hide the icon again if needed.\n"
 
 uninstall: ## Remove the installed app bundle
 	@rm -rf $(APP_BUNDLE)

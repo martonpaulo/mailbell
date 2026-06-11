@@ -22,7 +22,7 @@ struct AccountWebmailSettingsView: View {
                 .labelsHidden()
                 .pickerStyle(.menu)
                 .frame(width: 260, alignment: .leading)
-                .onChange(of: selectedBrowserID) { _ in
+                .onChange(of: selectedBrowserID) {
                     userChangedPreference()
                 }
             }
@@ -37,7 +37,7 @@ struct AccountWebmailSettingsView: View {
                     .labelsHidden()
                     .pickerStyle(.menu)
                     .frame(width: 360, alignment: .leading)
-                    .onChange(of: selectedChromeProfileDirectory) { _ in
+                    .onChange(of: selectedChromeProfileDirectory) {
                         userChangedPreference()
                     }
                 }
@@ -61,7 +61,7 @@ struct AccountWebmailSettingsView: View {
             await loadBrowserDataIfNeeded()
             syncFromAccount()
         }
-        .onChange(of: accountState.account.webmailOpenPreference) { _ in
+        .onChange(of: accountState.account.webmailOpenPreference) {
             syncFromAccount()
         }
     }
@@ -162,7 +162,7 @@ struct AccountWebmailSettingsView: View {
         return browser.displayName
     }
 
-    static func chromeProfileOptions(
+    nonisolated static func chromeProfileOptions(
         savedDirectory: String?,
         profiles: [ChromeProfileCandidate]
     ) -> [ChromeProfilePickerOption] {
@@ -183,7 +183,7 @@ struct AccountWebmailSettingsView: View {
         return options
     }
 
-    static func missingChromeProfileDirectory(
+    nonisolated static func missingChromeProfileDirectory(
         savedDirectory: String?,
         profiles: [ChromeProfileCandidate]
     ) -> String? {

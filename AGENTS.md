@@ -30,7 +30,7 @@ MenuBarExtra
 
 ## Architecture Map
 
-This is a SwiftPM macOS 13+ executable app:
+This is a SwiftPM macOS 26+ executable app:
 
 - Package definition: `Package.swift`
 - App entry, menu, Settings UI, login item: `Sources/Mailbell/App/`

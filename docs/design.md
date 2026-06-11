@@ -175,7 +175,7 @@ Each account can choose how Gmail opens: system default browser, a selected inst
 ## macOS App Shape
 
 - SwiftUI app with `MenuBarExtra`.
-- Minimum target macOS 13 (Ventura), required by `MenuBarExtra` and `SMAppService`.
+- Minimum target macOS 26, matching the local personal-use toolchain and avoiding older Settings compatibility paths.
 - Accessory-style app by default, with no Dock icon.
 - `Settings` scene for preferences.
 - `UNUserNotificationCenter` for notifications.

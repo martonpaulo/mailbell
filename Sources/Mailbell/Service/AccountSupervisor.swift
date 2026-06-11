@@ -230,11 +230,7 @@ final class AccountSupervisor {
 
     private func start(_ account: MailAccount) {
         guard let monitor = ensureMonitor(for: account) else { return }
-        if monitor.hasSession {
-            monitor.start()
-        } else {
-            statuses[account.id] = .signedOut
-        }
+        monitor.start()
     }
 
     private func reconnectIfSessionExists(accountID: UUID) {

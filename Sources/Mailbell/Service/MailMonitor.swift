@@ -61,7 +61,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     // MARK: - Public actions
 
     func start() {
-        guard account.isEnabled, store.hasSession else { return }
+        guard account.isEnabled else { return }
         runTask?.cancel()
         client?.disconnect()
         client = nil

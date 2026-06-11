@@ -15,6 +15,7 @@ final class AppState: ObservableObject {
     @Published private(set) var manualRefreshMessage: String?
 
     private let supervisor: AccountSupervisor
+    private var notificationAuthorizationTask: Task<Void, Never>?
 
     init() {
         supervisor = AccountSupervisor()
@@ -27,6 +28,10 @@ final class AppState: ObservableObject {
             await self?.supervisor.openWebmail(accountID: accountID, url: url)
         }
         refreshNotificationAuthorizationState()
+    }
+
+    deinit {
+        notificationAuthorizationTask?.cancel()
     }
 
     var hasAccounts: Bool {
@@ -96,14 +101,20 @@ final class AppState: ObservableObject {
     }
 
     func refreshNotificationAuthorizationState() {
-        Task {
-            notificationAuthorizationState = await NotificationManager.shared.authorizationState()
+        notificationAuthorizationTask?.cancel()
+        notificationAuthorizationTask = Task { [weak self] in
+            let state = await NotificationManager.shared.authorizationState()
+            guard !Task.isCancelled else { return }
+            self?.applyNotificationAuthorizationState(state)
         }
     }
 
     func requestNotificationAuthorization() {
-        Task {
-            notificationAuthorizationState = await NotificationManager.shared.requestAuthorization()
+        notificationAuthorizationTask?.cancel()
+        notificationAuthorizationTask = Task { [weak self] in
+            let state = await NotificationManager.shared.requestAuthorization()
+            guard !Task.isCancelled else { return }
+            self?.applyNotificationAuthorizationState(state)
         }
     }
 
@@ -115,7 +126,8 @@ final class AppState: ObservableObject {
     func sendTestNotification() {
         Task {
             let result = await NotificationManager.shared.notifyTest(account: accounts.first?.account)
-            notificationAuthorizationState = await NotificationManager.shared.authorizationState()
+            let state = await NotificationManager.shared.authorizationState()
+            applyNotificationAuthorizationState(state)
             if let message = result.userMessage {
                 notificationTestMessage = message
             } else {
@@ -126,6 +138,11 @@ final class AppState: ObservableObject {
 
     func quit() {
         NSApplication.shared.terminate(nil)
+    }
+
+    private func applyNotificationAuthorizationState(_ state: NotificationAuthorizationState) {
+        guard notificationAuthorizationState != state else { return }
+        notificationAuthorizationState = state
     }
 }
 

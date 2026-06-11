@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 import Security
 
 /// Thin wrapper over the macOS Keychain for storing a single string secret
@@ -49,11 +50,15 @@ enum Keychain {
     }
 
     static func get(account: String) -> String? {
+        let context = LAContext()
+        context.interactionNotAllowed = true
+
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
             kSecReturnData as String: true,
+            kSecUseAuthenticationContext as String: context,
             kSecMatchLimit as String: kSecMatchLimitOne
         ]
 

@@ -5,13 +5,11 @@ import SwiftUI
 struct MailbellApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var appState = AppState()
-    @AppStorage(AppPreferenceKeys.showMenuBarIcon) private var showMenuBarIcon = AppPreferences.defaultShowMenuBarIcon
 
+    @SceneBuilder
     var body: some Scene {
-        MenuBarExtra(isInserted: $showMenuBarIcon) {
+        MenuBarExtra("Mailbell", systemImage: "bell") {
             MenuContent(appState: appState)
-        } label: {
-            Image(systemName: appState.status.systemImage)
         }
 
         Settings {
@@ -24,15 +22,10 @@ struct MailbellApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_: Notification) {
         NSApp.setActivationPolicy(.accessory)
-        guard !AppPreferences.showMenuBarIcon() else { return }
-        SettingsWindow.openWhenReady()
     }
 
-    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows: Bool) -> Bool {
-        if !hasVisibleWindows || !AppPreferences.showMenuBarIcon() {
-            SettingsWindow.openWhenReady()
-        }
-        return true
+    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {
+        true
     }
 }
 
@@ -69,20 +62,11 @@ struct MenuContent: View {
 
         Divider()
 
-        if #available(macOS 14.0, *) {
-            SettingsLink {
-                Text("Settings…")
-            }
-        } else {
-            Button("Settings…") { Self.openSettingsLegacy() }
+        SettingsLink {
+            Text("Settings…")
         }
 
         Button("Quit Mailbell") { appState.quit() }
-    }
-
-    /// Fallback for macOS 13, where `SettingsLink` is unavailable.
-    private static func openSettingsLegacy() {
-        SettingsWindow.open()
     }
 
     private static func accountSummary(for states: [AccountRuntimeState]) -> String {
@@ -108,7 +92,6 @@ struct SettingsView: View {
     @ObservedObject var appState: AppState
     @State private var launchAtLogin = LoginItem.isEnabled
     @State private var loginItemStatus = LoginItem.status
-    @AppStorage(AppPreferenceKeys.showMenuBarIcon) private var showMenuBarIcon = AppPreferences.defaultShowMenuBarIcon
 
     var body: some View {
         Form {
@@ -120,12 +103,7 @@ struct SettingsView: View {
         .frame(width: 660)
         .frame(minHeight: 560)
         .onAppear {
-            // Accessory apps have no Dock icon; make sure the window comes forward.
             refreshBehaviorState()
-            NSApp.activate(ignoringOtherApps: true)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                NSApp.keyWindow?.makeFirstResponder(nil)
-            }
         }
     }
 
@@ -184,22 +162,14 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .task {
-            appState.refreshNotificationAuthorizationState()
-        }
     }
 
     private var startupSection: some View {
         Section("Startup") {
             Toggle("Start at login", isOn: $launchAtLogin)
-                .onChange(of: launchAtLogin) { newValue in
+                .onChange(of: launchAtLogin) { _, newValue in
                     LoginItem.set(newValue)
                     refreshLoginItemStatus()
-                }
-
-            Toggle("Show menu bar icon", isOn: $showMenuBarIcon)
-                .onChange(of: showMenuBarIcon) { newValue in
-                    AppPreferences.setShowMenuBarIcon(newValue)
                 }
 
             LabeledContent("Login item") {
@@ -219,11 +189,6 @@ struct SettingsView: View {
                     SystemSettings.open()
                 }
             }
-
-            Text("If you hide the menu bar icon, Mailbell keeps running. Relaunch Mailbell to reopen Settings.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
         }
     }
 

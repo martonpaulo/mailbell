@@ -1,5 +1,5 @@
 import Foundation
-@preconcurrency import UserNotifications
+import UserNotifications
 
 enum EmailNotificationContentBuilder {
     static func build(

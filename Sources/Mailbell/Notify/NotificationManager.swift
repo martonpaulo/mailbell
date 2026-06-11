@@ -1,11 +1,11 @@
 import AppKit
 import Foundation
-@preconcurrency import UserNotifications
+import UserNotifications
 
 let notificationWebmailURLKey = "webmailURL"
 let notificationAccountIDKey = "accountID"
 
-struct NotificationAuthorizationState {
+struct NotificationAuthorizationState: Equatable {
     let isBundled: Bool
     let status: UNAuthorizationStatus
     let alertSetting: UNNotificationSetting
@@ -87,7 +87,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     private let notificationCenter = UNUserNotificationCenter.current()
 
     private var isBundled: Bool {
-        Bundle.main.bundleIdentifier != nil
+        AppIdentity.isPackagedApp
     }
 
     nonisolated static func webmailURL(for header: MessageHeader, account: MailAccount) -> URL {

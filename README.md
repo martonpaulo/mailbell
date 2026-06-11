@@ -39,7 +39,7 @@ The broad Gmail scope is the main privacy tradeoff of this design. Gmail's narro
 
 ## Requirements
 
-- macOS 13 Ventura or newer.
+- macOS 26 or newer.
 - Xcode Command Line Tools or a Swift toolchain that can build the SwiftPM package.
 - `make`, `python3`, `xcrun`, and `codesign` from the macOS toolchain for local install/DMG packaging.
 - Optional: `swiftlint` and `swiftformat` if you run `make lint`, `make format`, or `make check`.
@@ -109,8 +109,8 @@ Identity notes:
 - `MAILBELL_BUNDLE_ID` must be a reverse-DNS identifier and should be unique to your local build.
 - `MAILBELL_APP_DISPLAY_NAME` controls `CFBundleName` and `CFBundleDisplayName` in packaged apps.
 - The checked-in `Resources/Info.plist` uses a neutral placeholder bundle id. `make install` and `make dmg` inject your configured bundle id into the copied app bundle.
-- Runtime namespaces for Keychain, logging, and internal dispatch queues derive from the packaged bundle id. Unbundled `make run` uses a neutral local fallback.
-- Changing `MAILBELL_BUNDLE_ID` after signing in creates a new Keychain namespace, so you may need to sign in again and remove old tokens under the previous bundle id.
+- Runtime namespaces for Keychain, logging, and internal dispatch queues derive from the packaged bundle id. Unbundled `make run` uses a neutral local bundle identifier.
+- Changing `MAILBELL_BUNDLE_ID` after signing in creates a new Keychain namespace, so you may need to sign in again and remove previous tokens under the earlier bundle id.
 
 Useful checks before committing:
 
@@ -292,7 +292,7 @@ To revoke Google's grant, open your Google Account security settings, find third
 
 Important paths:
 
-- `Package.swift`: SwiftPM package and macOS 13 minimum.
+- `Package.swift`: SwiftPM package and macOS 26 minimum.
 - `Sources/Mailbell/App/`: menu bar app, Settings, login item, app state.
 - `Sources/Mailbell/Auth/`: OAuth config/client, loopback redirect, Keychain token storage.
 - `Sources/Mailbell/IMAP/`: Gmail IMAP XOAUTH2, `INBOX` selection, IDLE, header fetch, parser.

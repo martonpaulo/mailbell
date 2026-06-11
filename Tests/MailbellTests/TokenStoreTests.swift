@@ -2,9 +2,10 @@
 import XCTest
 
 final class TokenStoreTests: XCTestCase {
-    func testSavePersistsRefreshAndCachedTokenMaterial() throws {
+    func testSavePersistsSingleSessionItem() throws {
+        let accountID = UUID()
         let fixture = KeychainFixture()
-        let store = TokenStore(accountID: UUID(), keychain: fixture.client)
+        let store = TokenStore(accountID: accountID, keychain: fixture.client)
         let tokens = GoogleTokens(
             accessToken: "access-token",
             refreshToken: "refresh-token",
@@ -13,11 +14,9 @@ final class TokenStoreTests: XCTestCase {
 
         try store.save(tokens: tokens)
 
-        let refreshEntry = try XCTUnwrap(fixture.values.first { $0.key.hasSuffix(".refreshToken") })
-        XCTAssertEqual(refreshEntry.value, "refresh-token")
-
-        let accessEntry = try XCTUnwrap(fixture.values.first { $0.key.hasSuffix(".accessToken") })
-        let decoded = try JSONDecoder().decode(GoogleTokens.self, from: Data(accessEntry.value.utf8))
+        XCTAssertEqual(fixture.values.count, 1)
+        let session = try XCTUnwrap(fixture.values[Self.sessionAccount(accountID)])
+        let decoded = try JSONDecoder().decode(GoogleTokens.self, from: Data(session.utf8))
         XCTAssertEqual(decoded.accessToken, "access-token")
         XCTAssertEqual(decoded.refreshToken, "refresh-token")
         XCTAssertEqual(decoded.expiresAt, Date(timeIntervalSince1970: 1234))
@@ -41,16 +40,14 @@ final class TokenStoreTests: XCTestCase {
         XCTAssertTrue(fixture.values.isEmpty)
     }
 
-    func testSaveRestoresPreviousValuesWhenCachedTokenWriteFails() {
+    func testSaveRestoresPreviousSessionWhenSessionWriteFails() {
         let accountID = UUID()
-        let refreshAccount = Self.refreshAccount(accountID)
-        let accessAccount = Self.accessAccount(accountID)
+        let sessionAccount = Self.sessionAccount(accountID)
         let fixture = KeychainFixture(
             setError: Keychain.KeychainError.unexpectedStatus(errSecAuthFailed),
-            failingAccounts: [accessAccount]
+            failingAccounts: [sessionAccount]
         )
-        fixture.values[refreshAccount] = "old-refresh"
-        fixture.values[accessAccount] = "old-access"
+        fixture.values[sessionAccount] = "previous-session"
         let store = TokenStore(accountID: accountID, keychain: fixture.client)
         let tokens = GoogleTokens(
             accessToken: "new-access",
@@ -60,16 +57,22 @@ final class TokenStoreTests: XCTestCase {
 
         XCTAssertThrowsError(try store.save(tokens: tokens))
 
-        XCTAssertEqual(fixture.values[refreshAccount], "old-refresh")
-        XCTAssertEqual(fixture.values[accessAccount], "old-access")
+        XCTAssertEqual(fixture.values[sessionAccount], "previous-session")
     }
 
-    private static func refreshAccount(_ accountID: UUID) -> String {
-        "mailbell.account.\(accountID.uuidString).gmail.refreshToken"
+    func testClearRemovesSessionItem() {
+        let accountID = UUID()
+        let fixture = KeychainFixture()
+        fixture.values[Self.sessionAccount(accountID)] = "session"
+
+        TokenStore(accountID: accountID, keychain: fixture.client).clear()
+
+        XCTAssertNil(fixture.values[Self.sessionAccount(accountID)])
+        XCTAssertEqual(fixture.deletedAccounts, [Self.sessionAccount(accountID)])
     }
 
-    private static func accessAccount(_ accountID: UUID) -> String {
-        "mailbell.account.\(accountID.uuidString).gmail.accessToken"
+    private static func sessionAccount(_ accountID: UUID) -> String {
+        "mailbell.account.\(accountID.uuidString).gmail.session"
     }
 }
 

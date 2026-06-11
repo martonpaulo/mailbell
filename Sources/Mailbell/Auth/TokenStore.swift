@@ -14,9 +14,9 @@ struct KeychainClient {
 
 /// Persists one account's OAuth session.
 ///
-/// - The refresh token lives in the Keychain.
-/// - The (short-lived) access token + expiry are cached in the Keychain too so a
-///   relaunch can reuse a still-valid access token instead of forcing a refresh.
+/// - The refresh token lives in the Keychain as part of one account-scoped session item.
+/// - The short-lived access token and expiry are cached in that same item so a
+///   relaunch can reuse a still-valid access token without extra Keychain prompts.
 final class TokenStore {
     enum TokenStoreError: Error, LocalizedError {
         case encodingFailed
@@ -29,8 +29,7 @@ final class TokenStore {
         }
     }
 
-    private let refreshAccount: String
-    private let accessAccount: String
+    private let sessionAccount: String
     private let keychain: KeychainClient
 
     init(
@@ -39,53 +38,41 @@ final class TokenStore {
         keychain: KeychainClient = .live
     ) {
         let namespace = "mailbell.account.\(accountID.uuidString).\(providerID.rawValue)"
-        refreshAccount = "\(namespace).refreshToken"
-        accessAccount = "\(namespace).accessToken"
+        sessionAccount = "\(namespace).session"
         self.keychain = keychain
     }
 
     var hasSession: Bool {
-        keychain.get(refreshAccount) != nil
+        keychain.get(sessionAccount) != nil
     }
 
     func save(tokens: GoogleTokens) throws {
-        let previousRefresh = keychain.get(refreshAccount)
-        let previousAccess = keychain.get(accessAccount)
+        let previousSession = keychain.get(sessionAccount)
 
         do {
-            if let refresh = tokens.refreshToken {
-                try keychain.set(refresh, refreshAccount)
-            }
             let data = try JSONEncoder().encode(tokens)
             guard let json = String(data: data, encoding: .utf8) else {
                 throw TokenStoreError.encodingFailed
             }
-            try keychain.set(json, accessAccount)
+            try keychain.set(json, sessionAccount)
         } catch {
-            restoreToken(previousRefresh, account: refreshAccount, label: "refresh")
-            restoreToken(previousAccess, account: accessAccount, label: "access")
+            restoreToken(previousSession, account: sessionAccount, label: "session")
             throw error
         }
     }
 
     func loadTokens() -> GoogleTokens? {
-        guard let json = keychain.get(accessAccount),
+        guard let json = keychain.get(sessionAccount),
               let data = json.data(using: .utf8),
-              var tokens = try? JSONDecoder().decode(GoogleTokens.self, from: data)
+              let tokens = try? JSONDecoder().decode(GoogleTokens.self, from: data)
         else {
-            // Fall back to a bare refresh token if the cached access token is gone.
-            guard let refresh = keychain.get(refreshAccount) else { return nil }
-            return GoogleTokens(accessToken: "", refreshToken: refresh, expiresAt: .distantPast)
-        }
-        if tokens.refreshToken == nil {
-            tokens.refreshToken = keychain.get(refreshAccount)
+            return nil
         }
         return tokens
     }
 
     func clear() {
-        keychain.delete(refreshAccount)
-        keychain.delete(accessAccount)
+        keychain.delete(sessionAccount)
     }
 
     private func restoreToken(_ value: String?, account: String, label: String) {
