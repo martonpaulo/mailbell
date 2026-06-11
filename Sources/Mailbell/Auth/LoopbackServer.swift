@@ -11,9 +11,9 @@ final class LoopbackServer: @unchecked Sendable {
         var errorDescription: String? {
             switch self {
             case .failedToStart:
-                return "Could not start the local OAuth callback server."
+                "Could not start the local OAuth callback server."
             case .timedOut:
-                return "Google sign-in timed out. Try again from Mailbell."
+                "Google sign-in timed out. Try again from Mailbell."
             }
         }
     }
@@ -84,11 +84,11 @@ final class LoopbackServer: @unchecked Sendable {
                         }
                         return
                     }
-                    self.port = assigned
+                    port = assigned
                     if resumeGate.claim() {
                         cont.resume()
                     }
-                case .failed(let error):
+                case let .failed(error):
                     listener.cancel()
                     if resumeGate.claim() {
                         cont.resume(throwing: error)
@@ -131,22 +131,23 @@ final class LoopbackServer: @unchecked Sendable {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 8192) { [weak self] data, _, _, _ in
             guard let self else { return }
             guard let data, let request = String(data: data, encoding: .utf8),
-                  let line = request.split(separator: "\r\n").first else {
-                self.respond(connection, succeeded: false)
+                  let line = request.split(separator: "\r\n").first
+            else {
+                respond(connection, succeeded: false)
                 return
             }
             // Request line looks like: GET /?code=...&state=... HTTP/1.1
             let parts = line.split(separator: " ")
             guard parts.count >= 2 else {
-                self.respond(connection, succeeded: false)
+                respond(connection, succeeded: false)
                 return
             }
             let path = String(parts[1])
             var comps = URLComponents()
             comps.query = path.contains("?") ? String(path.split(separator: "?", maxSplits: 1)[1]) : ""
             let items = comps.queryItems ?? []
-            self.respond(connection, succeeded: true)
-            self.resume(.success(items))
+            respond(connection, succeeded: true)
+            resume(.success(items))
         }
     }
 

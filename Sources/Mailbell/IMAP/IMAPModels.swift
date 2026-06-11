@@ -8,7 +8,9 @@ struct MessageHeader: Identifiable, Equatable {
     let date: String
     let gmThreadId: String?
 
-    var id: Int { uid }
+    var id: Int {
+        uid
+    }
 }
 
 /// Result of selecting a mailbox; the checkpoint for gap-fill on reconnect.

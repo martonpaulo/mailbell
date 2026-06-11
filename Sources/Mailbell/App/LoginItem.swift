@@ -10,26 +10,26 @@ enum LoginItemStatus: Equatable {
     var title: String {
         switch self {
         case .disabled:
-            return "Disabled"
+            "Disabled"
         case .enabled:
-            return "Enabled"
+            "Enabled"
         case .requiresApproval:
-            return "Requires approval"
+            "Requires approval"
         case .unavailable:
-            return "Unavailable"
+            "Unavailable"
         }
     }
 
     var detail: String {
         switch self {
         case .disabled:
-            return "Mailbell will not start automatically."
+            "Mailbell will not start automatically."
         case .enabled:
-            return "Mailbell can start when you sign in."
+            "Mailbell can start when you sign in."
         case .requiresApproval:
-            return "Approve Mailbell in System Settings > General > Login Items."
+            "Approve Mailbell in System Settings > General > Login Items."
         case .unavailable:
-            return "Install and run Mailbell.app to manage start at login."
+            "Install and run Mailbell.app to manage start at login."
         }
     }
 

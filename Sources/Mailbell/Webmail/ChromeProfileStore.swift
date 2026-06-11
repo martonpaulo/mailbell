@@ -22,7 +22,8 @@ enum ChromeProfileStore {
         guard let data = try? Data(contentsOf: localStateURL),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let infoCache = json["profile"] as? [String: Any],
-              let profiles = infoCache["info_cache"] as? [String: [String: Any]] else {
+              let profiles = infoCache["info_cache"] as? [String: [String: Any]]
+        else {
             return []
         }
 

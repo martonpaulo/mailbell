@@ -10,9 +10,9 @@ final class IMAPClient {
 
         var errorDescription: String? {
             switch self {
-            case .authFailed(let detail): return "IMAP authentication failed: \(detail)"
-            case .selectFailed(let detail): return "IMAP SELECT failed: \(detail)"
-            case .unexpected(let detail): return "Unexpected IMAP response: \(detail)"
+            case let .authFailed(detail): "IMAP authentication failed: \(detail)"
+            case let .selectFailed(detail): "IMAP SELECT failed: \(detail)"
+            case let .unexpected(detail): "Unexpected IMAP response: \(detail)"
             }
         }
     }
@@ -118,7 +118,7 @@ final class IMAPClient {
         }
 
         let gate = DoneGate()
-        let connection = self.connection
+        let connection = connection
 
         let timeoutTask = Task { [connection, gate] in
             try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))

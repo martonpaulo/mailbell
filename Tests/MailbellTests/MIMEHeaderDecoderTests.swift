@@ -1,5 +1,5 @@
-import XCTest
 @testable import mailbell
+import XCTest
 
 final class MIMEHeaderDecoderTests: XCTestCase {
     func testDecodesBase64EncodedWord() {

@@ -18,10 +18,6 @@ final class AppPreferencesTests: XCTestCase {
         XCTAssertTrue(AppPreferences.showMenuBarIcon(userDefaults: defaults))
     }
 
-    func testSettingsSectionsRemainInRequiredOrder() {
-        XCTAssertEqual(SettingsSectionOrder.titles, ["Notifications", "Startup", "Accounts"])
-    }
-
     private func makeDefaults() -> UserDefaults {
         let suiteName = "mailbell.AppPreferencesTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!

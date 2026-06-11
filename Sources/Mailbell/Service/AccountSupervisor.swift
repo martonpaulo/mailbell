@@ -9,33 +9,14 @@ protocol AccountSupervisorDelegate: AnyObject {
 
 @MainActor
 final class AccountSupervisor {
-    enum SupervisorError: LocalizedError {
-        case missingAccount
-        case authenticationInProgress
-        case accountMismatch(expected: String, actual: String)
-        case sessionSaveFailed
-
-        var errorDescription: String? {
-            switch self {
-            case .missingAccount:
-                return "Account not found."
-            case .authenticationInProgress:
-                return "Google sign-in is already in progress."
-            case let .accountMismatch(expected, actual):
-                return "Signed in as \(actual), but this account expects \(expected)."
-            case .sessionSaveFailed:
-                return "Could not save Google sign-in in Keychain. Check Keychain access and try again."
-            }
-        }
-    }
-
     weak var delegate: AccountSupervisorDelegate?
 
     private let configProvider: () throws -> OAuthConfig
     private let accountStore: AccountStore
-    private var accounts: [MailAccount]
-    private var monitors: [UUID: MailMonitor] = [:]
-    private var statuses: [UUID: MonitorStatus] = [:]
+    private let monitorFactory: (MailAccount, OAuthConfig) -> any AccountMonitoring
+    var accounts: [MailAccount]
+    private var monitors: [UUID: any AccountMonitoring] = [:]
+    var statuses: [UUID: MonitorStatus] = [:]
     private var connectionErrors: [UUID: String] = [:]
     private var notificationErrors: [UUID: String] = [:]
     private var webmailOpenErrors: [UUID: String] = [:]
@@ -49,10 +30,14 @@ final class AccountSupervisor {
 
     init(
         configProvider: @escaping () throws -> OAuthConfig = OAuthConfig.loadOrThrow,
-        accountStore: AccountStore = AccountStore()
+        accountStore: AccountStore = AccountStore(),
+        monitorFactory: @escaping (MailAccount, OAuthConfig) -> any AccountMonitoring = { account, config in
+            MailMonitor(account: account, config: config)
+        }
     ) {
         self.configProvider = configProvider
         self.accountStore = accountStore
+        self.monitorFactory = monitorFactory
         accounts = accountStore.loadAccounts()
         setupNetworkMonitoring()
         setupSleepWakeObservers()
@@ -152,7 +137,7 @@ final class AccountSupervisor {
         if isEnabled {
             start(account)
         } else {
-            monitors[accountID]?.stop()
+            monitors[accountID]?.stop(clearSession: false)
             statuses[accountID] = .signedOut
             connectionErrors[accountID] = nil
             notificationErrors[accountID] = nil
@@ -260,7 +245,7 @@ final class AccountSupervisor {
         monitor.start()
     }
 
-    private func ensureMonitor(for account: MailAccount) -> MailMonitor? {
+    func ensureMonitor(for account: MailAccount) -> (any AccountMonitoring)? {
         if let monitor = monitors[account.id] {
             monitor.updateAccount(account)
             return monitor
@@ -268,7 +253,7 @@ final class AccountSupervisor {
 
         do {
             let config = try configProvider()
-            let monitor = MailMonitor(account: account, config: config)
+            let monitor = monitorFactory(account, config)
             monitor.delegate = self
             monitors[account.id] = monitor
             statuses[account.id] = initialStatus(for: account)
@@ -285,7 +270,7 @@ final class AccountSupervisor {
         return .signedOut
     }
 
-    private func publish() {
+    func publish() {
         delegate?.accountSupervisorDidUpdate(states: accountStates, aggregateStatus: aggregateStatus)
     }
 }
@@ -381,17 +366,6 @@ extension AccountSupervisor: MailMonitorDelegate {
                 self?.notificationErrors[accountID] = nil
             }
             self?.publish()
-        }
-    }
-}
-
-private extension MonitorStatus {
-    var clearsLastError: Bool {
-        switch self {
-        case .signedOut, .connected:
-            return true
-        case .connecting, .reconnecting, .reauthRequired, .error:
-            return false
         }
     }
 }

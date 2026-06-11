@@ -3,13 +3,13 @@ import XCTest
 
 final class MailMonitorNotificationPlanTests: XCTestCase {
     func testFirstReconnectBatchNotifiesOnlyNewestHeadersAndAdvancesCheckpoint() {
-        let headers = (101...125).map { uid in
+        let headers = (101 ... 125).map { uid in
             MessageHeader(uid: uid, from: "sender@example.com", subject: "Subject \(uid)", date: "", gmThreadId: nil)
         }
 
         let plan = MailMonitor.notificationPlan(headers: headers, lastSeenUID: 100, limit: 10)
 
-        XCTAssertEqual(plan.headersToNotify.map(\.uid), Array(116...125))
+        XCTAssertEqual(plan.headersToNotify.map(\.uid), Array(116 ... 125))
         XCTAssertEqual(plan.lastSeenUID, 125)
     }
 

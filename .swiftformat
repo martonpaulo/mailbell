@@ -1,0 +1,5 @@
+--swift-version 5.9
+--allman false
+--trailing-commas never
+--wrap-conditions disabled
+--disable wrapMultilineStatementBraces

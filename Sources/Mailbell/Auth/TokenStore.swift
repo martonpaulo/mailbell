@@ -1,6 +1,6 @@
 import Foundation
 
-struct KeychainClient: Sendable {
+struct KeychainClient {
     let set: @Sendable (_ value: String, _ account: String) throws -> Void
     let get: @Sendable (_ account: String) -> String?
     let delete: @Sendable (_ account: String) -> Void
@@ -24,7 +24,7 @@ final class TokenStore {
         var errorDescription: String? {
             switch self {
             case .encodingFailed:
-                return "Could not encode OAuth tokens for Keychain storage."
+                "Could not encode OAuth tokens for Keychain storage."
             }
         }
     }

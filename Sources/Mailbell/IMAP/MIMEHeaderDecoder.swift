@@ -10,14 +10,14 @@ enum MIMEHeaderDecoder {
         var remainder = Substring(input)
 
         while let start = remainder.range(of: "=?") {
-            result += remainder[remainder.startIndex..<start.lowerBound]
+            result += remainder[remainder.startIndex ..< start.lowerBound]
             let afterStart = remainder[start.upperBound...]
             guard let end = afterStart.range(of: "?=") else {
                 result += remainder[start.lowerBound...]
                 remainder = Substring("")
                 break
             }
-            let token = afterStart[afterStart.startIndex..<end.lowerBound]
+            let token = afterStart[afterStart.startIndex ..< end.lowerBound]
             if let decoded = decodeWord(String(token)) {
                 result += decoded
             } else {
@@ -73,10 +73,10 @@ enum MIMEHeaderDecoder {
 
     private static func encodingFor(_ charset: String) -> String.Encoding {
         switch charset.uppercased() {
-        case "UTF-8", "UTF8": return .utf8
-        case "ISO-8859-1", "LATIN1": return .isoLatin1
-        case "US-ASCII", "ASCII": return .ascii
-        default: return .utf8
+        case "UTF-8", "UTF8": .utf8
+        case "ISO-8859-1", "LATIN1": .isoLatin1
+        case "US-ASCII", "ASCII": .ascii
+        default: .utf8
         }
     }
 }

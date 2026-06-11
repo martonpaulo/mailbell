@@ -67,13 +67,13 @@ enum NotificationPostResult {
     var userMessage: String? {
         switch self {
         case .posted:
-            return nil
+            nil
         case let .unavailable(message):
-            return message
+            message
         case let .notAuthorized(state):
-            return state.detail
+            state.detail
         case let .failed(message):
-            return message
+            message
         }
     }
 }

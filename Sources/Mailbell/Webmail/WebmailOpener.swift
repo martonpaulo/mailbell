@@ -57,17 +57,18 @@ enum WebmailOpener {
             directory: profileDirectory,
             homeDirectory: context.homeDirectory,
             fileManager: context.fileManager
-        ) else {
-            return mergeFallback(
-                await openWithApplication(url: url, appURL: appURL, workspace: context.workspace),
+        )
+        else {
+            return await mergeFallback(
+                openWithApplication(url: url, appURL: appURL, workspace: context.workspace),
                 message: "Selected Chrome profile is no longer available."
             )
         }
 
         let executable = chromeExecutableURL(appURL: appURL)
         guard context.fileManager.fileExists(atPath: executable.path) else {
-            return mergeFallback(
-                await openWithApplication(url: url, appURL: appURL, workspace: context.workspace),
+            return await mergeFallback(
+                openWithApplication(url: url, appURL: appURL, workspace: context.workspace),
                 message: "Could not open Gmail with the selected Chrome profile."
             )
         }
@@ -79,8 +80,8 @@ enum WebmailOpener {
             try process.run()
             return .opened
         } catch {
-            return mergeFallback(
-                await openWithApplication(url: url, appURL: appURL, workspace: context.workspace),
+            return await mergeFallback(
+                openWithApplication(url: url, appURL: appURL, workspace: context.workspace),
                 message: "Could not open Gmail with the selected Chrome profile."
             )
         }
@@ -99,11 +100,10 @@ enum WebmailOpener {
             let configuration = NSWorkspace.OpenConfiguration()
             workspace.open([url], withApplicationAt: appURL, configuration: configuration) { _, error in
                 Task { @MainActor in
-                    let outcome: WebmailOpenOutcome
-                    if error == nil {
-                        outcome = .opened
+                    let outcome: WebmailOpenOutcome = if error == nil {
+                        .opened
                     } else {
-                        outcome = openWithSystemDefault(
+                        openWithSystemDefault(
                             url,
                             workspace: .shared,
                             fallbackMessage: "Could not open Gmail with the selected browser."
@@ -135,11 +135,11 @@ enum WebmailOpener {
     private static func mergeFallback(_ outcome: WebmailOpenOutcome, message: String) -> WebmailOpenOutcome {
         switch outcome {
         case .opened:
-            return .openedWithFallback(message: message)
+            .openedWithFallback(message: message)
         case let .openedWithFallback(existing):
-            return .openedWithFallback(message: "\(message) \(existing)")
+            .openedWithFallback(message: "\(message) \(existing)")
         case .failed:
-            return .failed(message: message)
+            .failed(message: message)
         }
     }
 

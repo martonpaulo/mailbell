@@ -27,7 +27,8 @@ enum BrowserRegistry {
             guard let bundle = Bundle(url: appURL),
                   let bundleID = bundle.bundleIdentifier,
                   browserBundleAllowlist.contains(bundleID),
-                  seenBundleIDs.insert(bundleID).inserted else {
+                  seenBundleIDs.insert(bundleID).inserted
+            else {
                 continue
             }
 
@@ -93,7 +94,8 @@ enum BrowserRegistry {
     ) -> WebmailOpenPreference? {
         guard candidate.id != BrowserCandidate.systemDefaultID else { return nil }
         guard let bundleIdentifier = candidate.bundleIdentifier,
-              let appPath = candidate.appURL?.standardizedFileURL.path else {
+              let appPath = candidate.appURL?.standardizedFileURL.path
+        else {
             return nil
         }
         var profile = chromeProfileDirectory

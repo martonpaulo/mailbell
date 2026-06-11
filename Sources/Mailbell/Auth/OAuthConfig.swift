@@ -10,7 +10,9 @@ struct OAuthConfig {
     let tokenEndpoint = URL(string: "https://oauth2.googleapis.com/token")!
     let userInfoEndpoint = URL(string: "https://openidconnect.googleapis.com/v1/userinfo")!
 
-    var scopeString: String { scopes.joined(separator: " ") }
+    var scopeString: String {
+        scopes.joined(separator: " ")
+    }
 
     static let clientIDKey = "MAILBELL_GOOGLE_CLIENT_ID"
     static let clientSecretKey = "MAILBELL_GOOGLE_CLIENT_SECRET"
@@ -92,7 +94,8 @@ struct OAuthConfig {
         guard let clientID = clientID?.trimmingCharacters(in: .whitespacesAndNewlines),
               !clientID.isEmpty,
               let clientSecret = clientSecret?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !clientSecret.isEmpty else {
+              !clientSecret.isEmpty
+        else {
             throw OAuthConfigIssue.missingCredentials
         }
         guard clientID.hasSuffix(".apps.googleusercontent.com") else {
@@ -110,14 +113,14 @@ enum OAuthConfigIssue: Error, Equatable, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingCredentials:
-            return "Google OAuth setup is required. Set MAILBELL_GOOGLE_CLIENT_ID and "
+            "Google OAuth setup is required. Set MAILBELL_GOOGLE_CLIENT_ID and "
                 + "MAILBELL_GOOGLE_CLIENT_SECRET in .env or your shell, then rebuild or reinstall Mailbell. "
                 + "See README > Google sign-in."
         case .invalidClientID:
-            return "Google OAuth client ID looks invalid. Use your Desktop OAuth client ID ending in "
+            "Google OAuth client ID looks invalid. Use your Desktop OAuth client ID ending in "
                 + ".apps.googleusercontent.com. See README > Google sign-in."
         case .invalidCredentials:
-            return "Google OAuth credentials are invalid. Check your local .env or shell values and reinstall Mailbell."
+            "Google OAuth credentials are invalid. Check your local .env or shell values and reinstall Mailbell."
         }
     }
 }
@@ -127,7 +130,8 @@ private extension String {
         guard count >= 2,
               let first,
               let last,
-              (first == "\"" && last == "\"") || (first == "'" && last == "'") else {
+              (first == "\"" && last == "\"") || (first == "'" && last == "'")
+        else {
             return self
         }
         return String(dropFirst().dropLast())

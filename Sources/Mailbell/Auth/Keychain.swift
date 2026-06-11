@@ -10,7 +10,7 @@ enum Keychain {
         var errorDescription: String? {
             switch self {
             case let .unexpectedStatus(status):
-                return "Keychain returned status \(status)."
+                "Keychain returned status \(status)."
             }
         }
     }

@@ -2,8 +2,8 @@
 import XCTest
 
 final class EmailNotificationContentBuilderTests: XCTestCase {
-    func testSenderNameBecomesNotificationTitle() {
-        let content = EmailNotificationContentBuilder.build(
+    func testSenderNameBecomesNotificationTitle() throws {
+        let content = try EmailNotificationContentBuilder.build(
             header: MessageHeader(
                 uid: 1,
                 from: "Ana Silva <ana@example.com>",
@@ -11,7 +11,7 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
                 date: "",
                 gmThreadId: nil
             ),
-            webmailURL: URL(string: "https://mail.google.com/")!,
+            webmailURL: XCTUnwrap(URL(string: "https://mail.google.com/")),
             accountID: UUID()
         )
 
@@ -20,8 +20,8 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
         XCTAssertEqual(content.body, "Revisão do contrato hoje")
     }
 
-    func testSenderEmailBecomesNotificationTitleWhenNameIsMissing() {
-        let content = EmailNotificationContentBuilder.build(
+    func testSenderEmailBecomesNotificationTitleWhenNameIsMissing() throws {
+        let content = try EmailNotificationContentBuilder.build(
             header: MessageHeader(
                 uid: 2,
                 from: "<ana@example.com>",
@@ -29,7 +29,7 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
                 date: "",
                 gmThreadId: nil
             ),
-            webmailURL: URL(string: "https://mail.google.com/")!,
+            webmailURL: XCTUnwrap(URL(string: "https://mail.google.com/")),
             accountID: UUID()
         )
 

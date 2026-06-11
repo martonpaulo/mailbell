@@ -1,6 +1,6 @@
-import Foundation
 import AppKit
 import CryptoKit
+import Foundation
 
 /// Implements Google's installed-app OAuth flow with PKCE over a loopback redirect.
 /// Also handles access-token refresh and fetching the account email.
@@ -17,14 +17,14 @@ final class OAuthClient {
 
         var errorDescription: String? {
             switch self {
-            case .browserOpenFailed: return "Could not open the browser for sign-in."
-            case .authorizationDenied(let detail): return "Authorization denied: \(detail)"
-            case .missingCode: return "No authorization code was returned."
-            case .tokenExchangeFailed(let detail): return "Token exchange failed: \(detail)"
-            case .refreshFailed(let detail): return "Token refresh failed: \(detail)"
-            case .refreshUnavailable(let detail): return "Token refresh unavailable: \(detail)"
-            case .noRefreshToken: return "No refresh token is stored; sign in again."
-            case let .missingEmail(detail): return "Could not read the account email: \(detail)"
+            case .browserOpenFailed: "Could not open the browser for sign-in."
+            case let .authorizationDenied(detail): "Authorization denied: \(detail)"
+            case .missingCode: "No authorization code was returned."
+            case let .tokenExchangeFailed(detail): "Token exchange failed: \(detail)"
+            case let .refreshFailed(detail): "Token refresh failed: \(detail)"
+            case let .refreshUnavailable(detail): "Token refresh unavailable: \(detail)"
+            case .noRefreshToken: "No refresh token is stored; sign in again."
+            case let .missingEmail(detail): "Could not read the account email: \(detail)"
             }
         }
     }
@@ -33,7 +33,9 @@ final class OAuthClient {
         let detail: String
         let invalidGrant: Bool
 
-        var errorDescription: String? { detail }
+        var errorDescription: String? {
+            detail
+        }
     }
 
     private let config: OAuthConfig
@@ -144,7 +146,7 @@ final class OAuthClient {
         request.timeoutInterval = Self.requestTimeout
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await session.data(for: request)
-        if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+        if let http = response as? HTTPURLResponse, !(200 ..< 300).contains(http.statusCode) {
             throw OAuthError.missingEmail(Self.sanitizedUserInfoDetail(statusCode: http.statusCode))
         }
         struct UserInfo: Decodable { let email: String? }
@@ -172,7 +174,7 @@ final class OAuthClient {
             .data(using: .utf8)
 
         let (data, response) = try await session.data(for: request)
-        if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+        if let http = response as? HTTPURLResponse, !(200 ..< 300).contains(http.statusCode) {
             let body = String(data: data, encoding: .utf8) ?? "status \(http.statusCode)"
             throw TokenEndpointFailure(
                 detail: Self.sanitizedTokenEndpointDetail(statusCode: http.statusCode, body: body),
@@ -201,9 +203,9 @@ final class OAuthClient {
         case .notConnectedToInternet, .networkConnectionLost, .timedOut,
              .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed,
              .internationalRoamingOff, .dataNotAllowed, .secureConnectionFailed:
-            return true
+            true
         default:
-            return false
+            false
         }
     }
 

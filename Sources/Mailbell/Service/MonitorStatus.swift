@@ -10,34 +10,34 @@ enum MonitorStatus: Equatable {
 
     var menuLabel: String {
         switch self {
-        case .signedOut: return "Not connected"
-        case .connecting: return "Connecting..."
-        case .connected: return "Connected"
-        case .reconnecting: return "Reconnecting..."
-        case .reauthRequired: return "Reconnect needed"
-        case .error: return "Error"
+        case .signedOut: "Not connected"
+        case .connecting: "Connecting..."
+        case .connected: "Connected"
+        case .reconnecting: "Reconnecting..."
+        case .reauthRequired: "Reconnect needed"
+        case .error: "Error"
         }
     }
 
     var systemImage: String {
         switch self {
-        case .connected: return "bell.fill"
-        case .connecting, .reconnecting: return "bell.badge"
-        case .reauthRequired, .error: return "bell.slash"
-        case .signedOut: return "bell"
+        case .connected: "bell.fill"
+        case .connecting, .reconnecting: "bell.badge"
+        case .reauthRequired, .error: "bell.slash"
+        case .signedOut: "bell"
         }
     }
 
     var sortPriority: Int {
         switch self {
         case .reauthRequired, .error:
-            return 0
+            0
         case .connecting, .reconnecting:
-            return 1
+            1
         case .connected:
-            return 2
+            2
         case .signedOut:
-            return 3
+            3
         }
     }
 }

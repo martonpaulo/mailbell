@@ -64,6 +64,13 @@ struct MenuContent: View {
 
         Divider()
 
+        Button("Refresh") {
+            appState.refreshMailNow()
+        }
+        .disabled(!appState.canRequestManualRefresh)
+
+        Divider()
+
         if #available(macOS 14.0, *) {
             SettingsLink {
                 Text("Settings…")
@@ -112,7 +119,6 @@ struct SettingsView: View {
             accountsSection
         }
         .formStyle(.grouped)
-        .padding(20)
         .frame(width: 660)
         .frame(minHeight: 560)
         .onAppear {
@@ -126,7 +132,7 @@ struct SettingsView: View {
     }
 
     private var notificationSection: some View {
-        Section(SettingsSectionOrder.titles[0]) {
+        Section("Notifications") {
             LabeledContent("Status") {
                 Label(
                     appState.notificationAuthorizationState.summary,
@@ -141,7 +147,12 @@ struct SettingsView: View {
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
 
-            HStack(spacing: 8) {
+            ControlGroup {
+                Button("Refresh Gmail") {
+                    appState.refreshMailNow()
+                }
+                .disabled(!appState.canRequestManualRefresh)
+
                 Button("Refresh notification status") {
                     appState.refreshNotificationAuthorizationState()
                 }
@@ -163,6 +174,12 @@ struct SettingsView: View {
                 }
             }
 
+            if let message = appState.manualRefreshMessage {
+                Label(message, systemImage: "arrow.clockwise")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             if let message = appState.notificationTestMessage {
                 Label(message, systemImage: "bell.badge")
                     .font(.caption)
@@ -175,7 +192,7 @@ struct SettingsView: View {
     }
 
     private var startupSection: some View {
-        Section(SettingsSectionOrder.titles[1]) {
+        Section("Startup") {
             Toggle("Start at login", isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { newValue in
                     LoginItem.set(newValue)
@@ -213,35 +230,27 @@ struct SettingsView: View {
     }
 
     private var accountsSection: some View {
-        Section(SettingsSectionOrder.titles[2]) {
+        Section("Accounts") {
             if let setupMessage = appState.oauthSetupMessage {
                 OAuthSetupPanel(details: setupMessage)
             }
 
-            HStack {
-                Button("Add Gmail Account") {
-                    appState.addGoogleAccount()
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
-                .help(appState.isAuthorizing ? "Complete Google sign-in in your browser." : "Add a Gmail account.")
-
-                Spacer()
+            Button("Add Gmail Account") {
+                appState.addGoogleAccount()
             }
+            .buttonStyle(.borderedProminent)
+            .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
+            .help(appState.isAuthorizing ? "Complete Google sign-in in your browser." : "Add a Gmail account.")
 
             if appState.accounts.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("No accounts connected")
-                        .font(.headline)
-                    Text(accountEmptyDetail)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                Label("No accounts connected", systemImage: "person.crop.circle.badge.exclamationmark")
+                Text(accountEmptyDetail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             } else {
                 ForEach(Array(appState.accounts.enumerated()), id: \.element.id) { index, accountState in
                     if index > 0 {
                         Divider()
-                            .padding(.vertical, 4)
                     }
                     accountRow(accountState)
                 }
@@ -254,34 +263,26 @@ struct SettingsView: View {
     }
 
     private func accountRow(_ state: AccountRuntimeState) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 12) {
-                Label {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(state.account.email)
-                            .font(.headline)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                            .textSelection(.enabled)
-                        Text("\(state.account.providerID.displayName) · \(accountDetail(for: state))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+        Group {
+            LabeledContent {
+                ControlGroup {
+                    Button("Open Gmail") {
+                        appState.openGmail(accountID: state.account.id)
                     }
-                } icon: {
-                    Image(systemName: state.status.systemImage)
-                        .foregroundStyle(statusTint(for: state.status))
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                    .buttonStyle(.bordered)
 
-                Button("Open Gmail") {
-                    appState.openGmail(accountID: state.account.id)
+                    AccountActionsMenu(appState: appState, accountState: state)
                 }
-                .buttonStyle(.bordered)
-                .fixedSize()
-
-                AccountActionsMenu(appState: appState, accountState: state)
-                    .fixedSize()
+            } label: {
+                Label(state.account.email, systemImage: state.status.systemImage)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .textSelection(.enabled)
             }
+
+            Text("\(state.account.providerID.displayName) · \(accountDetail(for: state))")
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
             AccountWebmailSettingsView(appState: appState, accountState: state)
 
@@ -289,7 +290,6 @@ struct SettingsView: View {
                 accountErrorLabel(error)
             }
         }
-        .padding(.vertical, 4)
     }
 
     private func accountErrorLabel(_ message: String) -> some View {
@@ -324,19 +324,6 @@ struct SettingsView: View {
             return "Sign in again."
         case .error:
             return "Needs attention."
-        }
-    }
-
-    private func statusTint(for status: MonitorStatus) -> Color {
-        switch status {
-        case .connected:
-            return .green
-        case .connecting, .reconnecting:
-            return .orange
-        case .reauthRequired, .error:
-            return .red
-        case .signedOut:
-            return .secondary
         }
     }
 

@@ -23,7 +23,7 @@ final class IMAPConnection: @unchecked Sendable {
         self.port = NWEndpoint.Port(rawValue: port)!
         let tls = NWProtocolTLS.Options()
         let params = NWParameters(tls: tls)
-        self.connection = NWConnection(host: self.host, port: self.port, using: params)
+        connection = NWConnection(host: self.host, port: self.port, using: params)
     }
 
     func connect() async throws {
@@ -33,7 +33,7 @@ final class IMAPConnection: @unchecked Sendable {
                 switch state {
                 case .ready:
                     if resumeGate.claim() { cont.resume() }
-                case .failed(let error):
+                case let .failed(error):
                     if resumeGate.claim() { cont.resume(throwing: error) }
                 case .cancelled:
                     if resumeGate.claim() { cont.resume(throwing: ConnectionError.closed) }
@@ -66,8 +66,8 @@ final class IMAPConnection: @unchecked Sendable {
     func readLine() async throws -> String {
         while true {
             if let range = buffer.range(of: Data("\r\n".utf8)) {
-                let lineData = buffer.subdata(in: buffer.startIndex..<range.lowerBound)
-                buffer.removeSubrange(buffer.startIndex..<range.upperBound)
+                let lineData = buffer.subdata(in: buffer.startIndex ..< range.lowerBound)
+                buffer.removeSubrange(buffer.startIndex ..< range.upperBound)
                 return String(bytes: lineData, encoding: .utf8) ?? ""
             }
             try await fill()

@@ -15,13 +15,17 @@ protocol MailProvider {
 
 struct GmailProvider: MailProvider {
     let id: MailProviderID = .gmail
-    var displayName: String { id.displayName }
+    var displayName: String {
+        id.displayName
+    }
+
     let capabilities = ProviderCapabilities(supportsIdle: true, supportsThreadLink: true)
     let webmailURL = URL(string: "https://mail.google.com/")!
 
     func webmailURL(for header: MessageHeader) -> URL {
         guard let threadID = header.gmThreadId,
-              let threadValue = UInt64(threadID, radix: 10) else {
+              let threadValue = UInt64(threadID, radix: 10)
+        else {
             return webmailURL
         }
         let threadHex = String(threadValue, radix: 16)
@@ -33,7 +37,7 @@ enum MailProviderRegistry {
     static func provider(for id: MailProviderID) -> MailProvider {
         switch id {
         case .gmail:
-            return GmailProvider()
+            GmailProvider()
         }
     }
 }

@@ -8,7 +8,7 @@ final class TokenStoreTests: XCTestCase {
         let tokens = GoogleTokens(
             accessToken: "access-token",
             refreshToken: "refresh-token",
-            expiresAt: Date(timeIntervalSince1970: 1_234)
+            expiresAt: Date(timeIntervalSince1970: 1234)
         )
 
         try store.save(tokens: tokens)
@@ -20,7 +20,7 @@ final class TokenStoreTests: XCTestCase {
         let decoded = try JSONDecoder().decode(GoogleTokens.self, from: Data(accessEntry.value.utf8))
         XCTAssertEqual(decoded.accessToken, "access-token")
         XCTAssertEqual(decoded.refreshToken, "refresh-token")
-        XCTAssertEqual(decoded.expiresAt, Date(timeIntervalSince1970: 1_234))
+        XCTAssertEqual(decoded.expiresAt, Date(timeIntervalSince1970: 1234))
     }
 
     func testSavePropagatesKeychainWriteFailure() {
@@ -29,7 +29,7 @@ final class TokenStoreTests: XCTestCase {
         let tokens = GoogleTokens(
             accessToken: "access-token",
             refreshToken: "refresh-token",
-            expiresAt: Date(timeIntervalSince1970: 1_234)
+            expiresAt: Date(timeIntervalSince1970: 1234)
         )
 
         XCTAssertThrowsError(try store.save(tokens: tokens)) { error in
@@ -55,7 +55,7 @@ final class TokenStoreTests: XCTestCase {
         let tokens = GoogleTokens(
             accessToken: "new-access",
             refreshToken: "new-refresh",
-            expiresAt: Date(timeIntervalSince1970: 1_234)
+            expiresAt: Date(timeIntervalSince1970: 1234)
         )
 
         XCTAssertThrowsError(try store.save(tokens: tokens))

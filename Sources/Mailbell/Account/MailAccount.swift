@@ -6,7 +6,7 @@ enum MailProviderID: String, Codable, CaseIterable {
     var displayName: String {
         switch self {
         case .gmail:
-            return "Google Gmail"
+            "Google Gmail"
         }
     }
 }
@@ -45,5 +45,7 @@ struct AccountRuntimeState: Identifiable, Equatable {
     var lastError: String?
     var webmailOpenError: String?
 
-    var id: UUID { account.id }
+    var id: UUID {
+        account.id
+    }
 }

@@ -18,7 +18,3 @@ enum AppPreferences {
         userDefaults.set(value, forKey: AppPreferenceKeys.showMenuBarIcon)
     }
 }
-
-enum SettingsSectionOrder {
-    static let titles = ["Notifications", "Startup", "Accounts"]
-}

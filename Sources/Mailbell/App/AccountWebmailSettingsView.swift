@@ -12,8 +12,8 @@ struct AccountWebmailSettingsView: View {
     @State private var isSyncingFromAccount = false
 
     var body: some View {
-        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 8) {
-            SettingsFieldRow("Open with") {
+        Group {
+            LabeledContent("Open with") {
                 Picker("Open with", selection: $selectedBrowserID) {
                     ForEach(browserOptions) { browser in
                         Text(browserLabel(for: browser)).tag(browser.id)
@@ -28,7 +28,7 @@ struct AccountWebmailSettingsView: View {
             }
 
             if selectedBrowserSupportsChromeProfiles {
-                SettingsFieldRow("Chrome profile") {
+                LabeledContent("Chrome profile") {
                     Picker("Chrome profile", selection: $selectedChromeProfileDirectory) {
                         ForEach(chromeProfileOptions) { option in
                             Text(option.label).tag(option.directory)
@@ -44,14 +44,19 @@ struct AccountWebmailSettingsView: View {
             }
 
             if let warning = missingSelectionWarning {
-                SettingsMessageRow(message: warning)
+                Label(warning, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .textSelection(.enabled)
             }
 
             if let error = accountState.webmailOpenError {
-                SettingsMessageRow(message: error)
+                Label(error, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .textSelection(.enabled)
             }
         }
-        .padding(.leading, 34)
         .task {
             await loadBrowserDataIfNeeded()
             syncFromAccount()
@@ -192,5 +197,7 @@ struct ChromeProfilePickerOption: Identifiable, Equatable {
     let directory: String
     let label: String
 
-    var id: String { directory }
+    var id: String {
+        directory
+    }
 }

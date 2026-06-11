@@ -69,7 +69,9 @@ struct ChromeProfileCandidate: Identifiable, Equatable {
     let displayName: String
     let userName: String?
 
-    var id: String { directory }
+    var id: String {
+        directory
+    }
 
     var pickerLabel: String {
         if let userName, !userName.isEmpty {

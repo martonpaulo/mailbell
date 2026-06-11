@@ -27,7 +27,8 @@ enum EmailNotificationContentBuilder {
         guard !sender.isEmpty else { return "Unknown sender" }
 
         guard let angleStart = sender.firstIndex(of: "<"),
-              let angleEnd = sender[angleStart...].firstIndex(of: ">") else {
+              let angleEnd = sender[angleStart...].firstIndex(of: ">")
+        else {
             return sender.trimmingMatchingQuotes()
         }
 
@@ -38,7 +39,7 @@ enum EmailNotificationContentBuilder {
             return displayName
         }
 
-        let email = sender[sender.index(after: angleStart)..<angleEnd]
+        let email = sender[sender.index(after: angleStart) ..< angleEnd]
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return email.isEmpty ? "Unknown sender" : email
     }
@@ -51,7 +52,8 @@ private extension StringProtocol {
               let first = trimmed.first,
               let last = trimmed.last,
               first == last,
-              first == "\"" || first == "'" else {
+              first == "\"" || first == "'"
+        else {
             return trimmed
         }
         return String(trimmed.dropFirst().dropLast())

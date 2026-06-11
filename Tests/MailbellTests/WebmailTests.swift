@@ -1,5 +1,5 @@
-@testable import mailbell
 import Foundation
+@testable import mailbell
 import XCTest
 
 final class WebmailTests: XCTestCase {

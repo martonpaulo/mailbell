@@ -5,9 +5,21 @@ protocol MailMonitorDelegate: AnyObject {
     func monitor(_ accountID: UUID, didNotify header: MessageHeader, result: NotificationPostResult)
 }
 
+protocol AccountMonitoring: AnyObject {
+    var delegate: MailMonitorDelegate? { get set }
+    var account: MailAccount { get }
+    var hasSession: Bool { get }
+
+    func updateAccount(_ account: MailAccount)
+    func start()
+    func stop(clearSession: Bool)
+    func forceReconnect()
+    func refreshNow()
+}
+
 /// Runs one account's IMAP connection state machine:
 /// token refresh, IMAP connect/select/IDLE, gap-fill on reconnect, and token revocation.
-final class MailMonitor: @unchecked Sendable {
+final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     struct NotificationPlan: Equatable {
         let headersToNotify: [MessageHeader]
         let lastSeenUID: Int
@@ -37,7 +49,9 @@ final class MailMonitor: @unchecked Sendable {
         oauth = OAuthClient(config: config)
     }
 
-    var hasSession: Bool { store.hasSession }
+    var hasSession: Bool {
+        store.hasSession
+    }
 
     func updateAccount(_ account: MailAccount) {
         self.account = account
@@ -71,6 +85,17 @@ final class MailMonitor: @unchecked Sendable {
     /// Forces the current connection to drop so the run loop reconnects promptly
     /// (used on network-available and wake).
     func forceReconnect() {
+        client?.disconnect()
+    }
+
+    /// Requests an immediate gap-fill using the existing run loop. If a client is
+    /// in IDLE, dropping it makes the retained run loop reconnect and fetch.
+    func refreshNow() {
+        guard account.isEnabled, store.hasSession else { return }
+        guard client != nil else {
+            start()
+            return
+        }
         client?.disconnect()
     }
 
@@ -133,6 +158,7 @@ final class MailMonitor: @unchecked Sendable {
             let event = try await client.idle(timeout: idleTimeout)
             switch event {
             case .timedOut:
+                try await fetchAndNotify(client: client)
                 continue // re-arm IDLE
             case .newMessages:
                 try await fetchAndNotify(client: client)

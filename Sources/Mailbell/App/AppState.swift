@@ -12,6 +12,7 @@ final class AppState: ObservableObject {
     @Published private(set) var isAuthorizing = false
     @Published private(set) var notificationAuthorizationState: NotificationAuthorizationState = .unbundled
     @Published private(set) var notificationTestMessage: String?
+    @Published private(set) var manualRefreshMessage: String?
 
     private let supervisor: AccountSupervisor
 
@@ -28,7 +29,13 @@ final class AppState: ObservableObject {
         refreshNotificationAuthorizationState()
     }
 
-    var hasAccounts: Bool { !accounts.isEmpty }
+    var hasAccounts: Bool {
+        !accounts.isEmpty
+    }
+
+    var canRequestManualRefresh: Bool {
+        hasAccounts && !isAuthorizing
+    }
 
     func signIn() {
         addGoogleAccount()
@@ -98,6 +105,11 @@ final class AppState: ObservableObject {
         Task {
             notificationAuthorizationState = await NotificationManager.shared.requestAuthorization()
         }
+    }
+
+    func refreshMailNow() {
+        let result = supervisor.refreshNow()
+        manualRefreshMessage = result.message
     }
 
     func sendTestNotification() {
