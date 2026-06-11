@@ -3,7 +3,7 @@ import Network
 
 /// A one-shot loopback HTTP server used to capture the OAuth redirect for the
 /// installed-app flow (redirect URI `http://127.0.0.1:<port>`).
-final class LoopbackServer {
+final class LoopbackServer: @unchecked Sendable {
     enum LoopbackError: Error, LocalizedError {
         case failedToStart
         case missingQuery
@@ -72,32 +72,28 @@ final class LoopbackServer {
         }
 
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-            var resumed = false
+            let resumeGate = OneShotResumeGate()
             listener.stateUpdateHandler = { [weak self] state in
                 guard let self else { return }
                 switch state {
                 case .ready:
                     guard let assigned = listener.port?.rawValue, assigned > 0 else {
-                        if !resumed {
-                            resumed = true
+                        if resumeGate.claim() {
                             cont.resume(throwing: LoopbackError.failedToStart)
                         }
                         return
                     }
                     self.port = assigned
-                    if !resumed {
-                        resumed = true
+                    if resumeGate.claim() {
                         cont.resume()
                     }
                 case .failed(let error):
                     listener.cancel()
-                    if !resumed {
-                        resumed = true
+                    if resumeGate.claim() {
                         cont.resume(throwing: error)
                     }
                 case .cancelled:
-                    if !resumed {
-                        resumed = true
+                    if resumeGate.claim() {
                         cont.resume(throwing: LoopbackError.failedToStart)
                     }
                 default:

@@ -134,13 +134,12 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     }
 
     func notify(_ header: MessageHeader, account: MailAccount) async -> NotificationPostResult {
-        let url = Self.webmailURL(for: header, account: account)
         guard isBundled else {
-            let message = "[notify] \(account.email) \(header.from) - \(header.subject) (\(url.absoluteString))"
-            Log.info(message)
+            Log.info("Notifications unavailable outside app bundle; install Mailbell.app to post native notifications.")
             return .unavailable("Notifications unavailable outside app bundle.")
         }
 
+        let url = Self.webmailURL(for: header, account: account)
         let state = await requestAuthorizationIfNeeded()
         guard state.canPostAlert else {
             let message = state.detail

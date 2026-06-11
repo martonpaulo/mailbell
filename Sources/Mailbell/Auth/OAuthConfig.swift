@@ -110,9 +110,12 @@ enum OAuthConfigIssue: Error, Equatable, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingCredentials:
-            return "Google OAuth setup is required. Set MAILBELL_GOOGLE_CLIENT_ID and MAILBELL_GOOGLE_CLIENT_SECRET in .env or your shell, then rebuild or reinstall Mailbell. See README > Google sign-in."
+            return "Google OAuth setup is required. Set MAILBELL_GOOGLE_CLIENT_ID and "
+                + "MAILBELL_GOOGLE_CLIENT_SECRET in .env or your shell, then rebuild or reinstall Mailbell. "
+                + "See README > Google sign-in."
         case .invalidClientID:
-            return "Google OAuth client ID looks invalid. Use your Desktop OAuth client ID ending in .apps.googleusercontent.com. See README > Google sign-in."
+            return "Google OAuth client ID looks invalid. Use your Desktop OAuth client ID ending in "
+                + ".apps.googleusercontent.com. See README > Google sign-in."
         case .invalidCredentials:
             return "Google OAuth credentials are invalid. Check your local .env or shell values and reinstall Mailbell."
         }

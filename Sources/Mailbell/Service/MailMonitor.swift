@@ -8,7 +8,14 @@ protocol MailMonitorDelegate: AnyObject {
 /// Runs one account's IMAP connection state machine:
 /// token refresh, IMAP connect/select/IDLE, gap-fill on reconnect, and token revocation.
 final class MailMonitor {
+    struct NotificationPlan: Equatable {
+        let headersToNotify: [MessageHeader]
+        let lastSeenUID: Int
+    }
+
     weak var delegate: MailMonitorDelegate?
+
+    static let maximumNotificationsPerFetch = 10
 
     private(set) var account: MailAccount
     private let config: OAuthConfig
@@ -134,14 +141,27 @@ final class MailMonitor {
     }
 
     private func fetchAndNotify(client: IMAPClient) async throws {
-        let from = lastSeenUID + 1
+        let from = max(lastSeenUID + 1, 1)
         let headers = try await client.fetchHeaders(fromUID: from)
-        let fresh = headers.filter { $0.uid > lastSeenUID }.sorted { $0.uid < $1.uid }
-        for header in fresh {
+        let plan = Self.notificationPlan(headers: headers, lastSeenUID: lastSeenUID)
+        for header in plan.headersToNotify {
             let result = await NotificationManager.shared.notify(header, account: account)
             delegate?.monitor(account.id, didNotify: header, result: result)
-            lastSeenUID = max(lastSeenUID, header.uid)
         }
+        lastSeenUID = max(lastSeenUID, plan.lastSeenUID)
+    }
+
+    static func notificationPlan(
+        headers: [MessageHeader],
+        lastSeenUID: Int,
+        limit: Int = maximumNotificationsPerFetch
+    ) -> NotificationPlan {
+        let fresh = headers.filter { $0.uid > lastSeenUID }.sorted { $0.uid < $1.uid }
+        guard let newestUID = fresh.last?.uid else {
+            return NotificationPlan(headersToNotify: [], lastSeenUID: lastSeenUID)
+        }
+        let capped = limit > 0 ? Array(fresh.suffix(limit)) : []
+        return NotificationPlan(headersToNotify: capped, lastSeenUID: newestUID)
     }
 
     // MARK: - Tokens

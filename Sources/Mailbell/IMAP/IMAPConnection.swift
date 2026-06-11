@@ -28,15 +28,15 @@ final class IMAPConnection {
 
     func connect() async throws {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-            var resumed = false
+            let resumeGate = OneShotResumeGate()
             connection.stateUpdateHandler = { state in
                 switch state {
                 case .ready:
-                    if !resumed { resumed = true; cont.resume() }
+                    if resumeGate.claim() { cont.resume() }
                 case .failed(let error):
-                    if !resumed { resumed = true; cont.resume(throwing: error) }
+                    if resumeGate.claim() { cont.resume(throwing: error) }
                 case .cancelled:
-                    if !resumed { resumed = true; cont.resume(throwing: ConnectionError.closed) }
+                    if resumeGate.claim() { cont.resume(throwing: ConnectionError.closed) }
                 default:
                     break
                 }

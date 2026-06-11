@@ -29,6 +29,13 @@ final class OAuthClient {
         }
     }
 
+    private struct TokenEndpointFailure: Error, LocalizedError {
+        let detail: String
+        let invalidGrant: Bool
+
+        var errorDescription: String? { detail }
+    }
+
     private let config: OAuthConfig
     private let session = URLSession(configuration: .ephemeral)
 
@@ -116,6 +123,11 @@ final class OAuthClient {
         do {
             let response: TokenResponse = try await postForm(config.tokenEndpoint, form: form)
             return response.tokens(existingRefreshToken: refreshToken)
+        } catch let failure as TokenEndpointFailure {
+            if failure.invalidGrant {
+                throw OAuthError.refreshFailed(failure.detail)
+            }
+            throw OAuthError.refreshUnavailable(failure.detail)
         } catch let oauthError as OAuthError {
             throw oauthError
         } catch {
@@ -147,11 +159,10 @@ final class OAuthClient {
         let (data, response) = try await session.data(for: request)
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
             let body = String(data: data, encoding: .utf8) ?? "status \(http.statusCode)"
-            if Self.isInvalidGrant(body) {
-                // An invalid_grant here usually means the refresh token was revoked.
-                throw OAuthError.refreshFailed(body)
-            }
-            throw OAuthError.refreshUnavailable(body)
+            throw TokenEndpointFailure(
+                detail: Self.sanitizedTokenEndpointDetail(statusCode: http.statusCode, body: body),
+                invalidGrant: Self.isInvalidGrant(body)
+            )
         }
         return try JSONDecoder().decode(T.self, from: data)
     }
@@ -184,6 +195,30 @@ final class OAuthClient {
             return true
         }
         return body.contains("invalid_grant")
+    }
+
+    static func sanitizedTokenEndpointDetail(statusCode: Int, body: String) -> String {
+        struct TokenError: Decodable {
+            let error: String?
+        }
+        if let data = body.data(using: .utf8),
+           let parsed = try? JSONDecoder().decode(TokenError.self, from: data),
+           let code = sanitizedTokenErrorCode(parsed.error),
+           !code.isEmpty {
+            return "OAuth token endpoint returned \(code) (HTTP \(statusCode))."
+        }
+        return "OAuth token endpoint returned HTTP \(statusCode)."
+    }
+
+    private static func sanitizedTokenErrorCode(_ rawCode: String?) -> String? {
+        guard let rawCode else { return nil }
+        let code = rawCode.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !code.isEmpty, code.count <= 80 else { return nil }
+        let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-")
+        guard code.unicodeScalars.allSatisfy({ allowed.contains($0) }) else {
+            return nil
+        }
+        return code
     }
 
     // MARK: - PKCE helpers
