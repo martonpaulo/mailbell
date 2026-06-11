@@ -61,8 +61,18 @@ enum SystemSettings {
 
 @MainActor
 enum SettingsWindow {
-    static func open() {
+    static func open(retryCount: Int = 3) {
         NSApp.activate(ignoringOtherApps: true)
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        let didSend = NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        guard !didSend, retryCount > 0 else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            open(retryCount: retryCount - 1)
+        }
+    }
+
+    static func openWhenReady() {
+        DispatchQueue.main.async {
+            open()
+        }
     }
 }

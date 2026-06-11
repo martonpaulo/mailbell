@@ -29,8 +29,9 @@ def strip_matching_quotes(value):
     return value
 
 def read_dotenv():
-    path = Path(os.environ.get("MAILBELL_DOTENV_PATH", ".env"))
-    if not path.exists():
+    dotenv_path = cleaned(os.environ.get("MAILBELL_DOTENV_PATH")) or ".env"
+    path = Path(dotenv_path)
+    if not path.is_file():
         return {}
     values = {}
     for raw_line in path.read_text(encoding="utf-8").splitlines():
@@ -104,6 +105,8 @@ display_name = validate_display_name(bundle_values.get(DISPLAY_NAME_KEY))
 
 if CHECK_ONLY:
     print("OAuth configuration found for local packaging.")
+    print(f"Bundle identifier: {bundle_id}")
+    print(f"Display name: {display_name}")
     sys.exit(0)
 
 path = Path(sys.argv[1])
@@ -118,4 +121,8 @@ plist["CFBundleDisplayName"] = display_name
 
 with path.open("wb") as handle:
     plistlib.dump(plist, handle, sort_keys=False)
+
+print(f"Injected local configuration into {path}")
+print(f"Bundle identifier: {bundle_id}")
+print(f"Display name: {display_name}")
 PY

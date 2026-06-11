@@ -25,14 +25,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_: Notification) {
         NSApp.setActivationPolicy(.accessory)
         guard !AppPreferences.showMenuBarIcon() else { return }
-        DispatchQueue.main.async {
-            SettingsWindow.open()
-        }
+        SettingsWindow.openWhenReady()
     }
 
-    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {
-        if !AppPreferences.showMenuBarIcon() {
-            SettingsWindow.open()
+    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        if !hasVisibleWindows || !AppPreferences.showMenuBarIcon() {
+            SettingsWindow.openWhenReady()
         }
         return true
     }
