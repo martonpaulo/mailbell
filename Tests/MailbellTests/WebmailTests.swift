@@ -3,12 +3,12 @@ import Foundation
 import XCTest
 
 final class WebmailTests: XCTestCase {
-    func testLegacyMailAccountJSONDecodesWithoutWebmailPreference() throws {
+    func testMailAccountJSONDecodesWithoutWebmailPreference() throws {
         let json = """
         {
           "id": "A1B2C3D4-E5F6-7890-ABCD-EF1234567890",
           "providerID": "gmail",
-          "email": "legacy@example.com",
+          "email": "minimal@example.com",
           "isEnabled": true,
           "createdAt": 0
         }

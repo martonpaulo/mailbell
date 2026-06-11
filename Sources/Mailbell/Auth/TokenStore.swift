@@ -29,26 +29,18 @@ final class TokenStore {
         }
     }
 
-    private static let legacyRefreshAccount = "google.refreshToken"
-    private static let legacyAccessAccount = "google.accessToken"
-
     private let refreshAccount: String
     private let accessAccount: String
     private let keychain: KeychainClient
 
     init(
-        accountID: UUID? = nil,
+        accountID: UUID,
         providerID: MailProviderID = .gmail,
         keychain: KeychainClient = .live
     ) {
-        if let accountID {
-            let namespace = "mailbell.account.\(accountID.uuidString).\(providerID.rawValue)"
-            refreshAccount = "\(namespace).refreshToken"
-            accessAccount = "\(namespace).accessToken"
-        } else {
-            refreshAccount = Self.legacyRefreshAccount
-            accessAccount = Self.legacyAccessAccount
-        }
+        let namespace = "mailbell.account.\(accountID.uuidString).\(providerID.rawValue)"
+        refreshAccount = "\(namespace).refreshToken"
+        accessAccount = "\(namespace).accessToken"
         self.keychain = keychain
     }
 
@@ -105,37 +97,6 @@ final class TokenStore {
             }
         } catch {
             Log.error("Failed to restore \(label) token after save failure: \(error.localizedDescription)")
-        }
-    }
-
-    static func migrateLegacyTokens(to accountID: UUID, keychain: KeychainClient = .live) {
-        let scoped = TokenStore(accountID: accountID, keychain: keychain)
-        let scopedAlreadyExists = scoped.hasSession
-        var canClearLegacyRefresh = scopedAlreadyExists
-        var canClearLegacyAccess = scopedAlreadyExists
-
-        if !scopedAlreadyExists, let refresh = keychain.get(legacyRefreshAccount) {
-            do {
-                try keychain.set(refresh, scoped.refreshAccount)
-                canClearLegacyRefresh = true
-            } catch {
-                Log.error("Failed to migrate legacy refresh token: \(error.localizedDescription)")
-            }
-        }
-        if !scopedAlreadyExists, let access = keychain.get(legacyAccessAccount) {
-            do {
-                try keychain.set(access, scoped.accessAccount)
-                canClearLegacyAccess = true
-            } catch {
-                Log.error("Failed to migrate legacy access token: \(error.localizedDescription)")
-            }
-        }
-
-        if canClearLegacyRefresh {
-            keychain.delete(legacyRefreshAccount)
-        }
-        if canClearLegacyAccess {
-            keychain.delete(legacyAccessAccount)
         }
     }
 }

@@ -16,19 +16,6 @@ final class CheckpointStoreTests: XCTestCase {
         XCTAssertEqual(second.lastSeenUID, 0)
     }
 
-    func testMigratesLegacyCheckpoint() {
-        let defaults = makeDefaults()
-        let accountID = UUID()
-        defaults.set(123, forKey: "mailbell.uidValidity")
-        defaults.set(456, forKey: "mailbell.lastSeenUID")
-
-        CheckpointStore.migrateLegacyCheckpoint(to: accountID, userDefaults: defaults)
-        let migrated = CheckpointStore(accountID: accountID, userDefaults: defaults)
-
-        XCTAssertEqual(migrated.storedUIDValidity, 123)
-        XCTAssertEqual(migrated.lastSeenUID, 456)
-    }
-
     private func makeDefaults() -> UserDefaults {
         let suiteName = "mailbell.CheckpointStoreTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!

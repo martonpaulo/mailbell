@@ -2,13 +2,10 @@ import Foundation
 
 final class AccountStore {
     private let userDefaults: UserDefaults
-    private let migrateLegacySecrets: Bool
     private let accountsKey = "mailbell.accounts"
-    private let legacyEmailKey = "mailbell.accountEmail"
 
-    init(userDefaults: UserDefaults = .standard, migrateLegacySecrets: Bool = true) {
+    init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
-        self.migrateLegacySecrets = migrateLegacySecrets
     }
 
     func loadAccounts() -> [MailAccount] {
@@ -16,18 +13,7 @@ final class AccountStore {
            let accounts = try? JSONDecoder().decode([MailAccount].self, from: data) {
             return accounts
         }
-
-        guard let legacyEmail = userDefaults.string(forKey: legacyEmailKey), !legacyEmail.isEmpty else {
-            return []
-        }
-
-        let account = MailAccount(providerID: .gmail, email: legacyEmail)
-        saveAccounts([account])
-        if migrateLegacySecrets {
-            TokenStore.migrateLegacyTokens(to: account.id)
-            CheckpointStore.migrateLegacyCheckpoint(to: account.id)
-        }
-        return [account]
+        return []
     }
 
     func saveAccounts(_ accounts: [MailAccount]) {

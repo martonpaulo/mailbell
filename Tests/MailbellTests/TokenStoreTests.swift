@@ -64,19 +64,6 @@ final class TokenStoreTests: XCTestCase {
         XCTAssertEqual(fixture.values[accessAccount], "old-access")
     }
 
-    func testLegacyMigrationKeepsLegacyTokensWhenScopedWriteFails() {
-        let fixture = KeychainFixture(setError: Keychain.KeychainError.unexpectedStatus(errSecAuthFailed))
-        fixture.values["google.refreshToken"] = "legacy-refresh"
-        fixture.values["google.accessToken"] = "legacy-access"
-
-        TokenStore.migrateLegacyTokens(to: UUID(), keychain: fixture.client)
-
-        XCTAssertEqual(fixture.values["google.refreshToken"], "legacy-refresh")
-        XCTAssertEqual(fixture.values["google.accessToken"], "legacy-access")
-        XCTAssertFalse(fixture.deletedAccounts.contains("google.refreshToken"))
-        XCTAssertFalse(fixture.deletedAccounts.contains("google.accessToken"))
-    }
-
     private static func refreshAccount(_ accountID: UUID) -> String {
         "mailbell.account.\(accountID.uuidString).gmail.refreshToken"
     }

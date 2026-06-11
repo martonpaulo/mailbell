@@ -103,7 +103,7 @@ final class AccountSupervisorTests: XCTestCase {
         let suiteName = "mailbell.AccountSupervisorTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
-        let store = AccountStore(userDefaults: defaults, migrateLegacySecrets: false)
+        let store = AccountStore(userDefaults: defaults)
         let account = MailAccount(providerID: .gmail, email: "test@example.com")
         store.saveAccounts([account])
         let supervisor = AccountSupervisor(

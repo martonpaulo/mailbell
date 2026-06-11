@@ -80,24 +80,22 @@ The OAuth client must be a user-owned Google "Desktop / installed app" client an
 
 Token storage must use Keychain. Refresh tokens must not be stored in `UserDefaults`, plaintext files, or logs.
 
-### Token Lifecycle and the 7-Day Problem
+### Token Lifecycle
 
 This is the single biggest feasibility risk, and it is independent of the transport: it applies to IMAP and the Gmail API equally because both rely on an OAuth refresh token.
 
-Problem: Google documentation for OAuth-based APIs describes **Testing** publishing status refresh tokens as time-based tokens that can expire after **7 days**. For a notifier meant to stay connected indefinitely, a weekly re-login would break the product.
+Problem: short-lived or revoked refresh tokens break the product because the notifier must stay connected without repeated manual sign-in.
 
-Decision: for day-to-day personal use, publish the OAuth consent screen to **In production** after setup. Google says personal-use apps with fewer than 100 users can continue without OAuth verification, but users may click through unverified-app warning screens. Re-check Google's current restricted-scope verification and security-assessment rules before any public distribution.
+Decision: for day-to-day personal use, publish the OAuth consent screen to **In production** after setup.
 
 Two viable configurations:
 
-- **Personal / private use (default):** External + In production + Unverified. Unverified warning is expected. Subject to Google's personal-use and unverified-app limits.
+- **Personal / private use (default):** External + In production.
 - **Google Workspace owner:** set user type to **Internal** only for projects owned by that Workspace or Cloud Identity organization. Only accounts in that organization can sign in.
-
-Public distribution is out of scope. The restricted `https://mail.google.com/` scope can trigger verification and security-assessment requirements, so public distribution must start with a fresh official-doc review.
 
 When minting the token, request `access_type=offline` and `prompt=consent` so Google returns a durable refresh token.
 
-Even after the 7-day issue is solved, a refresh token can still be revoked by ~6 months of inactivity, an account password change, the user revoking access, or exceeding the per-client live-token cap. The app must therefore treat "refresh failed / token revoked" as a normal, recoverable state: surface a clear reconnect affordance and re-run OAuth rather than failing silently (see State Machine `reauthRequired`).
+Even with the app configured for day-to-day use, a refresh token can still be revoked by inactivity, account changes, manual revocation, or per-client token limits. The app must therefore treat "refresh failed / token revoked" as a normal, recoverable state: surface a clear reconnect affordance and re-run OAuth rather than failing silently (see State Machine `reauthRequired`).
 
 ## Notification Content
 
@@ -158,7 +156,7 @@ The design is push-based (IMAP IDLE) and never content-polls. The happy path is 
 
 ## Accounts and Providers
 
-Accounts are modeled as a provider-backed collection, not as fixed slots. The first multi-account release registers only `GmailProvider`, but the runtime is account/provider-shaped so a future provider can add its own auth and transport without rewriting account supervision.
+Accounts are modeled as a provider-backed collection, not as fixed slots. This personal fork supports Gmail only; the provider-shaped runtime keeps account supervision explicit without adding other providers.
 
 Each account owns:
 
@@ -172,9 +170,7 @@ Each account owns:
 
 ## Webmail Opening
 
-Each account can choose how Gmail opens: system default browser, a selected installed browser, or Google Chrome with an optional profile directory. Notification clicks and per-account `Open Gmail` in Settings use the same opener path. Notification clicks use Gmail thread links when IMAP provides `X-GM-THRID`; manual `Open Gmail` still opens generic Gmail Web. Mailbell does not include `authuser` in v1.
-
-See [Browser and Profile Routing Design](browser-profile-routing.md) for Chrome profile discovery, fallback behavior, and deferred work.
+Each account can choose how Gmail opens: system default browser, a selected installed browser, or Google Chrome with an optional profile directory. Notification clicks and per-account `Open Gmail` in Settings use the same opener path. Notification clicks use Gmail thread links when IMAP provides `X-GM-THRID`; manual `Open Gmail` still opens generic Gmail Web. Mailbell does not add `authuser` routing.
 
 ## macOS App Shape
 
@@ -200,25 +196,8 @@ Use AppKit only where SwiftUI does not cover the needed menu bar, settings, logi
 ## Resolved Decisions
 
 - **Transport:** Gmail IMAP IDLE, performance-first. See Transport Choice.
-- **OAuth publishing:** External + In production + Unverified for private use; Workspace Internal if available. Avoid long-term Testing-mode token behavior for day-to-day use. See Token Lifecycle.
-- **Notification scope:** `INBOX` for the first release. Gmail's category tabs (Primary/Social/Promotions/...) are not separate IMAP folders, so a "Primary only" filter is not achievable over IMAP and would require the Gmail API. Revisit only if category filtering becomes a requirement.
-- **Accounts:** account collection with one runtime per enabled account. First implemented provider is Gmail.
+- **OAuth publishing:** External + In production for private use; Workspace Internal if available. Avoid long-term Testing-mode token behavior for day-to-day use. See Token Lifecycle.
+- **Notification scope:** `INBOX`. Gmail's category tabs (Primary/Social/Promotions/...) are not separate IMAP folders, so a "Primary only" filter is not achievable over IMAP and would require the Gmail API. Revisit only if category filtering becomes a requirement.
+- **Accounts:** account collection with one runtime per enabled account. Gmail is the only supported provider.
 - **Browser:** per-account Webmail open preference (system default, selected browser, optional Chrome profile). Generic Gmail Web URL only.
 - **Deep link:** notification clicks use Gmail thread links when `X-GM-THRID` is available. Manual account actions still open generic Gmail Webmail.
-
-## Open Questions
-
-- Will the project ever need public distribution, and therefore a fresh OAuth verification and restricted-scope security-assessment review, or is private/Workspace use the permanent boundary?
-- Is per-message deep linking beyond thread-level Gmail URLs reliable enough across Gmail Web states to enable by default, or should it stay out of scope?
-
-## Verified Source Facts
-
-- Gmail IMAP capabilities include `IDLE`.
-- Gmail IMAP OAuth uses XOAUTH2.
-- Gmail IMAP/POP/SMTP OAuth uses the `https://mail.google.com/` scope.
-- Gmail API push notifications require Cloud Pub/Sub and mailbox watch renewal.
-- Google documentation for OAuth-based APIs describes "Testing" publishing status refresh tokens as time-based tokens that can expire after 7 days.
-- Google says personal-use apps with fewer than 100 users can continue without verification, but users may click through unverified-app warning screens.
-- A refresh token can still be revoked by ~6 months of inactivity, password change, manual revocation, or exceeding the per-client live-token cap.
-- The `https://mail.google.com/` scope is a restricted scope; public distribution must re-check current verification and security-assessment requirements.
-- RFC 2177 recommends re-arming IMAP IDLE at least every 29 minutes.

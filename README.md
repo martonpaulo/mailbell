@@ -53,10 +53,10 @@ Use a Google account and Cloud project that you control.
 1. Create or select a project in Google Cloud Console.
 2. Open the OAuth consent screen setup.
 3. Choose the consent/audience mode:
-   - Personal Gmail or non-Workspace use: choose `External`. For day-to-day use, publish the app `In production` after setup. Google says personal-use apps with fewer than 100 users can continue without OAuth verification, but users may click through unverified-app warning screens. Google documentation for OAuth-based APIs also documents Testing-mode refresh tokens expiring after 7 days, so use `Testing` only for short throwaway validation.
+   - Personal Gmail or non-Workspace use: choose `External`. For day-to-day use, publish the app `In production` after setup. Use `Testing` only for short validation.
    - Google Workspace-owned project: choose `Internal` only if the project belongs to your Workspace or Cloud Identity organization and you will sign in only with accounts from that organization.
 4. If you temporarily leave the app in `Testing`, add your Gmail address as a test user.
-5. Fill required app name/support email fields with values you control. If Google asks for app domain, privacy, or terms URLs, use URLs you control or leave optional fields blank if the console permits it. Do not use old upstream website URLs.
+5. Fill required app name/support email fields with values you control. Leave optional app-domain fields blank if the console permits it.
 6. Add only the scopes this app requests:
    - `https://mail.google.com/`
    - `openid`
@@ -143,13 +143,6 @@ Build a local DMG:
 make dmg
 ```
 
-Build a local app bundle under `build/Mailbell.app` without installing:
-
-```bash
-./Scripts/package_app.sh
-open build/Mailbell.app
-```
-
 Architecture notes:
 
 - Packaging defaults to `ARCH=arm64`.
@@ -213,12 +206,6 @@ Fix:
 - Let the app open the system browser.
 - Avoid VPN/firewall rules that block local loopback traffic.
 - Recreate the OAuth client as `Desktop app` if you used another client type.
-
-### Unverified App Warning
-
-For personal-use apps with fewer than 100 users, Google says OAuth verification is not mandatory, but sign-in can show unverified-app warnings. Read the warning, confirm the Cloud project is yours, and continue only if that is expected.
-
-If you plan to distribute the app publicly or grow beyond personal use, re-check Google's current verification and restricted-scope requirements first.
 
 ### Token Revoked Or Reauth Required
 
@@ -311,27 +298,6 @@ Test strategy:
 - Use dummy OAuth values for packaging validation; never commit real credentials.
 - Keep new tests focused on changed behavior, persistence contracts, validation-sensitive parsing, and regressions.
 
-## Verified Docs
-
-Accessed on 2026-06-11:
-
-- [Google OAuth 2.0 for iOS & Desktop Apps](https://developers.google.com/identity/protocols/oauth2/native-app)
-- [Google OAuth 2.0 overview](https://developers.google.com/identity/protocols/oauth2)
-- [Gmail XOAUTH2 for IMAP/POP/SMTP](https://developers.google.com/workspace/gmail/imap/xoauth2-protocol)
-- [Gmail IMAP/POP/SMTP connection docs](https://developers.google.com/workspace/gmail/imap/imap-smtp)
-- [Gmail API scopes](https://developers.google.com/workspace/gmail/api/auth/scopes)
-- [Google unverified apps](https://support.google.com/cloud/answer/7454865)
-- [When verification is not needed](https://support.google.com/cloud/answer/13464323)
-- [Google OAuth best practices](https://developers.google.com/identity/protocols/oauth2/resources/best-practices)
-- [Google OAuth 2.0 policies](https://developers.google.com/identity/protocols/oauth2/policies)
-- [Google Ads OAuth common errors](https://developers.google.com/google-ads/api/docs/get-started/common-errors)
-- [Google Health API OAuth setup](https://developers.google.com/health/setup)
-- [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines)
-- [SwiftUI MenuBarExtra](https://developer.apple.com/documentation/SwiftUI/MenuBarExtra)
-- [ServiceManagement SMAppService](https://developer.apple.com/documentation/servicemanagement/smappservice)
-- [User Notifications](https://developer.apple.com/documentation/usernotifications)
-- [Keychain items](https://developer.apple.com/documentation/security/keychain_services/keychain_items)
-- [Swift 6 strict concurrency](https://developer.apple.com/documentation/swift/adoptingswift6)
 
 ## License
 

@@ -28,7 +28,7 @@ final class OAuthClientTests: XCTestCase {
     func testTokenEndpointDetailFallsBackToStatusOnlyForNonJSONBody() {
         let detail = OAuthClient.sanitizedTokenEndpointDetail(
             statusCode: 500,
-            body: "upstream client_secret=secret-value"
+            body: "server client_secret=secret-value"
         )
 
         XCTAssertEqual(detail, "OAuth token endpoint returned HTTP 500.")
