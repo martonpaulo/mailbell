@@ -17,8 +17,10 @@ from pathlib import Path
 
 CLIENT_ID_KEY = "MAILBELL_GOOGLE_CLIENT_ID"
 CLIENT_SECRET_KEY = "MAILBELL_GOOGLE_CLIENT_SECRET"
-BUNDLE_ID_KEY = "PERSONAL_BUNDLE_ID"
-DISPLAY_NAME_KEY = "APP_DISPLAY_NAME"
+BUNDLE_ID_KEY = "MAILBELL_BUNDLE_ID"
+DISPLAY_NAME_KEY = "MAILBELL_APP_DISPLAY_NAME"
+DEFAULT_BUNDLE_ID = "dev.mailbell.local"
+DEFAULT_DISPLAY_NAME = "Mailbell"
 CHECK_ONLY = sys.argv[1] == "--check"
 
 def strip_matching_quotes(value):
@@ -41,8 +43,8 @@ def read_dotenv():
 
 def first_configured_source(dotenv):
     bundle = {
-        BUNDLE_ID_KEY: os.environ.get(BUNDLE_ID_KEY),
-        DISPLAY_NAME_KEY: os.environ.get(DISPLAY_NAME_KEY),
+        BUNDLE_ID_KEY: os.environ.get(BUNDLE_ID_KEY) or dotenv.get(BUNDLE_ID_KEY),
+        DISPLAY_NAME_KEY: os.environ.get(DISPLAY_NAME_KEY) or dotenv.get(DISPLAY_NAME_KEY),
     }
     env_credentials = {
         CLIENT_ID_KEY: os.environ.get(CLIENT_ID_KEY),
@@ -81,13 +83,13 @@ def validate_client_secret(value):
     return client_secret
 
 def validate_bundle_id(value):
-    bundle_id = cleaned(value) or "com.perso.mailbell"
+    bundle_id = cleaned(value) or DEFAULT_BUNDLE_ID
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9.-]*", bundle_id) or "." not in bundle_id:
         fail(f"{BUNDLE_ID_KEY} must be a reverse-DNS bundle identifier")
     return bundle_id
 
 def validate_display_name(value):
-    display_name = cleaned(value) or "Mailbell"
+    display_name = cleaned(value) or DEFAULT_DISPLAY_NAME
     if "/" in display_name or "\0" in display_name or len(display_name) > 80:
         fail(f"{DISPLAY_NAME_KEY} must be a short app display name")
     return display_name

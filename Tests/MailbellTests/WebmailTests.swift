@@ -75,7 +75,7 @@ final class WebmailTests: XCTestCase {
 
     func testChromeProfileOptionsIncludeMissingSavedProfile() {
         let profiles = [
-            ChromeProfileCandidate(directory: "Default", displayName: "Personal", userName: "personal@example.com")
+            ChromeProfileCandidate(directory: "Default", displayName: "Default User", userName: "default@example.com")
         ]
 
         let options = AccountWebmailSettingsView.chromeProfileOptions(
@@ -89,7 +89,7 @@ final class WebmailTests: XCTestCase {
 
     func testChromeProfileOptionsDoNotDuplicateExistingSavedProfile() {
         let profiles = [
-            ChromeProfileCandidate(directory: "Default", displayName: "Personal", userName: "personal@example.com")
+            ChromeProfileCandidate(directory: "Default", displayName: "Default User", userName: "default@example.com")
         ]
 
         let options = AccountWebmailSettingsView.chromeProfileOptions(
@@ -111,8 +111,8 @@ final class WebmailTests: XCTestCase {
           "profile": {
             "info_cache": {
               "Default": {
-                "name": "Personal",
-                "user_name": "personal@example.com"
+                "name": "Default User",
+                "user_name": "default@example.com"
               },
               "Profile 2": {
                 "name": "Work",
@@ -133,8 +133,8 @@ final class WebmailTests: XCTestCase {
 
         let profiles = await ChromeProfileStore.loadProfilesAsync(homeDirectory: home)
         XCTAssertEqual(profiles.map(\.directory), ["Default", "Profile 2"])
-        XCTAssertEqual(profiles.first?.displayName, "Personal")
-        XCTAssertEqual(profiles.first?.userName, "personal@example.com")
+        XCTAssertEqual(profiles.first?.displayName, "Default User")
+        XCTAssertEqual(profiles.first?.userName, "default@example.com")
         XCTAssertTrue(ChromeProfileStore.profileExists(directory: "Default", homeDirectory: home))
         XCTAssertFalse(ChromeProfileStore.profileExists(directory: "Profile 9", homeDirectory: home))
     }

@@ -15,7 +15,9 @@ enum Keychain {
         }
     }
 
-    private static let service = "com.perso.mailbell"
+    private static var service: String {
+        AppIdentity.keychainService
+    }
 
     static func set(_ value: String, account: String) throws {
         let data = Data(value.utf8)

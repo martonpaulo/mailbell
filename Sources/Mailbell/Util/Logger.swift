@@ -2,7 +2,7 @@ import Foundation
 import os
 
 enum Log {
-    private static let logger = os.Logger(subsystem: "com.perso.mailbell", category: "app")
+    private static let logger = os.Logger(subsystem: AppIdentity.bundleIdentifier, category: "app")
     private static let sensitivePatterns: [(pattern: String, replacement: String)] = [
         (
             #"(?i)\b(access_token|refresh_token|client_secret|code_verifier|code)\b\s*[:=]\s*["']?[^"',&\s}\]]+"#,

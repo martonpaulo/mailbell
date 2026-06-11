@@ -42,7 +42,7 @@ final class AccountSupervisor {
     private var isAuthenticating = false
 
     private let pathMonitor = NWPathMonitor()
-    private let pathQueue = DispatchQueue(label: "com.perso.mailbell.path")
+    private let pathQueue = DispatchQueue(label: AppIdentity.dispatchQueueLabel("path"))
     private var lastPathSatisfied = true
     private let wakeObserver = NotificationObserverToken()
     private var reconnectAllTask: Task<Void, Never>?

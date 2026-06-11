@@ -22,7 +22,7 @@ You must create and use your own Google OAuth Desktop credentials. This fork doe
 
 - Real OAuth credentials live only in your shell, local `.env`, or a locally injected app bundle.
 - `.env` is ignored by git. `.env.example` contains variable names only.
-- Access and refresh tokens are stored in the macOS Keychain using service `com.perso.mailbell`.
+- Access and refresh tokens are stored in the macOS Keychain under the app bundle identifier configured for your local build.
 - Non-secret account metadata, UI state, webmail preferences, and IMAP checkpoints are stored in `UserDefaults`.
 - Notification content is built from headers only: account, sender, subject, date, UID, and Gmail thread/message identifiers when available.
 - IMAP fetches use `BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE)]`; message bodies and attachments are not fetched.
@@ -69,7 +69,7 @@ The app uses Google's installed-app OAuth flow with PKCE and a random local loop
 
 ## Local Configuration
 
-Create a private `.env` from the example and fill in your own Desktop client values:
+Create a private `.env` from the example and fill in your own Desktop client values. You can also set the bundle identity used for your local app build there:
 
 ```bash
 cp .env.example .env
@@ -81,6 +81,8 @@ Example `.env` content:
 ```bash
 MAILBELL_GOOGLE_CLIENT_ID=your-desktop-client-id.apps.googleusercontent.com
 MAILBELL_GOOGLE_CLIENT_SECRET=your-desktop-client-secret
+MAILBELL_BUNDLE_ID=dev.example.mailbell
+MAILBELL_APP_DISPLAY_NAME=Mailbell
 ```
 
 You can use shell environment variables instead:
@@ -88,6 +90,8 @@ You can use shell environment variables instead:
 ```bash
 export MAILBELL_GOOGLE_CLIENT_ID="your-desktop-client-id.apps.googleusercontent.com"
 export MAILBELL_GOOGLE_CLIENT_SECRET="your-desktop-client-secret"
+export MAILBELL_BUNDLE_ID="dev.example.mailbell"
+export MAILBELL_APP_DISPLAY_NAME="Mailbell"
 ```
 
 Packaging commands read environment variables first, then `.env`. `Scripts/inject_oauth_config.sh` validates the values and writes only these expected bundle keys into the copied app `Info.plist`:
@@ -99,6 +103,14 @@ Packaging commands read environment variables first, then `.env`. `Scripts/injec
 - `CFBundleDisplayName`
 
 The source `Resources/Info.plist` should not contain real credentials.
+
+Identity notes:
+
+- `MAILBELL_BUNDLE_ID` must be a reverse-DNS identifier and should be unique to your local build.
+- `MAILBELL_APP_DISPLAY_NAME` controls `CFBundleName` and `CFBundleDisplayName` in packaged apps.
+- The checked-in `Resources/Info.plist` uses a neutral placeholder bundle id. `make install` and `make dmg` inject your configured bundle id into the copied app bundle.
+- Runtime namespaces for Keychain, logging, and internal dispatch queues derive from the packaged bundle id. Unbundled `make run` uses a neutral local fallback.
+- Changing `MAILBELL_BUNDLE_ID` after signing in creates a new Keychain namespace, so you may need to sign in again and remove old tokens under the previous bundle id.
 
 Useful checks before committing:
 
@@ -152,7 +164,7 @@ Architecture notes:
 Optional bundle/display overrides:
 
 ```bash
-make install BUNDLE_ID=com.perso.mailbell APP_DISPLAY_NAME=Mailbell
+make install MAILBELL_BUNDLE_ID=dev.example.mailbell MAILBELL_APP_DISPLAY_NAME=Mailbell
 ```
 
 After changing `.env`, rerun `make install` or `make dmg`; installed bundles contain a copy of the OAuth config injected during packaging.
@@ -164,11 +176,11 @@ After changing `.env`, rerun `make install` or `make dmg`; installed bundles con
 3. Allow notification permission when macOS asks.
 4. Open Mailbell `Settings...`.
 5. In `Accounts`, choose `Add Google Account`.
-6. Complete the Google browser sign-in. If Google shows `Google hasn't verified this app`, continue only if the Cloud project and OAuth client are yours and you accept the personal-use risk.
+6. Complete the Google browser sign-in. If Google shows an app warning, continue only if the Cloud project and OAuth client are yours.
 7. After sign-in, Mailbell stores the account session in Keychain and starts watching Gmail `INBOX`.
 8. Choose `Open Gmail` or click a notification to open Gmail Web in the configured browser.
 
-To verify local token storage without printing secrets, open Keychain Access and search for service `com.perso.mailbell`.
+To verify local token storage without printing secrets, open Keychain Access and search for the bundle id you configured with `MAILBELL_BUNDLE_ID`.
 
 ## Troubleshooting
 
@@ -251,11 +263,11 @@ Fix:
 
 Use `Settings > Accounts > Account actions > Remove`. This stops the monitor, deletes the account's Keychain tokens, resets its IMAP checkpoint, and removes the account metadata from UserDefaults.
 
-Manual Keychain cleanup should be a last resort. If needed, use Keychain Access and search for service `com.perso.mailbell`.
+Manual Keychain cleanup should be a last resort. If needed, use Keychain Access and search for the bundle id you configured with `MAILBELL_BUNDLE_ID`.
 
 ## Maintenance
 
-- Keep work on the personal branch unless you intentionally create a focused feature branch.
+- Keep ordinary work on `main` unless you intentionally create a focused feature branch.
 - Fetch upstream intentionally and inspect branches before merging or cherry-picking.
 - Ignore website, gh-pages, hosted OAuth-domain pages, and public release automation unless the personal-use goal changes.
 - Never merge upstream behavior that ships, documents as usable, or falls back to a shared OAuth client.
@@ -302,3 +314,7 @@ Test strategy:
 ## License
 
 MIT
+
+## Original Project
+
+This repository is a fork of [samzong/mailbell](https://github.com/samzong/mailbell). The original MIT copyright notice is retained in [LICENSE](LICENSE).

@@ -95,8 +95,8 @@ final class AccountSupervisorTests: XCTestCase {
     private func makeSupervisor(
         configProvider: @escaping () throws -> OAuthConfig = {
             OAuthConfig(
-                clientID: "dummy-personal-client-id.apps.googleusercontent.com",
-                clientSecret: "dummy-personal-client-secret"
+                clientID: "dummy-local-client-id.apps.googleusercontent.com",
+                clientSecret: "dummy-local-client-secret"
             )
         }
     ) -> (AccountSupervisor, MailAccount) {

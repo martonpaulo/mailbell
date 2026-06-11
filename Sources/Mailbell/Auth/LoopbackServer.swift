@@ -29,7 +29,7 @@ final class LoopbackServer: @unchecked Sendable {
     private static let callbackTimeout: TimeInterval = 5 * 60
 
     private var listener: NWListener?
-    private let queue = DispatchQueue(label: "com.perso.mailbell.loopback")
+    private let queue = DispatchQueue(label: AppIdentity.dispatchQueueLabel("loopback"))
     private var continuation: CheckedContinuation<[URLQueryItem], Error>?
     private var didResume = false
     private var pendingResult: Result<[URLQueryItem], Error>?

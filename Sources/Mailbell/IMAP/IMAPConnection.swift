@@ -15,7 +15,7 @@ final class IMAPConnection: @unchecked Sendable {
     private let host: NWEndpoint.Host
     private let port: NWEndpoint.Port
     private let connection: NWConnection
-    private let queue = DispatchQueue(label: "com.perso.mailbell.imap")
+    private let queue = DispatchQueue(label: AppIdentity.dispatchQueueLabel("imap"))
     private var buffer = Data()
 
     init(host: String, port: UInt16) {

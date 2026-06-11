@@ -3,10 +3,22 @@ SWIFTLINT   ?= swiftlint
 SWIFTFORMAT ?= swiftformat
 CODESIGN    ?= codesign
 
+ifneq (,$(wildcard .env))
+include .env
+endif
+
 PRODUCT    := mailbell
 APP_NAME   := Mailbell
-BUNDLE_ID  ?= com.perso.mailbell
-APP_DISPLAY_NAME ?= Mailbell
+EFFECTIVE_BUNDLE_ID := $(strip $(MAILBELL_BUNDLE_ID))
+ifeq ($(EFFECTIVE_BUNDLE_ID),)
+EFFECTIVE_BUNDLE_ID := dev.mailbell.local
+endif
+EFFECTIVE_APP_DISPLAY_NAME := $(strip $(MAILBELL_APP_DISPLAY_NAME))
+ifeq ($(EFFECTIVE_APP_DISPLAY_NAME),)
+EFFECTIVE_APP_DISPLAY_NAME := Mailbell
+endif
+BUNDLE_ID  ?= $(EFFECTIVE_BUNDLE_ID)
+APP_DISPLAY_NAME ?= $(EFFECTIVE_APP_DISPLAY_NAME)
 BUILD_DIR  := .build
 APP_BUNDLE := /Applications/$(APP_NAME).app
 INFO_PLIST := Resources/Info.plist
@@ -71,7 +83,7 @@ icons: ## Regenerate AppIcon PNGs and AppIcon.icns from Resources/logo.png
 	Scripts/generate_app_icon.sh
 
 require-oauth-config: ## Verify local Google OAuth credentials are available
-	@PERSONAL_BUNDLE_ID="$(BUNDLE_ID)" APP_DISPLAY_NAME="$(APP_DISPLAY_NAME)" Scripts/inject_oauth_config.sh --check
+	@MAILBELL_BUNDLE_ID="$(BUNDLE_ID)" MAILBELL_APP_DISPLAY_NAME="$(APP_DISPLAY_NAME)" Scripts/inject_oauth_config.sh --check
 
 define compile-app-resources
 	xcrun actool --compile $(1)/Contents/Resources \
@@ -97,7 +109,7 @@ dmg: require-oauth-config icons ## Build an ad-hoc signed DMG
 	mkdir -p $(DMG_STAGING)/$(APP_NAME).app/Contents/Resources
 	cp $$($(SWIFT) build -c release --arch $(ARCH) --product $(PRODUCT) --show-bin-path)/$(PRODUCT) $(DMG_STAGING)/$(APP_NAME).app/Contents/MacOS/$(APP_NAME)
 	cp $(INFO_PLIST) $(DMG_STAGING)/$(APP_NAME).app/Contents/Info.plist
-	PERSONAL_BUNDLE_ID="$(BUNDLE_ID)" APP_DISPLAY_NAME="$(APP_DISPLAY_NAME)" Scripts/inject_oauth_config.sh $(DMG_STAGING)/$(APP_NAME).app/Contents/Info.plist
+	MAILBELL_BUNDLE_ID="$(BUNDLE_ID)" MAILBELL_APP_DISPLAY_NAME="$(APP_DISPLAY_NAME)" Scripts/inject_oauth_config.sh $(DMG_STAGING)/$(APP_NAME).app/Contents/Info.plist
 	$(call compile-app-resources,$(DMG_STAGING)/$(APP_NAME).app)
 	$(CODE_SIGN) $(DMG_STAGING)/$(APP_NAME).app
 	ln -s /Applications $(DMG_STAGING)/Applications
@@ -116,7 +128,7 @@ install: require-oauth-config icons ## Install an ad-hoc signed app bundle to /A
 	mkdir -p $(APP_BUNDLE)/Contents/Resources
 	cp $$($(SWIFT) build -c release --arch $(ARCH) --product $(PRODUCT) --show-bin-path)/$(PRODUCT) $(APP_BUNDLE)/Contents/MacOS/$(APP_NAME)
 	cp $(INFO_PLIST) $(APP_BUNDLE)/Contents/Info.plist
-	PERSONAL_BUNDLE_ID="$(BUNDLE_ID)" APP_DISPLAY_NAME="$(APP_DISPLAY_NAME)" Scripts/inject_oauth_config.sh $(APP_BUNDLE)/Contents/Info.plist
+	MAILBELL_BUNDLE_ID="$(BUNDLE_ID)" MAILBELL_APP_DISPLAY_NAME="$(APP_DISPLAY_NAME)" Scripts/inject_oauth_config.sh $(APP_BUNDLE)/Contents/Info.plist
 	$(call compile-app-resources,$(APP_BUNDLE))
 	$(CODE_SIGN) $(APP_BUNDLE)
 	-/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f $(APP_BUNDLE) >/dev/null 2>&1
