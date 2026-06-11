@@ -174,7 +174,12 @@ final class MailMonitor: @unchecked Sendable {
             return tokens.accessToken
         }
         let refreshed = try await oauth.refresh(refreshToken: refresh)
-        store.save(tokens: refreshed)
+        do {
+            try store.save(tokens: refreshed)
+        } catch {
+            Log.error("Failed to save refreshed token: \(error.localizedDescription)")
+            throw OAuthClient.OAuthError.refreshUnavailable("Could not save refreshed token.")
+        }
         return refreshed.accessToken
     }
 

@@ -13,6 +13,7 @@ final class AccountSupervisor {
         case missingAccount
         case authenticationInProgress
         case accountMismatch(expected: String, actual: String)
+        case sessionSaveFailed
 
         var errorDescription: String? {
             switch self {
@@ -22,6 +23,8 @@ final class AccountSupervisor {
                 return "Google sign-in is already in progress."
             case let .accountMismatch(expected, actual):
                 return "Signed in as \(actual), but this account expects \(expected)."
+            case .sessionSaveFailed:
+                return "Could not save Google sign-in in Keychain. Check Keychain access and try again."
             }
         }
     }
@@ -43,7 +46,10 @@ final class AccountSupervisor {
     private var lastPathSatisfied = true
     private var wakeObserver: NSObjectProtocol?
 
-    init(configProvider: @escaping () throws -> OAuthConfig = OAuthConfig.loadOrThrow, accountStore: AccountStore = AccountStore()) {
+    init(
+        configProvider: @escaping () throws -> OAuthConfig = OAuthConfig.loadOrThrow,
+        accountStore: AccountStore = AccountStore()
+    ) {
         self.configProvider = configProvider
         self.accountStore = accountStore
         accounts = accountStore.loadAccounts()
@@ -101,8 +107,9 @@ final class AccountSupervisor {
     func addGmailAccount() async throws {
         let config = try configProvider()
         let result = try await signIn(config: config)
-        let account = upsertSignedInAccount(email: result.email, providerID: .gmail)
-        TokenStore(accountID: account.id, providerID: account.providerID).save(tokens: result.tokens)
+        let account = signedInAccount(email: result.email, providerID: .gmail)
+        try saveSession(result.tokens, account: account)
+        accounts = accountStore.upsert(account)
         statuses[account.id] = .signedOut
         connectionErrors[account.id] = nil
         start(account)
@@ -122,8 +129,8 @@ final class AccountSupervisor {
         guard account.email.caseInsensitiveCompare(result.email) == .orderedSame else {
             throw SupervisorError.accountMismatch(expected: account.email, actual: result.email)
         }
+        try saveSession(result.tokens, account: account)
         accounts = accountStore.upsert(account)
-        TokenStore(accountID: account.id, providerID: account.providerID).save(tokens: result.tokens)
         statuses[account.id] = .signedOut
         connectionErrors[account.id] = nil
         start(account)
@@ -188,19 +195,25 @@ final class AccountSupervisor {
         publish()
     }
 
-    private func upsertSignedInAccount(email: String, providerID: MailProviderID) -> MailAccount {
+    private func signedInAccount(email: String, providerID: MailProviderID) -> MailAccount {
         if var existing = accounts.first(where: {
             $0.providerID == providerID && $0.email.caseInsensitiveCompare(email) == .orderedSame
         }) {
             existing.email = email
             existing.isEnabled = true
-            accounts = accountStore.upsert(existing)
             return existing
         }
 
-        let account = MailAccount(providerID: providerID, email: email)
-        accounts = accountStore.upsert(account)
-        return account
+        return MailAccount(providerID: providerID, email: email)
+    }
+
+    private func saveSession(_ tokens: GoogleTokens, account: MailAccount) throws {
+        do {
+            try TokenStore(accountID: account.id, providerID: account.providerID).save(tokens: tokens)
+        } catch {
+            Log.error("Failed to save account session: \(error.localizedDescription)")
+            throw SupervisorError.sessionSaveFailed
+        }
     }
 
     private func signIn(config: OAuthConfig) async throws -> (tokens: GoogleTokens, email: String) {

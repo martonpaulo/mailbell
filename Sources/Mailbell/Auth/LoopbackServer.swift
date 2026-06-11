@@ -4,13 +4,16 @@ import Network
 /// A one-shot loopback HTTP server used to capture the OAuth redirect for the
 /// installed-app flow (redirect URI `http://127.0.0.1:<port>`).
 final class LoopbackServer: @unchecked Sendable {
-    enum LoopbackError: Error, LocalizedError {
+    enum LoopbackError: Error, LocalizedError, Equatable {
         case failedToStart
+        case timedOut
 
         var errorDescription: String? {
             switch self {
             case .failedToStart:
                 return "Could not start the local OAuth callback server."
+            case .timedOut:
+                return "Google sign-in timed out. Try again from Mailbell."
             }
         }
     }
@@ -23,6 +26,7 @@ final class LoopbackServer: @unchecked Sendable {
         8765, 8766, 8767,
         49188, 49189, 49190
     ]
+    private static let callbackTimeout: TimeInterval = 5 * 60
 
     private var listener: NWListener?
     private let queue = DispatchQueue(label: "com.perso.mailbell.loopback")
@@ -102,7 +106,7 @@ final class LoopbackServer: @unchecked Sendable {
     }
 
     /// Waits for the browser to hit the redirect URI and returns the query items.
-    func waitForCallback() async throws -> [URLQueryItem] {
+    func waitForCallback(timeout: TimeInterval = LoopbackServer.callbackTimeout) async throws -> [URLQueryItem] {
         try await withCheckedThrowingContinuation { cont in
             queue.async {
                 if let pending = self.pendingResult {
@@ -110,6 +114,7 @@ final class LoopbackServer: @unchecked Sendable {
                     cont.resume(with: pending)
                 } else {
                     self.continuation = cont
+                    self.scheduleCallbackTimeout(after: timeout)
                 }
             }
         }
@@ -176,6 +181,14 @@ final class LoopbackServer: @unchecked Sendable {
             cont.resume(with: result)
         } else {
             pendingResult = result
+        }
+    }
+
+    private func scheduleCallbackTimeout(after timeout: TimeInterval) {
+        let clampedTimeout = max(timeout, 0)
+        let nanoseconds = Int(clampedTimeout * 1_000_000_000)
+        queue.asyncAfter(deadline: .now() + .nanoseconds(nanoseconds)) { [weak self] in
+            self?.resume(.failure(LoopbackError.timedOut))
         }
     }
 }
