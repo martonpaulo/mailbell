@@ -115,7 +115,7 @@ struct AccountWebmailSettingsView: View {
         guard !didLoadBrowsers else { return }
         didLoadBrowsers = true
         browsers = BrowserRegistry.browsers()
-        chromeProfiles = ChromeProfileStore.loadProfiles()
+        chromeProfiles = await ChromeProfileStore.loadProfilesAsync()
     }
 
     private func syncFromAccount() {
@@ -128,10 +128,6 @@ struct AccountWebmailSettingsView: View {
         let profileDirectory = accountState.account.webmailOpenPreference?.chromeProfileDirectory ?? ""
         if selectedChromeProfileDirectory != profileDirectory {
             selectedChromeProfileDirectory = profileDirectory
-        }
-
-        if selectedBrowserCandidate.supportsChromeProfiles, chromeProfiles.isEmpty {
-            chromeProfiles = ChromeProfileStore.loadProfiles()
         }
 
         Task { @MainActor in

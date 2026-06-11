@@ -41,6 +41,14 @@ enum ChromeProfileStore {
         }
     }
 
+    static func loadProfilesAsync(
+        homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
+    ) async -> [ChromeProfileCandidate] {
+        await Task.detached(priority: .userInitiated) {
+            loadProfiles(homeDirectory: homeDirectory)
+        }.value
+    }
+
     static func profileExists(
         directory: String,
         homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser,

@@ -100,7 +100,7 @@ final class WebmailTests: XCTestCase {
         XCTAssertEqual(options.map(\.directory), ["", "Default"])
     }
 
-    func testChromeProfileStoreParsesLocalStateFixture() throws {
+    func testChromeProfileStoreParsesLocalStateFixture() async throws {
         let home = FileManager.default.temporaryDirectory
             .appendingPathComponent("WebmailTests.\(UUID().uuidString)", isDirectory: true)
         let chromeDir = home.appendingPathComponent("Library/Application Support/Google/Chrome", isDirectory: true)
@@ -131,7 +131,7 @@ final class WebmailTests: XCTestCase {
             withIntermediateDirectories: true
         )
 
-        let profiles = ChromeProfileStore.loadProfiles(homeDirectory: home)
+        let profiles = await ChromeProfileStore.loadProfilesAsync(homeDirectory: home)
         XCTAssertEqual(profiles.map(\.directory), ["Default", "Profile 2"])
         XCTAssertEqual(profiles.first?.displayName, "Personal")
         XCTAssertEqual(profiles.first?.userName, "personal@example.com")

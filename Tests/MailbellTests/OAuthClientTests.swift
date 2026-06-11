@@ -45,4 +45,12 @@ final class OAuthClientTests: XCTestCase {
         XCTAssertFalse(detail.contains("secret-value"))
         XCTAssertFalse(detail.contains("invalid_grant client_secret"))
     }
+
+    func testUserInfoEndpointDetailUsesStatusOnly() {
+        let detail = OAuthClient.sanitizedUserInfoDetail(statusCode: 429)
+
+        XCTAssertEqual(detail, "OpenID UserInfo endpoint returned HTTP 429.")
+        XCTAssertFalse(detail.contains("access_token"))
+        XCTAssertFalse(detail.contains("Bearer"))
+    }
 }

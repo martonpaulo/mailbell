@@ -13,7 +13,7 @@ final class OAuthClient {
         case refreshFailed(String)
         case refreshUnavailable(String)
         case noRefreshToken
-        case missingEmail
+        case missingEmail(String)
 
         var errorDescription: String? {
             switch self {
@@ -24,7 +24,7 @@ final class OAuthClient {
             case .refreshFailed(let detail): return "Token refresh failed: \(detail)"
             case .refreshUnavailable(let detail): return "Token refresh unavailable: \(detail)"
             case .noRefreshToken: return "No refresh token is stored; sign in again."
-            case .missingEmail: return "Could not read the account email."
+            case let .missingEmail(detail): return "Could not read the account email: \(detail)"
             }
         }
     }
@@ -37,10 +37,14 @@ final class OAuthClient {
     }
 
     private let config: OAuthConfig
-    private let session = URLSession(configuration: .ephemeral)
+    private let session: URLSession
 
-    init(config: OAuthConfig) {
+    private static let requestTimeout: TimeInterval = 30
+    private static let resourceTimeout: TimeInterval = 60
+
+    init(config: OAuthConfig, session: URLSession? = nil) {
         self.config = config
+        self.session = session ?? Self.makeSession()
     }
 
     // MARK: - Interactive sign-in
@@ -137,19 +141,30 @@ final class OAuthClient {
 
     private func fetchEmail(accessToken: String) async throws -> String {
         var request = URLRequest(url: config.userInfoEndpoint)
+        request.timeoutInterval = Self.requestTimeout
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        let (data, _) = try await session.data(for: request)
-        struct UserInfo: Decodable { let email: String? }
-        guard let info = try? JSONDecoder().decode(UserInfo.self, from: data),
-              let email = info.email else {
-            throw OAuthError.missingEmail
+        let (data, response) = try await session.data(for: request)
+        if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+            throw OAuthError.missingEmail(Self.sanitizedUserInfoDetail(statusCode: http.statusCode))
         }
-        return email
+        struct UserInfo: Decodable { let email: String? }
+        do {
+            let info = try JSONDecoder().decode(UserInfo.self, from: data)
+            guard let email = info.email, !email.isEmpty else {
+                throw OAuthError.missingEmail("OpenID UserInfo response did not include an email address.")
+            }
+            return email
+        } catch let oauthError as OAuthError {
+            throw oauthError
+        } catch {
+            throw OAuthError.missingEmail("OpenID UserInfo response could not be decoded.")
+        }
     }
 
     private func postForm<T: Decodable>(_ url: URL, form: [String: String]) async throws -> T {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        request.timeoutInterval = Self.requestTimeout
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.httpBody = form
             .map { "\($0.key)=\(Self.urlEncode($0.value))" }
@@ -165,6 +180,13 @@ final class OAuthClient {
             )
         }
         return try JSONDecoder().decode(T.self, from: data)
+    }
+
+    private static func makeSession() -> URLSession {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = requestTimeout
+        configuration.timeoutIntervalForResource = resourceTimeout
+        return URLSession(configuration: configuration)
     }
 
     private static func transientRefreshError(_ error: Error) -> OAuthError {
@@ -208,6 +230,10 @@ final class OAuthClient {
             return "OAuth token endpoint returned \(code) (HTTP \(statusCode))."
         }
         return "OAuth token endpoint returned HTTP \(statusCode)."
+    }
+
+    static func sanitizedUserInfoDetail(statusCode: Int) -> String {
+        "OpenID UserInfo endpoint returned HTTP \(statusCode)."
     }
 
     private static func sanitizedTokenErrorCode(_ rawCode: String?) -> String? {

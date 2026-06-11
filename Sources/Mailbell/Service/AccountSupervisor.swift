@@ -44,7 +44,8 @@ final class AccountSupervisor {
     private let pathMonitor = NWPathMonitor()
     private let pathQueue = DispatchQueue(label: "com.perso.mailbell.path")
     private var lastPathSatisfied = true
-    private var wakeObserver: NSObjectProtocol?
+    private let wakeObserver = NotificationObserverToken()
+    private var reconnectAllTask: Task<Void, Never>?
 
     init(
         configProvider: @escaping () throws -> OAuthConfig = OAuthConfig.loadOrThrow,
@@ -56,6 +57,12 @@ final class AccountSupervisor {
         setupNetworkMonitoring()
         setupSleepWakeObservers()
         startEnabledAccounts()
+    }
+
+    deinit {
+        reconnectAllTask?.cancel()
+        pathMonitor.cancel()
+        wakeObserver.remove()
     }
 
     var oauthSetupMessage: String? {
@@ -183,13 +190,19 @@ final class AccountSupervisor {
     }
 
     func forceReconnectAll() {
-        let enabledAccounts = accounts.filter(\.isEnabled)
-        for (index, account) in enabledAccounts.enumerated() {
-            let jitter = UInt64.random(in: 0 ... 300_000_000)
-            let stagger = UInt64(index) * 300_000_000
-            Task { @MainActor [weak self] in
-                try? await Task.sleep(nanoseconds: jitter + stagger)
-                self?.reconnectIfSessionExists(accountID: account.id)
+        let enabledAccountIDs = accounts.filter(\.isEnabled).map(\.id)
+        reconnectAllTask?.cancel()
+        reconnectAllTask = Task { @MainActor [weak self, enabledAccountIDs] in
+            for (index, accountID) in enabledAccountIDs.enumerated() {
+                let jitter = UInt64.random(in: 0 ... 300_000_000)
+                let stagger = UInt64(index) * 300_000_000
+                do {
+                    try await Task.sleep(nanoseconds: jitter + stagger)
+                } catch {
+                    return
+                }
+                guard !Task.isCancelled else { return }
+                self?.reconnectIfSessionExists(accountID: accountID)
             }
         }
         publish()
@@ -333,7 +346,7 @@ private extension AccountSupervisor {
     }
 
     func setupSleepWakeObservers() {
-        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+        let token = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification,
             object: nil,
             queue: .main
@@ -343,6 +356,7 @@ private extension AccountSupervisor {
                 self?.forceReconnectAll()
             }
         }
+        wakeObserver.store(token)
     }
 }
 
