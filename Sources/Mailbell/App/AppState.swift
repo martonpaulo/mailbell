@@ -11,6 +11,7 @@ final class AppState: ObservableObject {
     @Published private(set) var oauthSetupMessage: String?
     @Published private(set) var isAuthorizing = false
     @Published private(set) var notificationAuthorizationState: NotificationAuthorizationState = .unbundled
+    @Published private(set) var notificationTestMessage: String?
 
     private let supervisor: AccountSupervisor
 
@@ -96,6 +97,18 @@ final class AppState: ObservableObject {
     func requestNotificationAuthorization() {
         Task {
             notificationAuthorizationState = await NotificationManager.shared.requestAuthorization()
+        }
+    }
+
+    func sendTestNotification() {
+        Task {
+            let result = await NotificationManager.shared.notifyTest(account: accounts.first?.account)
+            notificationAuthorizationState = await NotificationManager.shared.authorizationState()
+            if let message = result.userMessage {
+                notificationTestMessage = message
+            } else {
+                notificationTestMessage = "Test notification sent."
+            }
         }
     }
 

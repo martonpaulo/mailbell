@@ -2,8 +2,8 @@ import AppKit
 import Foundation
 @preconcurrency import UserNotifications
 
-private let notificationWebmailURLKey = "webmailURL"
-private let notificationAccountIDKey = "accountID"
+let notificationWebmailURLKey = "webmailURL"
+let notificationAccountIDKey = "accountID"
 
 struct NotificationAuthorizationState {
     let isBundled: Bool
@@ -94,6 +94,33 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         MailProviderRegistry.provider(for: account.providerID).webmailURL(for: header)
     }
 
+    nonisolated static func notificationContent(
+        for header: MessageHeader,
+        account: MailAccount
+    ) -> UNMutableNotificationContent {
+        EmailNotificationContentBuilder.build(
+            header: header,
+            webmailURL: webmailURL(for: header, account: account),
+            accountID: account.id
+        )
+    }
+
+    nonisolated static func testNotificationContent(account: MailAccount?) -> UNMutableNotificationContent {
+        let header = MessageHeader(
+            uid: 0,
+            from: "Ana Silva <ana@example.com>",
+            subject: "Revisão do contrato hoje",
+            date: "",
+            gmThreadId: nil
+        )
+        let url = account.map { webmailURL(for: header, account: $0) } ?? GmailProvider().webmailURL
+        return EmailNotificationContentBuilder.build(
+            header: header,
+            webmailURL: url,
+            accountID: account?.id
+        )
+    }
+
     override private init() {
         super.init()
         if isBundled {
@@ -139,7 +166,6 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             return .unavailable("Notifications unavailable outside app bundle.")
         }
 
-        let url = Self.webmailURL(for: header, account: account)
         let state = await requestAuthorizationIfNeeded()
         guard state.canPostAlert else {
             let message = state.detail
@@ -147,19 +173,32 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             return .notAuthorized(state)
         }
 
-        let content = UNMutableNotificationContent()
-        content.title = header.from
-        content.body = header.subject
-        content.subtitle = account.email
-        content.sound = .default
-        content.userInfo = [
-            notificationWebmailURLKey: url.absoluteString,
-            notificationAccountIDKey: account.id.uuidString
-        ]
+        let content = Self.notificationContent(for: header, account: account)
 
         let request = UNNotificationRequest(
             identifier: "mailbell.\(account.id.uuidString).\(header.uid)",
             content: content,
+            trigger: nil
+        )
+        return await add(request)
+    }
+
+    func notifyTest(account: MailAccount?) async -> NotificationPostResult {
+        guard isBundled else {
+            Log.info("Notifications unavailable outside app bundle; install Mailbell.app to post native notifications.")
+            return .unavailable("Notifications unavailable outside app bundle.")
+        }
+
+        let state = await requestAuthorizationIfNeeded()
+        guard state.canPostAlert else {
+            let message = state.detail
+            Log.error("Test notification skipped: \(message)")
+            return .notAuthorized(state)
+        }
+
+        let request = UNNotificationRequest(
+            identifier: "mailbell.test.\(UUID().uuidString)",
+            content: Self.testNotificationContent(account: account),
             trigger: nil
         )
         return await add(request)

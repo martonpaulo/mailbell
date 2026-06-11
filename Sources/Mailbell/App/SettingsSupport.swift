@@ -64,6 +64,14 @@ enum SystemSettings {
     }
 }
 
+@MainActor
+enum SettingsWindow {
+    static func open() {
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+    }
+}
+
 enum SettingsFormMetrics {
     static let labelWidth: CGFloat = 104
 }

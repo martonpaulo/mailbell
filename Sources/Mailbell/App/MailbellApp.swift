@@ -5,9 +5,10 @@ import SwiftUI
 struct MailbellApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var appState = AppState()
+    @AppStorage(AppPreferenceKeys.showMenuBarIcon) private var showMenuBarIcon = AppPreferences.defaultShowMenuBarIcon
 
     var body: some Scene {
-        MenuBarExtra {
+        MenuBarExtra(isInserted: $showMenuBarIcon) {
             MenuContent(appState: appState)
         } label: {
             Image(systemName: appState.status.systemImage)
@@ -23,6 +24,17 @@ struct MailbellApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        guard !AppPreferences.showMenuBarIcon() else { return }
+        DispatchQueue.main.async {
+            SettingsWindow.open()
+        }
+    }
+
+    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {
+        if !AppPreferences.showMenuBarIcon() {
+            SettingsWindow.open()
+        }
+        return true
     }
 }
 
@@ -65,8 +77,7 @@ struct MenuContent: View {
 
     /// Fallback for macOS 13, where `SettingsLink` is unavailable.
     private static func openSettingsLegacy() {
-        NSApp.activate(ignoringOtherApps: true)
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        SettingsWindow.open()
     }
 
     private static func accountSummary(for states: [AccountRuntimeState]) -> String {
@@ -92,24 +103,18 @@ struct SettingsView: View {
     @ObservedObject var appState: AppState
     @State private var launchAtLogin = LoginItem.isEnabled
     @State private var loginItemStatus = LoginItem.status
+    @AppStorage(AppPreferenceKeys.showMenuBarIcon) private var showMenuBarIcon = AppPreferences.defaultShowMenuBarIcon
 
     var body: some View {
-        TabView {
-            accountsPanel
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .tabItem {
-                    Label("Accounts", systemImage: "person.crop.circle")
-                }
-
-            behaviorPanel
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .tabItem {
-                    Label("General", systemImage: "gearshape")
-                }
+        Form {
+            notificationSection
+            startupSection
+            accountsSection
         }
-        .padding(24)
-        .frame(width: 640)
-        .frame(minHeight: 430)
+        .formStyle(.grouped)
+        .padding(20)
+        .frame(width: 660)
+        .frame(minHeight: 560)
         .onAppear {
             // Accessory apps have no Dock icon; make sure the window comes forward.
             refreshBehaviorState()
@@ -120,30 +125,31 @@ struct SettingsView: View {
         }
     }
 
-    private var behaviorPanel: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            notificationPanel
-            loginItemPanel
-        }
-    }
-
-    private var notificationPanel: some View {
-        settingsPanel("Notifications") {
-            Label(
-                appState.notificationAuthorizationState.summary,
-                systemImage: appState.notificationAuthorizationState.canPostAlert
-                    ? "bell.badge.fill"
-                    : "bell.slash"
-            )
-            .foregroundStyle(appState.notificationAuthorizationState.canPostAlert ? .green : .secondary)
-            .font(.body)
+    private var notificationSection: some View {
+        Section(SettingsSectionOrder.titles[0]) {
+            LabeledContent("Status") {
+                Label(
+                    appState.notificationAuthorizationState.summary,
+                    systemImage: appState.notificationAuthorizationState.canPostAlert
+                        ? "bell.badge.fill"
+                        : "bell.slash"
+                )
+                .foregroundStyle(appState.notificationAuthorizationState.canPostAlert ? .green : .secondary)
+            }
 
             Text(appState.notificationAuthorizationState.detail)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
-                .fixedSize(horizontal: false, vertical: true)
 
-            HStack {
+            HStack(spacing: 8) {
+                Button("Refresh notification status") {
+                    appState.refreshNotificationAuthorizationState()
+                }
+
+                Button("Test notification") {
+                    appState.sendTestNotification()
+                }
+
                 if appState.notificationAuthorizationState.canRequestPermission {
                     Button("Request Permission") {
                         appState.requestNotificationAuthorization()
@@ -155,10 +161,12 @@ struct SettingsView: View {
                         SystemSettings.open()
                     }
                 }
+            }
 
-                Button("Refresh") {
-                    appState.refreshNotificationAuthorizationState()
-                }
+            if let message = appState.notificationTestMessage {
+                Label(message, systemImage: "bell.badge")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .task {
@@ -166,106 +174,102 @@ struct SettingsView: View {
         }
     }
 
-    private var loginItemPanel: some View {
-        settingsPanel("Startup") {
+    private var startupSection: some View {
+        Section(SettingsSectionOrder.titles[1]) {
             Toggle("Start at login", isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { newValue in
                     LoginItem.set(newValue)
                     refreshLoginItemStatus()
                 }
 
-            Label(
-                loginItemStatus.title,
-                systemImage: loginItemStatus == .enabled ? "checkmark.circle.fill" : "info.circle"
-            )
+            Toggle("Show menu bar icon", isOn: $showMenuBarIcon)
+                .onChange(of: showMenuBarIcon) { newValue in
+                    AppPreferences.setShowMenuBarIcon(newValue)
+                }
+
+            LabeledContent("Login item") {
+                Label(
+                    loginItemStatus.title,
+                    systemImage: loginItemStatus == .enabled ? "checkmark.circle.fill" : "info.circle"
+                )
                 .foregroundStyle(loginItemStatus == .enabled ? .green : .secondary)
+            }
 
             Text(loginItemStatus.detail)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
-                .fixedSize(horizontal: false, vertical: true)
 
             if loginItemStatus == .requiresApproval || loginItemStatus == .unavailable {
                 Button("Open System Settings") {
                     SystemSettings.open()
                 }
             }
+
+            Text("If you hide the menu bar icon, Mailbell keeps running. Relaunch Mailbell to reopen Settings.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
         }
     }
 
-    private var accountsPanel: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Accounts")
-                    .font(.headline)
+    private var accountsSection: some View {
+        Section(SettingsSectionOrder.titles[2]) {
+            if let setupMessage = appState.oauthSetupMessage {
+                OAuthSetupPanel(details: setupMessage)
+            }
 
-                Spacer()
-
+            HStack {
                 Button("Add Gmail Account") {
                     appState.addGoogleAccount()
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
                 .help(appState.isAuthorizing ? "Complete Google sign-in in your browser." : "Add a Gmail account.")
+
+                Spacer()
             }
 
-            GroupBox {
-                VStack(alignment: .leading, spacing: 12) {
-                    if let setupMessage = appState.oauthSetupMessage {
-                        OAuthSetupPanel(details: setupMessage)
-                    }
-
-                    if appState.accounts.isEmpty {
-                        Text("No accounts connected")
-                            .font(.headline)
-                        Text(accountEmptyDetail)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ScrollView {
-                            LazyVStack(alignment: .leading, spacing: 0) {
-                                ForEach(
-                                    Array(appState.accounts.enumerated()),
-                                    id: \.element.id
-                                ) { index, accountState in
-                                    if index > 0 {
-                                        Divider()
-                                            .padding(.vertical, 12)
-                                    }
-                                    accountRow(accountState)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    }
-
-                    if let error = appState.lastError {
-                        accountErrorLabel(error)
-                    }
+            if appState.accounts.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("No accounts connected")
+                        .font(.headline)
+                    Text(accountEmptyDetail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            } else {
+                ForEach(Array(appState.accounts.enumerated()), id: \.element.id) { index, accountState in
+                    if index > 0 {
+                        Divider()
+                            .padding(.vertical, 4)
+                    }
+                    accountRow(accountState)
+                }
+            }
+
+            if let error = appState.lastError {
+                accountErrorLabel(error)
             }
         }
     }
 
     private func accountRow(_ state: AccountRuntimeState) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 12) {
-                Image(systemName: state.status.systemImage)
-                    .foregroundStyle(statusTint(for: state.status))
-                    .frame(width: 22, height: 22, alignment: .top)
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(state.account.email)
-                        .font(.headline)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .textSelection(.enabled)
-                    Text("\(state.account.providerID.displayName) · \(accountDetail(for: state))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                Label {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(state.account.email)
+                            .font(.headline)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .textSelection(.enabled)
+                        Text("\(state.account.providerID.displayName) · \(accountDetail(for: state))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } icon: {
+                    Image(systemName: state.status.systemImage)
+                        .foregroundStyle(statusTint(for: state.status))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -285,12 +289,14 @@ struct SettingsView: View {
                 accountErrorLabel(error)
             }
         }
+        .padding(.vertical, 4)
     }
 
     private func accountErrorLabel(_ message: String) -> some View {
-        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 0) {
-            SettingsMessageRow(message: message)
-        }
+        Label(message, systemImage: "exclamationmark.triangle.fill")
+            .font(.caption)
+            .foregroundStyle(.orange)
+            .textSelection(.enabled)
     }
 
     private var accountEmptyDetail: String {
@@ -331,21 +337,6 @@ struct SettingsView: View {
             return .red
         case .signedOut:
             return .secondary
-        }
-    }
-
-    private func settingsPanel<Content: View>(
-        _ title: String,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        GroupBox {
-            VStack(alignment: .leading, spacing: 12) {
-                content()
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        } label: {
-            Text(title)
-                .font(.headline)
         }
     }
 
