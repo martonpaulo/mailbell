@@ -8,7 +8,7 @@ enum Keychain {
         case unexpectedStatus(OSStatus)
     }
 
-    private static let service = "com.samzong.mailbell"
+    private static let service = "com.perso.mailbell"
 
     static func set(_ value: String, account: String) throws {
         let data = Data(value.utf8)

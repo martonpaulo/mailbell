@@ -10,15 +10,12 @@ protocol AccountSupervisorDelegate: AnyObject {
 @MainActor
 final class AccountSupervisor {
     enum SupervisorError: LocalizedError {
-        case missingOAuthCredentials
         case missingAccount
         case authenticationInProgress
         case accountMismatch(expected: String, actual: String)
 
         var errorDescription: String? {
             switch self {
-            case .missingOAuthCredentials:
-                return "Google OAuth credentials are missing from this build."
             case .missingAccount:
                 return "Account not found."
             case .authenticationInProgress:
@@ -31,7 +28,7 @@ final class AccountSupervisor {
 
     weak var delegate: AccountSupervisorDelegate?
 
-    private let configProvider: () -> OAuthConfig?
+    private let configProvider: () throws -> OAuthConfig
     private let accountStore: AccountStore
     private var accounts: [MailAccount]
     private var monitors: [UUID: MailMonitor] = [:]
@@ -42,17 +39,26 @@ final class AccountSupervisor {
     private var isAuthenticating = false
 
     private let pathMonitor = NWPathMonitor()
-    private let pathQueue = DispatchQueue(label: "com.samzong.mailbell.path")
+    private let pathQueue = DispatchQueue(label: "com.perso.mailbell.path")
     private var lastPathSatisfied = true
     private var wakeObserver: NSObjectProtocol?
 
-    init(configProvider: @escaping () -> OAuthConfig? = OAuthConfig.load, accountStore: AccountStore = AccountStore()) {
+    init(configProvider: @escaping () throws -> OAuthConfig = OAuthConfig.loadOrThrow, accountStore: AccountStore = AccountStore()) {
         self.configProvider = configProvider
         self.accountStore = accountStore
         accounts = accountStore.loadAccounts()
         setupNetworkMonitoring()
         setupSleepWakeObservers()
         startEnabledAccounts()
+    }
+
+    var oauthSetupMessage: String? {
+        do {
+            _ = try configProvider()
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
     }
 
     var accountStates: [AccountRuntimeState] {
@@ -93,7 +99,7 @@ final class AccountSupervisor {
     }
 
     func addGmailAccount() async throws {
-        guard let config = configProvider() else { throw SupervisorError.missingOAuthCredentials }
+        let config = try configProvider()
         let result = try await signIn(config: config)
         let account = upsertSignedInAccount(email: result.email, providerID: .gmail)
         TokenStore(accountID: account.id, providerID: account.providerID).save(tokens: result.tokens)
@@ -108,7 +114,7 @@ final class AccountSupervisor {
             throw SupervisorError.missingAccount
         }
 
-        guard let config = configProvider() else { throw SupervisorError.missingOAuthCredentials }
+        let config = try configProvider()
         let result = try await signIn(config: config)
         guard let account = accounts.first(where: { $0.id == accountID }) else {
             throw SupervisorError.missingAccount
@@ -234,16 +240,18 @@ final class AccountSupervisor {
             return monitor
         }
 
-        guard let config = configProvider() else {
+        do {
+            let config = try configProvider()
+            let monitor = MailMonitor(account: account, config: config)
+            monitor.delegate = self
+            monitors[account.id] = monitor
+            statuses[account.id] = initialStatus(for: account)
+            return monitor
+        } catch {
             statuses[account.id] = .error
-            connectionErrors[account.id] = SupervisorError.missingOAuthCredentials.localizedDescription
+            connectionErrors[account.id] = error.localizedDescription
             return nil
         }
-        let monitor = MailMonitor(account: account, config: config)
-        monitor.delegate = self
-        monitors[account.id] = monitor
-        statuses[account.id] = initialStatus(for: account)
-        return monitor
     }
 
     private func initialStatus(for account: MailAccount) -> MonitorStatus {

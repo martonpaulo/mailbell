@@ -76,7 +76,7 @@ https://mail.google.com/
 
 This is a restricted full-mail scope. IMAP offers no narrower option: even though the app only reads message headers, the consent surface covers full mail access. This is the one real cost of choosing IMAP over the Gmail API (whose `gmail.metadata` scope is narrower), accepted because the priority is latency and low overhead, not consent-surface minimization (see Transport Choice).
 
-The OAuth client is a built-in macOS "Desktop / installed app" client and must use PKCE. Release builds inject the client ID and desktop client secret from GitHub Actions secrets into the app bundle. Local development reads the same values from environment variables or `.env`. Users do not configure either value in the app.
+The OAuth client must be a user-owned Google "Desktop / installed app" client and must use PKCE. Local development reads the client ID and desktop client secret from environment variables or `.env`; local packaging injects those values into the app bundle. Mailbell must not ship, document as usable, or fall back to the original upstream developer's OAuth client.
 
 Token storage must use Keychain. Refresh tokens must not be stored in `UserDefaults`, plaintext files, or logs.
 

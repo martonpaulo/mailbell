@@ -8,6 +8,7 @@ final class AppState: ObservableObject {
     @Published private(set) var status: MonitorStatus = .signedOut
     @Published private(set) var accounts: [AccountRuntimeState] = []
     @Published private(set) var lastError: String?
+    @Published private(set) var oauthSetupMessage: String?
 
     private let supervisor: AccountSupervisor
 
@@ -16,6 +17,7 @@ final class AppState: ObservableObject {
         supervisor.delegate = self
         accounts = supervisor.accountStates
         status = supervisor.aggregateStatus
+        oauthSetupMessage = supervisor.oauthSetupMessage
 
         NotificationManager.shared.webmailOpenHandler = { [weak self] accountID, url in
             await self?.supervisor.openWebmail(accountID: accountID, url: url)
@@ -36,8 +38,10 @@ final class AppState: ObservableObject {
             do {
                 try await supervisor.addGmailAccount()
                 lastError = nil
+                oauthSetupMessage = supervisor.oauthSetupMessage
             } catch {
                 lastError = error.localizedDescription
+                oauthSetupMessage = supervisor.oauthSetupMessage
             }
         }
     }
@@ -47,8 +51,10 @@ final class AppState: ObservableObject {
             do {
                 try await supervisor.reauthenticate(accountID: accountID)
                 lastError = nil
+                oauthSetupMessage = supervisor.oauthSetupMessage
             } catch {
                 lastError = error.localizedDescription
+                oauthSetupMessage = supervisor.oauthSetupMessage
             }
         }
     }
@@ -84,5 +90,6 @@ extension AppState: AccountSupervisorDelegate {
     func accountSupervisorDidUpdate(states: [AccountRuntimeState], aggregateStatus: MonitorStatus) {
         accounts = states
         status = aggregateStatus
+        oauthSetupMessage = supervisor.oauthSetupMessage
     }
 }

@@ -6,11 +6,15 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 CONFIG="release"
-BUNDLE_ID="com.samzong.mailbell"
 APP_NAME="Mailbell"
+PERSONAL_BUNDLE_ID="${PERSONAL_BUNDLE_ID:-com.perso.mailbell}"
+APP_DISPLAY_NAME="${APP_DISPLAY_NAME:-Mailbell}"
 BUILD_DIR="build"
 APP_DIR="${BUILD_DIR}/${APP_NAME}.app"
 ASSETS="Resources/Assets.xcassets"
+
+export PERSONAL_BUNDLE_ID APP_DISPLAY_NAME
+Scripts/inject_oauth_config.sh --check
 
 echo "Generating app icons…"
 chmod +x Scripts/generate_app_icon.sh

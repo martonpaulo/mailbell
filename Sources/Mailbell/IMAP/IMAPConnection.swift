@@ -15,7 +15,7 @@ final class IMAPConnection {
     private let host: NWEndpoint.Host
     private let port: NWEndpoint.Port
     private let connection: NWConnection
-    private let queue = DispatchQueue(label: "com.samzong.mailbell.imap")
+    private let queue = DispatchQueue(label: "com.perso.mailbell.imap")
     private var buffer = Data()
 
     init(host: String, port: UInt16) {

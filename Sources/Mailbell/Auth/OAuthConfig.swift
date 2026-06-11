@@ -12,31 +12,64 @@ struct OAuthConfig {
 
     var scopeString: String { scopes.joined(separator: " ") }
 
-    private static let clientIDKey = "MAILBELL_GOOGLE_CLIENT_ID"
-    private static let clientSecretKey = "MAILBELL_GOOGLE_CLIENT_SECRET"
-    private static let bundleClientIDKey = "MailbellGoogleClientID"
-    private static let bundleClientSecretKey = "MailbellGoogleClientSecret"
+    static let clientIDKey = "MAILBELL_GOOGLE_CLIENT_ID"
+    static let clientSecretKey = "MAILBELL_GOOGLE_CLIENT_SECRET"
+    static let bundleClientIDKey = "MailbellGoogleClientID"
+    static let bundleClientSecretKey = "MailbellGoogleClientSecret"
 
     static func load() -> OAuthConfig? {
-        fromBundle() ?? fromEnvironment(ProcessInfo.processInfo.environment) ?? fromDotEnv()
+        try? loadOrThrow()
     }
 
-    private static func fromBundle() -> OAuthConfig? {
-        guard let clientID = Bundle.main.object(forInfoDictionaryKey: bundleClientIDKey) as? String,
-              let clientSecret = Bundle.main.object(forInfoDictionaryKey: bundleClientSecretKey) as? String else {
-            return nil
+    static func loadOrThrow() throws -> OAuthConfig {
+        try load(
+            bundleClientID: Bundle.main.object(forInfoDictionaryKey: bundleClientIDKey) as? String,
+            bundleClientSecret: Bundle.main.object(forInfoDictionaryKey: bundleClientSecretKey) as? String,
+            environment: ProcessInfo.processInfo.environment,
+            dotEnv: readDotEnv()
+        )
+    }
+
+    static func load(
+        bundleClientID: String? = nil,
+        bundleClientSecret: String? = nil,
+        environment: [String: String],
+        dotEnv: [String: String] = [:]
+    ) throws -> OAuthConfig {
+        if hasAnyValue(clientID: bundleClientID, clientSecret: bundleClientSecret) {
+            return try make(clientID: bundleClientID, clientSecret: bundleClientSecret)
         }
-        return make(clientID: clientID, clientSecret: clientSecret)
+
+        let environmentClientID = environment[clientIDKey]
+        let environmentClientSecret = environment[clientSecretKey]
+        if hasAnyValue(clientID: environmentClientID, clientSecret: environmentClientSecret) {
+            return try make(clientID: environmentClientID, clientSecret: environmentClientSecret)
+        }
+
+        let dotEnvClientID = dotEnv[clientIDKey]
+        let dotEnvClientSecret = dotEnv[clientSecretKey]
+        if hasAnyValue(clientID: dotEnvClientID, clientSecret: dotEnvClientSecret) {
+            return try make(clientID: dotEnvClientID, clientSecret: dotEnvClientSecret)
+        }
+
+        throw OAuthConfigIssue.missingCredentials
     }
 
-    private static func fromEnvironment(_ environment: [String: String]) -> OAuthConfig? {
-        make(clientID: environment[clientIDKey], clientSecret: environment[clientSecretKey])
+    static func configurationIssue() -> OAuthConfigIssue? {
+        do {
+            _ = try loadOrThrow()
+            return nil
+        } catch let issue as OAuthConfigIssue {
+            return issue
+        } catch {
+            return .invalidCredentials
+        }
     }
 
-    private static func fromDotEnv() -> OAuthConfig? {
+    private static func readDotEnv() -> [String: String] {
         let url = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(".env")
-        guard let content = try? String(contentsOf: url, encoding: .utf8) else { return nil }
-        let values = content
+        guard let content = try? String(contentsOf: url, encoding: .utf8) else { return [:] }
+        return content
             .split(whereSeparator: \.isNewline)
             .reduce(into: [String: String]()) { result, line in
                 let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -47,17 +80,42 @@ struct OAuthConfig {
                 let rawValue = String(trimmed[trimmed.index(after: separator)...]).trimmingCharacters(in: .whitespaces)
                 result[key] = rawValue.strippingMatchingQuotes()
             }
-        return fromEnvironment(values)
     }
 
-    private static func make(clientID: String?, clientSecret: String?) -> OAuthConfig? {
+    private static func hasAnyValue(clientID: String?, clientSecret: String?) -> Bool {
+        let clientID = clientID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let clientSecret = clientSecret?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return !clientID.isEmpty || !clientSecret.isEmpty
+    }
+
+    private static func make(clientID: String?, clientSecret: String?) throws -> OAuthConfig {
         guard let clientID = clientID?.trimmingCharacters(in: .whitespacesAndNewlines),
-              let clientSecret = clientSecret?.trimmingCharacters(in: .whitespacesAndNewlines),
               !clientID.isEmpty,
+              let clientSecret = clientSecret?.trimmingCharacters(in: .whitespacesAndNewlines),
               !clientSecret.isEmpty else {
-            return nil
+            throw OAuthConfigIssue.missingCredentials
+        }
+        guard clientID.hasSuffix(".apps.googleusercontent.com") else {
+            throw OAuthConfigIssue.invalidClientID
         }
         return OAuthConfig(clientID: clientID, clientSecret: clientSecret)
+    }
+}
+
+enum OAuthConfigIssue: Error, Equatable, LocalizedError {
+    case missingCredentials
+    case invalidClientID
+    case invalidCredentials
+
+    var errorDescription: String? {
+        switch self {
+        case .missingCredentials:
+            return "Google OAuth setup is required. Set MAILBELL_GOOGLE_CLIENT_ID and MAILBELL_GOOGLE_CLIENT_SECRET in .env or your shell, then rebuild or reinstall Mailbell. See README > Google sign-in."
+        case .invalidClientID:
+            return "Google OAuth client ID looks invalid. Use your Desktop OAuth client ID ending in .apps.googleusercontent.com. See README > Google sign-in."
+        case .invalidCredentials:
+            return "Google OAuth credentials are invalid. Check your local .env or shell values and reinstall Mailbell."
+        }
     }
 }
 

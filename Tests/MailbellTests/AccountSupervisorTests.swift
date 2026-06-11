@@ -82,7 +82,24 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
-    private func makeSupervisor() -> (AccountSupervisor, MailAccount) {
+    func testOAuthSetupMessageUsesConfigProviderError() {
+        let (supervisor, _) = makeSupervisor(configProvider: { throw OAuthConfigIssue.missingCredentials })
+
+        XCTAssertEqual(
+            supervisor.oauthSetupMessage,
+            OAuthConfigIssue.missingCredentials.localizedDescription
+        )
+    }
+
+    @MainActor
+    private func makeSupervisor(
+        configProvider: @escaping () throws -> OAuthConfig = {
+            OAuthConfig(
+                clientID: "dummy-personal-client-id.apps.googleusercontent.com",
+                clientSecret: "dummy-personal-client-secret"
+            )
+        }
+    ) -> (AccountSupervisor, MailAccount) {
         let suiteName = "mailbell.AccountSupervisorTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
@@ -90,7 +107,7 @@ final class AccountSupervisorTests: XCTestCase {
         let account = MailAccount(providerID: .gmail, email: "test@example.com")
         store.saveAccounts([account])
         let supervisor = AccountSupervisor(
-            configProvider: { OAuthConfig(clientID: "client", clientSecret: "secret") },
+            configProvider: configProvider,
             accountStore: store
         )
         return (supervisor, account)

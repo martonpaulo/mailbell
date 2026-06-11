@@ -28,7 +28,7 @@ final class LoopbackServer {
     ]
 
     private var listener: NWListener?
-    private let queue = DispatchQueue(label: "com.samzong.mailbell.loopback")
+    private let queue = DispatchQueue(label: "com.perso.mailbell.loopback")
     private var continuation: CheckedContinuation<[URLQueryItem], Error>?
     private var didResume = false
     private var pendingResult: Result<[URLQueryItem], Error>?

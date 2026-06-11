@@ -42,6 +42,10 @@ struct MenuContent: View {
 
         if appState.accounts.isEmpty {
             Button("Add Google Account") { appState.addGoogleAccount() }
+                .disabled(appState.oauthSetupMessage != nil)
+            if appState.oauthSetupMessage != nil {
+                Text("OAuth setup required")
+            }
         }
 
         Divider()
@@ -129,9 +133,14 @@ struct SettingsView: View {
                     appState.addGoogleAccount()
                 }
                 .buttonStyle(.borderedProminent)
+                .disabled(appState.oauthSetupMessage != nil)
             }
 
             VStack(alignment: .leading, spacing: 12) {
+                if let setupMessage = appState.oauthSetupMessage {
+                    setupMessageLabel(setupMessage)
+                }
+
                 if appState.accounts.isEmpty {
                     Text("No accounts connected")
                         .font(.headline)
@@ -222,7 +231,18 @@ struct SettingsView: View {
         }
     }
 
+    private func setupMessageLabel(_ message: String) -> some View {
+        Label(message, systemImage: "gearshape.badge.exclamationmark")
+            .font(.caption)
+            .foregroundStyle(.orange)
+            .textSelection(.enabled)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private var accountEmptyDetail: String {
+        if appState.oauthSetupMessage != nil {
+            return "Configure your local Google OAuth credentials before adding an account."
+        }
         return "Add a Google account to start watching Gmail Inbox."
     }
 

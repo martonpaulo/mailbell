@@ -2,7 +2,7 @@ import Foundation
 import os
 
 enum Log {
-    private static let logger = os.Logger(subsystem: "com.samzong.mailbell", category: "app")
+    private static let logger = os.Logger(subsystem: "com.perso.mailbell", category: "app")
 
     static func info(_ message: @autoclosure () -> String) {
         let text = message()

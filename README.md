@@ -18,17 +18,17 @@ No Apple Developer account is needed: builds are ad-hoc signed for local use. An
 
 ## Google sign-in
 
-Mailbell includes its Google Desktop OAuth client. Open Mailbell, choose `Add Google Account`, and complete the Google browser sign-in flow.
+Mailbell does not ship a shared Google OAuth client. Create your own Google OAuth client for local use, provide its values through environment variables or a local `.env`, then build or install the app.
 
-The app requests `https://mail.google.com/`, `openid`, and `email`. The broad Gmail scope is required for Gmail IMAP XOAUTH2; Mailbell still fetches only headers for notifications. If Google shows an unverified-app warning, review it and continue only if you trust this local build.
+The app requests `https://mail.google.com/`, `openid`, and `email`. The broad Gmail scope is required for Gmail IMAP XOAUTH2; Mailbell still fetches only headers for notifications. For personal-use OAuth projects, Google may show an unverified-app warning during sign-in.
 
-For local development, set the OAuth values in the shell environment or create `.env` from `.env.example` before running `make run`, `make install`, or `make dmg`.
+Set the OAuth values in the shell environment or create `.env` from `.env.example` before running `make run`, `make install`, or `make dmg`. `make install` and `make dmg` fail before packaging if the values are missing or malformed.
 
-For GitHub Actions releases, set repository secrets with:
+Expected local variables:
 
 ```bash
-gh secret set MAILBELL_GOOGLE_CLIENT_ID
-gh secret set MAILBELL_GOOGLE_CLIENT_SECRET
+MAILBELL_GOOGLE_CLIENT_ID=
+MAILBELL_GOOGLE_CLIENT_SECRET=
 ```
 
 ## Build and run
@@ -49,15 +49,6 @@ make dmg
 `./Scripts/package_app.sh` builds a local `build/Mailbell.app` without installing, if you prefer.
 
 Tokens are stored in the macOS Keychain. Use the menu's `Disconnect` to remove them.
-
-## Release
-
-Releases are tag-driven. Push a version tag and GitHub Actions will build, verify, and publish the DMG:
-
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
 
 ## License
 
