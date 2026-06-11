@@ -41,10 +41,12 @@ struct MenuContent: View {
         Divider()
 
         if appState.accounts.isEmpty {
-            Button("Add Google Account") { appState.addGoogleAccount() }
-                .disabled(appState.oauthSetupMessage != nil)
+            Button(appState.isAuthorizing ? "Authorizing..." : "Add Google Account") {
+                appState.addGoogleAccount()
+            }
+            .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
             if appState.oauthSetupMessage != nil {
-                Text("OAuth setup required")
+                Text("Google OAuth setup required")
             }
         }
 
@@ -85,6 +87,7 @@ struct MenuContent: View {
 struct SettingsView: View {
     @ObservedObject var appState: AppState
     @State private var launchAtLogin = LoginItem.isEnabled
+    @State private var loginItemStatus = LoginItem.status
 
     var body: some View {
         TabView {
@@ -105,6 +108,7 @@ struct SettingsView: View {
         .frame(minHeight: 430)
         .onAppear {
             // Accessory apps have no Dock icon; make sure the window comes forward.
+            refreshBehaviorState()
             NSApp.activate(ignoringOtherApps: true)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 NSApp.keyWindow?.makeFirstResponder(nil)
@@ -113,11 +117,72 @@ struct SettingsView: View {
     }
 
     private var behaviorPanel: some View {
-        settingsPanel("Behavior") {
+        VStack(alignment: .leading, spacing: 18) {
+            notificationPanel
+            loginItemPanel
+        }
+    }
+
+    private var notificationPanel: some View {
+        settingsPanel("Notifications") {
+            Label(
+                appState.notificationAuthorizationState.summary,
+                systemImage: appState.notificationAuthorizationState.canPostAlert
+                    ? "bell.badge.fill"
+                    : "bell.slash"
+            )
+            .foregroundStyle(appState.notificationAuthorizationState.canPostAlert ? .green : .secondary)
+            .font(.body)
+
+            Text(appState.notificationAuthorizationState.detail)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack {
+                if appState.notificationAuthorizationState.canRequestPermission {
+                    Button("Request Permission") {
+                        appState.requestNotificationAuthorization()
+                    }
+                }
+
+                if appState.notificationAuthorizationState.shouldOpenSystemSettings {
+                    Button("Open System Settings") {
+                        SystemSettings.open()
+                    }
+                }
+
+                Button("Refresh") {
+                    appState.refreshNotificationAuthorizationState()
+                }
+            }
+        }
+        .task {
+            appState.refreshNotificationAuthorizationState()
+        }
+    }
+
+    private var loginItemPanel: some View {
+        settingsPanel("Startup") {
             Toggle("Start at login", isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { newValue in
                     LoginItem.set(newValue)
+                    refreshLoginItemStatus()
                 }
+
+            Label(loginItemStatus.title, systemImage: loginItemStatus == .enabled ? "checkmark.circle.fill" : "info.circle")
+                .foregroundStyle(loginItemStatus == .enabled ? .green : .secondary)
+
+            Text(loginItemStatus.detail)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if loginItemStatus == .requiresApproval || loginItemStatus == .unavailable {
+                Button("Open System Settings") {
+                    SystemSettings.open()
+                }
+            }
         }
     }
 
@@ -133,12 +198,13 @@ struct SettingsView: View {
                     appState.addGoogleAccount()
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(appState.oauthSetupMessage != nil)
+                .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
+                .help(appState.isAuthorizing ? "Complete Google sign-in in your browser." : "Add a Gmail account.")
             }
 
             VStack(alignment: .leading, spacing: 12) {
                 if let setupMessage = appState.oauthSetupMessage {
-                    setupMessageLabel(setupMessage)
+                    OAuthSetupPanel(details: setupMessage)
                 }
 
                 if appState.accounts.isEmpty {
@@ -168,10 +234,7 @@ struct SettingsView: View {
                 }
 
                 if let error = appState.lastError {
-                    Label(error, systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                        .textSelection(.enabled)
+                    accountErrorLabel(error)
                 }
             }
             .padding(14)
@@ -231,17 +294,12 @@ struct SettingsView: View {
         }
     }
 
-    private func setupMessageLabel(_ message: String) -> some View {
-        Label(message, systemImage: "gearshape.badge.exclamationmark")
-            .font(.caption)
-            .foregroundStyle(.orange)
-            .textSelection(.enabled)
-            .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
     private var accountEmptyDetail: String {
         if appState.oauthSetupMessage != nil {
-            return "Configure your local Google OAuth credentials before adding an account."
+            return "Set up your local Google OAuth credentials before adding an account."
+        }
+        if appState.isAuthorizing {
+            return "Complete Google sign-in in your browser."
         }
         return "Add a Google account to start watching Gmail Inbox."
     }
@@ -250,17 +308,17 @@ struct SettingsView: View {
         guard state.account.isEnabled else { return "Disabled." }
         switch state.status {
         case .signedOut:
-            return "Ready to sign in."
+            return "Ready."
         case .connecting:
-            return "Connecting to Gmail."
+            return "Connecting."
         case .connected:
-            return "Watching Gmail Inbox."
+            return "Watching Inbox."
         case .reconnecting:
-            return "Reconnecting to Gmail."
+            return "Reconnecting."
         case .reauthRequired:
-            return "Sign in again to refresh access."
+            return "Sign in again."
         case .error:
-            return "Check the last error below."
+            return "Needs attention."
         }
     }
 
@@ -291,6 +349,76 @@ struct SettingsView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 10))
         }
+    }
+
+    private func refreshBehaviorState() {
+        appState.refreshNotificationAuthorizationState()
+        refreshLoginItemStatus()
+    }
+
+    private func refreshLoginItemStatus() {
+        loginItemStatus = LoginItem.status
+        launchAtLogin = loginItemStatus == .enabled || loginItemStatus == .requiresApproval
+    }
+}
+
+private struct OAuthSetupPanel: View {
+    let details: String
+    @State private var showsDetails = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Google OAuth setup required", systemImage: "key.fill")
+                .font(.headline)
+                .foregroundStyle(.orange)
+
+            Text("Create your own Google Desktop OAuth client, set `MAILBELL_GOOGLE_CLIENT_ID` and `MAILBELL_GOOGLE_CLIENT_SECRET`, then rebuild or reinstall Mailbell.")
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack {
+                if let readmeURL = SetupGuide.readmeURL {
+                    Button("Open README") {
+                        NSWorkspace.shared.open(readmeURL)
+                    }
+                }
+                Text("See README > Google Cloud Setup.")
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+            }
+
+            DisclosureGroup("Details", isExpanded: $showsDetails) {
+                Text(details)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.orange.opacity(0.10), in: RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+private enum SetupGuide {
+    static var readmeURL: URL? {
+        var candidates = [
+            URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("README.md"),
+            Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent("README.md")
+        ]
+        if let bundledURL = Bundle.main.url(forResource: "README", withExtension: "md") {
+            candidates.append(bundledURL)
+        }
+
+        return candidates.first { FileManager.default.fileExists(atPath: $0.path) }
+    }
+}
+
+private enum SystemSettings {
+    static func open() {
+        NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
     }
 }
 

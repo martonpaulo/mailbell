@@ -9,6 +9,8 @@ final class AppState: ObservableObject {
     @Published private(set) var accounts: [AccountRuntimeState] = []
     @Published private(set) var lastError: String?
     @Published private(set) var oauthSetupMessage: String?
+    @Published private(set) var isAuthorizing = false
+    @Published private(set) var notificationAuthorizationState: NotificationAuthorizationState = .unbundled
 
     private let supervisor: AccountSupervisor
 
@@ -22,9 +24,7 @@ final class AppState: ObservableObject {
         NotificationManager.shared.webmailOpenHandler = { [weak self] accountID, url in
             await self?.supervisor.openWebmail(accountID: accountID, url: url)
         }
-        Task {
-            _ = await NotificationManager.shared.requestAuthorizationIfNeeded()
-        }
+        refreshNotificationAuthorizationState()
     }
 
     var hasAccounts: Bool { !accounts.isEmpty }
@@ -34,7 +34,10 @@ final class AppState: ObservableObject {
     }
 
     func addGoogleAccount() {
+        guard !isAuthorizing else { return }
         Task {
+            isAuthorizing = true
+            defer { isAuthorizing = false }
             do {
                 try await supervisor.addGmailAccount()
                 lastError = nil
@@ -47,7 +50,10 @@ final class AppState: ObservableObject {
     }
 
     func reauthenticate(accountID: UUID) {
+        guard !isAuthorizing else { return }
         Task {
+            isAuthorizing = true
+            defer { isAuthorizing = false }
             do {
                 try await supervisor.reauthenticate(accountID: accountID)
                 lastError = nil
@@ -78,6 +84,18 @@ final class AppState: ObservableObject {
     func openGmail(accountID: UUID) {
         Task {
             await supervisor.openGmail(accountID: accountID)
+        }
+    }
+
+    func refreshNotificationAuthorizationState() {
+        Task {
+            notificationAuthorizationState = await NotificationManager.shared.authorizationState()
+        }
+    }
+
+    func requestNotificationAuthorization() {
+        Task {
+            notificationAuthorizationState = await NotificationManager.shared.requestAuthorization()
         }
     }
 

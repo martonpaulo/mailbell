@@ -46,6 +46,16 @@ struct NotificationAuthorizationState {
         }
         return "Alerts: \(alertSetting.mailbellDescription), Sound: \(soundSetting.mailbellDescription)"
     }
+
+    var canRequestPermission: Bool {
+        isBundled && status == .notDetermined
+    }
+
+    var shouldOpenSystemSettings: Bool {
+        guard isBundled else { return false }
+        guard status != .notDetermined else { return false }
+        return !canPostAlert
+    }
 }
 
 enum NotificationPostResult {

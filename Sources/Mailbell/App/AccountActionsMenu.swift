@@ -7,14 +7,15 @@ struct AccountActionsMenu: View {
     var body: some View {
         Menu {
             if accountState.status == .reauthRequired {
-                Button("Sign in again") {
+                Button(appState.isAuthorizing ? "Authorizing..." : "Sign in again") {
                     appState.reauthenticate(accountID: accountState.account.id)
                 }
+                .disabled(appState.isAuthorizing)
             } else {
                 Button("Reconnect") {
                     appState.reconnect(accountID: accountState.account.id)
                 }
-                .disabled(!accountState.account.isEnabled)
+                .disabled(!accountState.account.isEnabled || appState.isAuthorizing)
             }
 
             Button(accountState.account.isEnabled ? "Disable" : "Enable") {
@@ -23,6 +24,7 @@ struct AccountActionsMenu: View {
                     accountID: accountState.account.id
                 )
             }
+            .disabled(appState.isAuthorizing)
 
             Divider()
 
