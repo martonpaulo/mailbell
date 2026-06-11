@@ -84,16 +84,16 @@ Token storage must use Keychain. Refresh tokens must not be stored in `UserDefau
 
 This is the single biggest feasibility risk, and it is independent of the transport: it applies to IMAP and the Gmail API equally because both rely on an OAuth refresh token.
 
-Problem: if the OAuth consent screen's publishing status is **Testing** with user type **External**, Google revokes the refresh token after **7 days**. For a notifier meant to stay connected indefinitely, that forces a weekly re-login and breaks the product.
+Problem: Google documentation for OAuth-based APIs describes **Testing** publishing status refresh tokens as time-based tokens that can expire after **7 days**. For a notifier meant to stay connected indefinitely, a weekly re-login would break the product.
 
-Decision: publish the OAuth consent screen to **In production**. Once in production, refresh tokens persist indefinitely (subject to the normal revocation rules below). For personal/private use this does **not** require Google verification or a CASA security assessment — the app stays "Unverified" and the user clicks through a one-time "Google hasn't verified this app" warning on first sign-in.
+Decision: for day-to-day personal use, publish the OAuth consent screen to **In production** after setup. Google says personal-use apps with fewer than 100 users can continue without OAuth verification, but users may click through unverified-app warning screens. Re-check Google's current restricted-scope verification and security-assessment rules before any public distribution.
 
 Two viable configurations:
 
-- **Personal / private use (default):** External + In production + Unverified. No CASA. One-time unverified warning. Refresh token persists. Subject to the unverified-app user cap (~100 users), irrelevant for personal use.
-- **Google Workspace owner:** set user type to **Internal**. No verification, no warning, no 7-day expiry — but only accounts in that Workspace org can sign in.
+- **Personal / private use (default):** External + In production + Unverified. Unverified warning is expected. Subject to Google's personal-use and unverified-app limits.
+- **Google Workspace owner:** set user type to **Internal** only for projects owned by that Workspace or Cloud Identity organization. Only accounts in that organization can sign in.
 
-Public distribution (External + In production + Verified) additionally requires OAuth verification plus an annual CASA security assessment for the restricted scope. Out of scope for the first release; this is the deciding factor behind "private-use first."
+Public distribution is out of scope. The restricted `https://mail.google.com/` scope can trigger verification and security-assessment requirements, so public distribution must start with a fresh official-doc review.
 
 When minting the token, request `access_type=offline` and `prompt=consent` so Google returns a durable refresh token.
 
@@ -200,7 +200,7 @@ Use AppKit only where SwiftUI does not cover the needed menu bar, settings, logi
 ## Resolved Decisions
 
 - **Transport:** Gmail IMAP IDLE, performance-first. See Transport Choice.
-- **OAuth publishing:** External + In production + Unverified for private use; Workspace Internal if available. Solves the 7-day token expiry without CASA. See Token Lifecycle.
+- **OAuth publishing:** External + In production + Unverified for private use; Workspace Internal if available. Avoid long-term Testing-mode token behavior for day-to-day use. See Token Lifecycle.
 - **Notification scope:** `INBOX` for the first release. Gmail's category tabs (Primary/Social/Promotions/...) are not separate IMAP folders, so a "Primary only" filter is not achievable over IMAP and would require the Gmail API. Revisit only if category filtering becomes a requirement.
 - **Accounts:** account collection with one runtime per enabled account. First implemented provider is Gmail.
 - **Browser:** per-account Webmail open preference (system default, selected browser, optional Chrome profile). Generic Gmail Web URL only.
@@ -208,7 +208,7 @@ Use AppKit only where SwiftUI does not cover the needed menu bar, settings, logi
 
 ## Open Questions
 
-- Will the project ever need public distribution (and therefore OAuth verification + annual CASA), or is private/Workspace use the permanent boundary?
+- Will the project ever need public distribution, and therefore a fresh OAuth verification and restricted-scope security-assessment review, or is private/Workspace use the permanent boundary?
 - Is per-message deep linking beyond thread-level Gmail URLs reliable enough across Gmail Web states to enable by default, or should it stay out of scope?
 
 ## Verified Source Facts
@@ -217,8 +217,8 @@ Use AppKit only where SwiftUI does not cover the needed menu bar, settings, logi
 - Gmail IMAP OAuth uses XOAUTH2.
 - Gmail IMAP/POP/SMTP OAuth uses the `https://mail.google.com/` scope.
 - Gmail API push notifications require Cloud Pub/Sub and mailbox watch renewal.
-- An OAuth consent screen in "Testing" status with "External" user type issues refresh tokens that expire after 7 days.
-- Publishing the consent screen to "In production" removes the 7-day expiry; for personal/internal use this needs no verification or CASA assessment (the app stays "Unverified" with a one-time warning).
+- Google documentation for OAuth-based APIs describes "Testing" publishing status refresh tokens as time-based tokens that can expire after 7 days.
+- Google says personal-use apps with fewer than 100 users can continue without verification, but users may click through unverified-app warning screens.
 - A refresh token can still be revoked by ~6 months of inactivity, password change, manual revocation, or exceeding the per-client live-token cap.
-- The `https://mail.google.com/` scope is a restricted scope; public distribution requires OAuth verification plus an annual CASA security assessment.
+- The `https://mail.google.com/` scope is a restricted scope; public distribution must re-check current verification and security-assessment requirements.
 - RFC 2177 recommends re-arming IMAP IDLE at least every 29 minutes.
