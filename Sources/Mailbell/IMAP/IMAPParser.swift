@@ -36,6 +36,13 @@ enum IMAPParser {
         return Int(digits)
     }
 
+    static func parseSearchUIDs(_ line: String) -> [Int]? {
+        guard line.hasPrefix("* ") else { return nil }
+        let parts = line.dropFirst(2).split(separator: " ")
+        guard let command = parts.first, command.uppercased() == "SEARCH" else { return nil }
+        return parts.dropFirst().compactMap { Int($0) }
+    }
+
     static func parseNumber(in line: String, key: String) -> Int? {
         guard let range = line.range(of: "\(key) ") else { return nil }
         let tail = line[range.upperBound...]

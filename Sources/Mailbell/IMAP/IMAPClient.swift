@@ -35,6 +35,7 @@ final class IMAPClient {
 
     private let connection: IMAPConnection
     private var tagCounter = 0
+    private static let headerFields = "BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)]"
 
     init(host: String = "imap.gmail.com", port: UInt16 = 993) {
         connection = IMAPConnection(host: host, port: port)
@@ -147,13 +148,36 @@ final class IMAPClient {
         }
     }
 
-    // MARK: - Fetch headers
+    // MARK: - Search and fetch headers
 
-    /// Fetches headers for UIDs in `[fromUID, *]` (i.e. UID >= fromUID).
-    func fetchHeaders(fromUID: Int) async throws -> [MessageHeader] {
+    /// Returns message UIDs in `[fromUID, *]` without fetching header payloads.
+    func searchUIDs(fromUID: Int) async throws -> [Int] {
         let tag = nextTag()
-        let fields = "BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)]"
-        try await connection.send("\(tag) UID FETCH \(fromUID):* (UID X-GM-MSGID X-GM-THRID \(fields))")
+        try await connection.send("\(tag) UID SEARCH UID \(max(fromUID, 1)):*")
+
+        var uids: [Int] = []
+        while true {
+            let line = try await connection.readLine()
+            if let searchedUIDs = IMAPParser.parseSearchUIDs(line) {
+                uids.append(contentsOf: searchedUIDs)
+                continue
+            }
+            if line.hasPrefix("\(tag) OK") { return uids }
+            if line.hasPrefix("\(tag) NO") || line.hasPrefix("\(tag) BAD") {
+                throw IMAPError.unexpected(line)
+            }
+        }
+    }
+
+    /// Fetches headers for a specific set of UIDs.
+    func fetchHeaders(uids: [Int]) async throws -> [MessageHeader] {
+        let sequenceSet = Self.uidSequenceSet(for: uids)
+        guard !sequenceSet.isEmpty else { return [] }
+
+        let tag = nextTag()
+        try await connection.send(
+            "\(tag) UID FETCH \(sequenceSet) (UID X-GM-MSGID X-GM-THRID \(Self.headerFields))"
+        )
 
         var headers: [MessageHeader] = []
         while true {
@@ -170,6 +194,32 @@ final class IMAPClient {
             }
         }
         return headers
+    }
+
+    static func uidSequenceSet(for uids: [Int]) -> String {
+        let sortedUIDs = Array(Set(uids.filter { $0 > 0 })).sorted()
+        guard let first = sortedUIDs.first else { return "" }
+
+        var ranges: [String] = []
+        var start = first
+        var previous = first
+
+        for uid in sortedUIDs.dropFirst() {
+            if uid == previous + 1 {
+                previous = uid
+                continue
+            }
+            ranges.append(sequenceRange(start: start, end: previous))
+            start = uid
+            previous = uid
+        }
+
+        ranges.append(sequenceRange(start: start, end: previous))
+        return ranges.joined(separator: ",")
+    }
+
+    private static func sequenceRange(start: Int, end: Int) -> String {
+        start == end ? "\(start)" : "\(start):\(end)"
     }
 
     private func parseFetch(_ firstLine: String) async throws -> MessageHeader? {

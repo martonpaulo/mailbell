@@ -2,27 +2,27 @@
 import XCTest
 
 final class MailMonitorNotificationPlanTests: XCTestCase {
-    func testFirstReconnectBatchNotifiesOnlyNewestHeadersAndAdvancesCheckpoint() {
-        let headers = (101 ... 125).map { uid in
-            MessageHeader(uid: uid, from: "sender@example.com", subject: "Subject \(uid)", date: "", gmThreadId: nil)
-        }
+    func testFirstReconnectBatchFetchesOnlyNewestUIDsAndAdvancesCheckpoint() {
+        let uids = Array(101 ... 125)
 
-        let plan = MailMonitor.notificationPlan(headers: headers, lastSeenUID: 100, limit: 10)
+        let plan = MailMonitor.notificationPlan(uids: uids, lastSeenUID: 100, limit: 10)
 
-        XCTAssertEqual(plan.headersToNotify.map(\.uid), Array(116 ... 125))
+        XCTAssertEqual(plan.uidsToFetch, Array(116 ... 125))
         XCTAssertEqual(plan.lastSeenUID, 125)
     }
 
-    func testNotificationPlanIgnoresAlreadySeenHeaders() {
-        let headers = [
-            MessageHeader(uid: 8, from: "old@example.com", subject: "Old", date: "", gmThreadId: nil),
-            MessageHeader(uid: 10, from: "seen@example.com", subject: "Seen", date: "", gmThreadId: nil)
-        ]
+    func testNotificationPlanIgnoresAlreadySeenUIDs() {
+        let plan = MailMonitor.notificationPlan(uids: [8, 10], lastSeenUID: 10, limit: 10)
 
-        let plan = MailMonitor.notificationPlan(headers: headers, lastSeenUID: 10, limit: 10)
-
-        XCTAssertTrue(plan.headersToNotify.isEmpty)
+        XCTAssertTrue(plan.uidsToFetch.isEmpty)
         XCTAssertEqual(plan.lastSeenUID, 10)
+    }
+
+    func testNotificationPlanDeduplicatesUIDsBeforeCapping() {
+        let plan = MailMonitor.notificationPlan(uids: [11, 12, 12, 13, 14], lastSeenUID: 10, limit: 3)
+
+        XCTAssertEqual(plan.uidsToFetch, [12, 13, 14])
+        XCTAssertEqual(plan.lastSeenUID, 14)
     }
 
     func testTestNotificationDoesNotMutateCheckpointOrBlockLaterRealNotification() {
@@ -37,16 +37,9 @@ final class MailMonitorNotificationPlanTests: XCTestCase {
         XCTAssertEqual(checkpoint.storedUIDValidity, 99)
         XCTAssertEqual(checkpoint.lastSeenUID, 10)
 
-        let realHeader = MessageHeader(
-            uid: 11,
-            from: "Ana Silva <ana@example.com>",
-            subject: "Real message",
-            date: "",
-            gmThreadId: nil
-        )
-        let plan = MailMonitor.notificationPlan(headers: [realHeader], lastSeenUID: checkpoint.lastSeenUID)
+        let plan = MailMonitor.notificationPlan(uids: [11], lastSeenUID: checkpoint.lastSeenUID)
 
-        XCTAssertEqual(plan.headersToNotify, [realHeader])
+        XCTAssertEqual(plan.uidsToFetch, [11])
         XCTAssertEqual(plan.lastSeenUID, 11)
     }
 

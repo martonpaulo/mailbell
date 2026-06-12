@@ -14,6 +14,13 @@ final class IMAPParserTests: XCTestCase {
         XCTAssertNil(IMAPParser.parseBracket("* OK [PERMANENTFLAGS (\\Seen)]", key: "UIDVALIDITY"))
     }
 
+    func testParsesSearchUIDs() {
+        XCTAssertEqual(IMAPParser.parseSearchUIDs("* SEARCH 101 102 250"), [101, 102, 250])
+        XCTAssertEqual(IMAPParser.parseSearchUIDs("* SEARCH"), [])
+        XCTAssertNil(IMAPParser.parseSearchUIDs("* 12 EXISTS"))
+        XCTAssertNil(IMAPParser.parseSearchUIDs("A0001 OK SEARCH completed"))
+    }
+
     func testParsesHeaderFields() {
         let raw = "From: Sender <sender@example.com>\r\n"
             + "Subject: Hello\r\n"

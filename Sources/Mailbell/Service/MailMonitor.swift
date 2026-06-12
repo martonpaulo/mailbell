@@ -22,7 +22,7 @@ protocol AccountMonitoring: AnyObject {
 /// token refresh, IMAP connect/select/IDLE, gap-fill on reconnect, and token revocation.
 final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     struct NotificationPlan: Equatable {
-        let headersToNotify: [MessageHeader]
+        let uidsToFetch: [Int]
         let lastSeenUID: Int
     }
 
@@ -169,9 +169,11 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
 
     private func fetchAndNotify(client: IMAPClient) async throws {
         let from = max(lastSeenUID + 1, 1)
-        let headers = try await client.fetchHeaders(fromUID: from)
-        let plan = Self.notificationPlan(headers: headers, lastSeenUID: lastSeenUID)
-        for header in plan.headersToNotify {
+        let uids = try await client.searchUIDs(fromUID: from)
+        let plan = Self.notificationPlan(uids: uids, lastSeenUID: lastSeenUID)
+        let headers = try await client.fetchHeaders(uids: plan.uidsToFetch)
+            .sorted { $0.uid < $1.uid }
+        for header in headers {
             let shouldNotify = await delegate?.monitor(account.id, shouldNotify: header) ?? true
             guard shouldNotify else { continue }
             let result = await NotificationManager.shared.notify(header, account: account)
@@ -181,16 +183,16 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     }
 
     static func notificationPlan(
-        headers: [MessageHeader],
+        uids: [Int],
         lastSeenUID: Int,
         limit: Int = maximumNotificationsPerFetch
     ) -> NotificationPlan {
-        let fresh = headers.filter { $0.uid > lastSeenUID }.sorted { $0.uid < $1.uid }
-        guard let newestUID = fresh.last?.uid else {
-            return NotificationPlan(headersToNotify: [], lastSeenUID: lastSeenUID)
+        let fresh = Array(Set(uids.filter { $0 > lastSeenUID })).sorted()
+        guard let newestUID = fresh.last else {
+            return NotificationPlan(uidsToFetch: [], lastSeenUID: lastSeenUID)
         }
         let capped = limit > 0 ? Array(fresh.suffix(limit)) : []
-        return NotificationPlan(headersToNotify: capped, lastSeenUID: newestUID)
+        return NotificationPlan(uidsToFetch: capped, lastSeenUID: newestUID)
     }
 
     // MARK: - Tokens
