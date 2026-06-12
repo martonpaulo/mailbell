@@ -324,6 +324,19 @@ private extension AccountSupervisor {
 }
 
 extension AccountSupervisor: MailMonitorDelegate {
+    nonisolated func monitor(_ accountID: UUID, didSyncUnread headers: [MessageHeader]) async {
+        await MainActor.run { [weak self] in
+            guard let self,
+                  let account = accounts.first(where: { $0.id == accountID })
+            else {
+                return
+            }
+            if emailStore.replaceUnread(headers: headers, account: account) {
+                publish()
+            }
+        }
+    }
+
     nonisolated func monitor(_ accountID: UUID, shouldNotify header: MessageHeader) async -> Bool {
         await MainActor.run { [weak self] in
             guard let self,

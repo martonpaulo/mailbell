@@ -48,6 +48,42 @@ final class EmailStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testUnreadSyncAfterRelaunchExcludesHandledEmails() {
+        let defaults = makeDefaults()
+        let account = makeAccount()
+        let dismissedHeader = makeHeader(uid: 1, gmMessageId: "dismissed")
+        let openedHeader = makeHeader(uid: 2, gmMessageId: "opened")
+        let unreadHeader = makeHeader(uid: 3, subject: "Unread", gmMessageId: "unread")
+
+        let store = makeStore(defaults: defaults)
+        store.dismiss(id: EmailStoreIdentity.id(accountID: account.id, header: dismissedHeader))
+        store.markOpened(id: EmailStoreIdentity.id(accountID: account.id, header: openedHeader))
+
+        let relaunchedStore = makeStore(defaults: defaults)
+        let didChange = relaunchedStore.replaceUnread(
+            headers: [dismissedHeader, openedHeader, unreadHeader],
+            account: account
+        )
+
+        XCTAssertTrue(didChange)
+        XCTAssertEqual(relaunchedStore.items.map(\.title), ["Unread"])
+    }
+
+    @MainActor
+    func testUnreadSyncReplacesAccountItemsWithCurrentUnreadHeaders() {
+        let store = makeStore()
+        let account = makeAccount()
+        let firstHeader = makeHeader(uid: 1, subject: "Read elsewhere", gmMessageId: "read-elsewhere")
+        let secondHeader = makeHeader(uid: 2, subject: "Still unread", gmMessageId: "still-unread")
+
+        XCTAssertTrue(store.replaceUnread(headers: [firstHeader, secondHeader], account: account))
+        XCTAssertEqual(store.items.map(\.title), ["Read elsewhere", "Still unread"])
+
+        XCTAssertTrue(store.replaceUnread(headers: [secondHeader], account: account))
+        XCTAssertEqual(store.items.map(\.title), ["Still unread"])
+    }
+
+    @MainActor
     func testDuplicateEmailsAreDeduplicatedByStableID() {
         let store = makeStore()
         let account = makeAccount()

@@ -21,7 +21,6 @@ struct AccountWebmailSettingsView: View {
                 }
                 .labelsHidden()
                 .pickerStyle(.menu)
-                .frame(minWidth: 260, maxWidth: 360, alignment: .leading)
                 .onChange(of: selectedBrowserID) {
                     userChangedPreference()
                 }
@@ -36,7 +35,6 @@ struct AccountWebmailSettingsView: View {
                     }
                     .labelsHidden()
                     .pickerStyle(.menu)
-                    .frame(minWidth: 260, maxWidth: 420, alignment: .leading)
                     .onChange(of: selectedChromeProfileDirectory) {
                         userChangedPreference()
                     }
@@ -44,19 +42,13 @@ struct AccountWebmailSettingsView: View {
             }
 
             if let warning = missingSelectionWarning {
-                SettingsStatusLabel(
-                    message: warning,
-                    systemImage: "exclamationmark.triangle.fill",
-                    tone: .warning
-                )
+                Label(warning, systemImage: "exclamationmark.triangle.fill")
+                    .textSelection(.enabled)
             }
 
             if let error = accountState.webmailOpenError {
-                SettingsStatusLabel(
-                    message: error,
-                    systemImage: "exclamationmark.triangle.fill",
-                    tone: .warning
-                )
+                Label(error, systemImage: "exclamationmark.triangle.fill")
+                    .textSelection(.enabled)
             }
         }
         .task {

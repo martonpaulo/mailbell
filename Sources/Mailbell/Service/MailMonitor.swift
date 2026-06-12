@@ -1,6 +1,7 @@
 import Foundation
 
 protocol MailMonitorDelegate: AnyObject {
+    func monitor(_ accountID: UUID, didSyncUnread headers: [MessageHeader]) async
     func monitor(_ accountID: UUID, shouldNotify header: MessageHeader) async -> Bool
     func monitor(_ accountID: UUID, didChangeStatus status: MonitorStatus, error: String?)
     func monitor(_ accountID: UUID, didNotify header: MessageHeader, result: NotificationPostResult)
@@ -116,6 +117,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
                 try await client.authenticate(email: email, accessToken: accessToken)
                 let mailbox = try await client.selectInbox()
                 try await reconcileCheckpoint(mailbox: mailbox, client: client, email: email)
+                try await syncUnreadStore(client: client)
 
                 backoff = 1
                 notifyStatus(.connected)
@@ -180,6 +182,13 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
             delegate?.monitor(account.id, didNotify: header, result: result)
         }
         lastSeenUID = max(lastSeenUID, plan.lastSeenUID)
+    }
+
+    private func syncUnreadStore(client: IMAPClient) async throws {
+        let uids = try await client.searchUnreadUIDs()
+        let headers = try await client.fetchHeaders(uids: uids)
+            .sorted { $0.uid < $1.uid }
+        await delegate?.monitor(account.id, didSyncUnread: headers)
     }
 
     static func notificationPlan(

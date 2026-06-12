@@ -152,8 +152,17 @@ final class IMAPClient {
 
     /// Returns message UIDs in `[fromUID, *]` without fetching header payloads.
     func searchUIDs(fromUID: Int) async throws -> [Int] {
+        try await searchUIDs(criteria: "UID \(max(fromUID, 1)):*")
+    }
+
+    /// Returns unread message UIDs in the selected mailbox.
+    func searchUnreadUIDs() async throws -> [Int] {
+        try await searchUIDs(criteria: "UNSEEN")
+    }
+
+    private func searchUIDs(criteria: String) async throws -> [Int] {
         let tag = nextTag()
-        try await connection.send("\(tag) UID SEARCH UID \(max(fromUID, 1)):*")
+        try await connection.send("\(tag) UID SEARCH \(criteria)")
 
         var uids: [Int] = []
         while true {

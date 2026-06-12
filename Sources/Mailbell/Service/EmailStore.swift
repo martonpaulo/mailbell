@@ -157,16 +157,25 @@ final class EmailStore {
             return false
         }
 
-        itemsByID[id] = EmailStoreItem(
-            id: id,
-            accountID: account.id,
-            accountEmail: account.email,
-            title: EmailHeaderFormatter.title(for: header),
-            sender: EmailHeaderFormatter.senderDetail(from: header.from),
-            time: EmailHeaderFormatter.timeText(for: header),
-            webmailURL: MailProviderRegistry.provider(for: account.providerID).webmailURL(for: header),
-            receivedAt: now()
-        )
+        itemsByID[id] = makeItem(id: id, header: header, account: account)
+        return true
+    }
+
+    func replaceUnread(headers: [MessageHeader], account: MailAccount) -> Bool {
+        let accountPrefix = EmailStoreIdentity.accountPrefix(accountID: account.id)
+        let previousItems = itemsByID
+        var nextItems = itemsByID.filter { id, _ in
+            !id.hasPrefix(accountPrefix)
+        }
+
+        for header in headers {
+            let id = EmailStoreIdentity.id(accountID: account.id, header: header)
+            guard !persistence.isHandled(id) else { continue }
+            nextItems[id] = previousItems[id] ?? makeItem(id: id, header: header, account: account)
+        }
+
+        guard nextItems != itemsByID else { return false }
+        itemsByID = nextItems
         return true
     }
 
@@ -190,5 +199,18 @@ final class EmailStore {
             !id.hasPrefix(prefix)
         }
         persistence.removeRecords(accountID: accountID)
+    }
+
+    private func makeItem(id: String, header: MessageHeader, account: MailAccount) -> EmailStoreItem {
+        EmailStoreItem(
+            id: id,
+            accountID: account.id,
+            accountEmail: account.email,
+            title: EmailHeaderFormatter.title(for: header),
+            sender: EmailHeaderFormatter.senderDetail(from: header.from),
+            time: EmailHeaderFormatter.timeText(for: header),
+            webmailURL: MailProviderRegistry.provider(for: account.providerID).webmailURL(for: header),
+            receivedAt: now()
+        )
     }
 }

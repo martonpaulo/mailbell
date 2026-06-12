@@ -36,7 +36,6 @@ struct AccountActionsMenu: View {
             Label("Account actions", systemImage: "ellipsis.circle")
                 .labelStyle(.iconOnly)
         }
-        .menuStyle(.borderlessButton)
         .help("Account actions")
         .confirmationDialog(
             "Remove \(accountState.account.email)?",

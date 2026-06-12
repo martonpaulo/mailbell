@@ -33,24 +33,31 @@ struct MenuContent: View {
     @ObservedObject var appState: AppState
 
     var body: some View {
-        Text(appState.status.menuLabel)
+        Label(appState.status.menuLabel, systemImage: appState.status.systemImage)
 
         if appState.accounts.isEmpty {
-            Text("No Gmail accounts")
+            Label("No Gmail accounts", systemImage: "person.crop.circle.badge.exclamationmark")
         } else {
-            Text(Self.accountSummary(for: appState.accounts))
+            Label(Self.accountSummary(for: appState.accounts), systemImage: "person.2")
         }
 
         Divider()
 
         if appState.accounts.isEmpty {
-            Button(appState.isAuthorizing ? "Authorizing..." : "Add Gmail Account") {
+            Button {
                 appState.addGoogleAccount()
+            } label: {
+                Label(appState.isAuthorizing ? "Authorizing..." : "Add Gmail Account", systemImage: "plus")
             }
             .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
             if appState.oauthSetupMessage != nil {
-                Text("Google OAuth setup required")
+                Label("Google OAuth setup required", systemImage: "key.fill")
             }
+        }
+
+        if !appState.accounts.isEmpty {
+            Divider()
+            accountsSection
         }
 
         Divider()
@@ -59,18 +66,24 @@ struct MenuContent: View {
 
         Divider()
 
-        Button("Refresh Gmail") {
+        Button {
             appState.refreshMailNow()
+        } label: {
+            Label("Refresh Gmail", systemImage: "arrow.clockwise")
         }
         .disabled(!appState.canRequestManualRefresh)
 
         Divider()
 
         SettingsLink {
-            Text("Settings…")
+            Label("Settings…", systemImage: "gear")
         }
 
-        Button("Quit Mailbell") { appState.quit() }
+        Button {
+            appState.quit()
+        } label: {
+            Label("Quit Mailbell", systemImage: "power")
+        }
     }
 
     private static func accountSummary(for states: [AccountRuntimeState]) -> String {
@@ -91,22 +104,40 @@ struct MenuContent: View {
         count == 1 ? "account" : "accounts"
     }
 
+    private var accountsSection: some View {
+        Section("Accounts") {
+            ForEach(appState.accounts) { accountState in
+                Button {
+                    appState.openGmail(accountID: accountState.account.id)
+                } label: {
+                    Label(accountState.account.email, systemImage: accountState.status.systemImage)
+                }
+            }
+        }
+    }
+
     private var emailStoreSection: some View {
         Section("Unread") {
             if appState.emailStoreItems.isEmpty {
-                Text("No unread emails")
+                Label("No unread emails", systemImage: "tray")
             } else {
                 ForEach(appState.emailStoreItems) { email in
-                    Menu(email.title) {
-                        Text("From: \(email.sender)")
-                        Text("Time: \(email.time)")
+                    Menu {
+                        Label("From: \(email.sender)", systemImage: "person")
+                        Label("Time: \(email.time)", systemImage: "clock")
                         Divider()
-                        Button("Dismiss") {
+                        Button {
                             appState.dismissEmail(id: email.id)
+                        } label: {
+                            Label("Dismiss", systemImage: "xmark.circle")
                         }
-                        Button("Open") {
+                        Button {
                             appState.openEmail(id: email.id)
+                        } label: {
+                            Label("Open", systemImage: "arrow.up.forward.square")
                         }
+                    } label: {
+                        Label(email.title, systemImage: "envelope")
                     }
                 }
             }
@@ -125,8 +156,6 @@ struct SettingsView: View {
             startupSection
             accountsSection
         }
-        .formStyle(.grouped)
-        .frame(minWidth: 660, minHeight: 560)
         .onAppear {
             refreshBehaviorState()
         }
@@ -141,7 +170,6 @@ struct SettingsView: View {
                         ? "bell.badge.fill"
                         : "bell.slash"
                 )
-                .foregroundStyle(appState.notificationAuthorizationState.canPostAlert ? .green : .secondary)
             }
 
             Text(appState.notificationAuthorizationState.detail)
@@ -176,11 +204,15 @@ struct SettingsView: View {
             }
 
             if let message = appState.manualRefreshMessage {
-                SettingsStatusLabel(message: message, systemImage: "arrow.clockwise")
+                Label(message, systemImage: "arrow.clockwise")
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
             }
 
             if let message = appState.notificationTestMessage {
-                SettingsStatusLabel(message: message, systemImage: "bell.badge")
+                Label(message, systemImage: "bell.badge")
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
             }
         }
     }
@@ -198,7 +230,6 @@ struct SettingsView: View {
                     loginItemStatus.title,
                     systemImage: loginItemStatus == .enabled ? "checkmark.circle.fill" : "info.circle"
                 )
-                .foregroundStyle(loginItemStatus == .enabled ? .green : .secondary)
             }
 
             Text(loginItemStatus.detail)
@@ -222,7 +253,6 @@ struct SettingsView: View {
             Button("Add Gmail Account") {
                 appState.addGoogleAccount()
             }
-            .buttonStyle(.borderedProminent)
             .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
             .help(appState.isAuthorizing ? "Complete Google sign-in in your browser." : "Add a Gmail account.")
 
@@ -232,10 +262,7 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(Array(appState.accounts.enumerated()), id: \.element.id) { index, accountState in
-                    if index > 0 {
-                        Divider()
-                    }
+                ForEach(appState.accounts) { accountState in
                     accountRow(accountState)
                 }
             }
@@ -253,7 +280,6 @@ struct SettingsView: View {
                     Button("Open Gmail") {
                         appState.openGmail(accountID: state.account.id)
                     }
-                    .buttonStyle(.bordered)
 
                     AccountActionsMenu(appState: appState, accountState: state)
                 }
@@ -277,11 +303,8 @@ struct SettingsView: View {
     }
 
     private func accountErrorLabel(_ message: String) -> some View {
-        SettingsStatusLabel(
-            message: message,
-            systemImage: "exclamationmark.triangle.fill",
-            tone: .warning
-        )
+        Label(message, systemImage: "exclamationmark.triangle.fill")
+            .textSelection(.enabled)
     }
 
     private var accountEmptyDetail: String {

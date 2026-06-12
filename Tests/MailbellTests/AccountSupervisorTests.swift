@@ -145,6 +145,22 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
+    func testUnreadSyncPopulatesEmailStoreWithoutPostingNotification() async {
+        let (supervisor, account) = makeSupervisor()
+
+        await supervisor.monitor(
+            account.id,
+            didSyncUnread: [
+                makeHeader(uid: 1, subject: "First unread", gmMessageId: "first-unread"),
+                makeHeader(uid: 2, subject: "Second unread", gmMessageId: "second-unread")
+            ]
+        )
+
+        XCTAssertEqual(Set(supervisor.emailStoreItems.map(\.title)), Set(["First unread", "Second unread"]))
+        XCTAssertNil(supervisor.accountStates.first?.lastError)
+    }
+
+    @MainActor
     func testNotificationOpenActionRemovesEmailFromStore() async throws {
         var openedURLs: [URL] = []
         let (supervisor, account) = makeSupervisor(webmailOpen: { url, _ in
@@ -214,13 +230,14 @@ final class AccountSupervisorTests: XCTestCase {
 
     private func makeHeader(
         uid: Int = 1,
+        subject: String = "Subject",
         gmMessageId: String? = nil,
         gmThreadId: String? = nil
     ) -> MessageHeader {
         MessageHeader(
             uid: uid,
             from: "sender@example.com",
-            subject: "Subject",
+            subject: subject,
             date: "",
             gmThreadId: gmThreadId,
             gmMessageId: gmMessageId

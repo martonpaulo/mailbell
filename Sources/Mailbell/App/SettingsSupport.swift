@@ -8,7 +8,6 @@ struct OAuthSetupPanel: View {
     var body: some View {
         Group {
             Label("Google OAuth setup required", systemImage: "key.fill")
-                .foregroundStyle(.orange)
 
             Text(
                 "Create your own Google Desktop OAuth client, set `MAILBELL_GOOGLE_CLIENT_ID` and "
@@ -16,7 +15,6 @@ struct OAuthSetupPanel: View {
             )
             .foregroundStyle(.secondary)
             .textSelection(.enabled)
-            .fixedSize(horizontal: false, vertical: true)
 
             if let readmeURL = SetupGuide.readmeURL {
                 Button("Open Setup Guide") {
@@ -32,8 +30,6 @@ struct OAuthSetupPanel: View {
                 Text(details)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
