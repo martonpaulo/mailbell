@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import UserNotifications
 
 @main
 struct MailbellApp: App {
@@ -155,7 +156,9 @@ struct SettingsView: View {
             notificationSection
             startupSection
             accountsSection
+            accountSections
         }
+        .formStyle(.grouped)
         .onAppear {
             refreshBehaviorState()
         }
@@ -172,31 +175,49 @@ struct SettingsView: View {
                 )
             }
 
-            Text(appState.notificationAuthorizationState.detail)
+            Text(notificationAlertStatus)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
 
-            ControlGroup {
+            Text(notificationSoundStatus)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+
+            if notificationNeedsAttention {
+                Text(appState.notificationAuthorizationState.detail)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+            }
+
+            LabeledContent("Gmail") {
                 Button("Refresh Gmail") {
                     appState.refreshMailNow()
                 }
                 .disabled(!appState.canRequestManualRefresh)
+            }
 
+            LabeledContent("Notification Status") {
                 Button("Refresh Notification Status") {
                     appState.refreshNotificationAuthorizationState()
                 }
+            }
 
+            LabeledContent("Test Notification") {
                 Button("Test Notification") {
                     appState.sendTestNotification()
                 }
+            }
 
-                if appState.notificationAuthorizationState.canRequestPermission {
+            if appState.notificationAuthorizationState.canRequestPermission {
+                LabeledContent("Permission") {
                     Button("Request Notification Permission") {
                         appState.requestNotificationAuthorization()
                     }
                 }
+            }
 
-                if appState.notificationAuthorizationState.shouldOpenSystemSettings {
+            if appState.notificationAuthorizationState.shouldOpenSystemSettings {
+                LabeledContent("System Settings") {
                     Button("Open System Settings") {
                         SystemSettings.open()
                     }
@@ -237,8 +258,10 @@ struct SettingsView: View {
                 .textSelection(.enabled)
 
             if loginItemStatus == .requiresApproval || loginItemStatus == .unavailable {
-                Button("Open System Settings") {
-                    SystemSettings.open()
+                LabeledContent("System Settings") {
+                    Button("Open System Settings") {
+                        SystemSettings.open()
+                    }
                 }
             }
         }
@@ -250,21 +273,19 @@ struct SettingsView: View {
                 OAuthSetupPanel(details: setupMessage)
             }
 
-            Button("Add Gmail Account") {
-                appState.addGoogleAccount()
+            LabeledContent("Gmail") {
+                Button("Add Gmail Account") {
+                    appState.addGoogleAccount()
+                }
+                .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
+                .help(appState.isAuthorizing ? "Complete Google sign-in in your browser." : "Add a Gmail account.")
             }
-            .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
-            .help(appState.isAuthorizing ? "Complete Google sign-in in your browser." : "Add a Gmail account.")
 
             if appState.accounts.isEmpty {
                 Label("No accounts connected", systemImage: "person.crop.circle.badge.exclamationmark")
                 Text(accountEmptyDetail)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            } else {
-                ForEach(appState.accounts) { accountState in
-                    accountRow(accountState)
-                }
             }
 
             if let error = appState.lastError {
@@ -273,31 +294,35 @@ struct SettingsView: View {
         }
     }
 
-    private func accountRow(_ state: AccountRuntimeState) -> some View {
-        Group {
-            LabeledContent {
-                ControlGroup {
-                    Button("Open Gmail") {
-                        appState.openGmail(accountID: state.account.id)
-                    }
-
-                    AccountActionsMenu(appState: appState, accountState: state)
+    private var accountSections: some View {
+        ForEach(appState.accounts) { state in
+            Section("Gmail Account") {
+                LabeledContent("Email") {
+                    Text(state.account.email)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .textSelection(.enabled)
                 }
-            } label: {
-                Label(state.account.email, systemImage: state.status.systemImage)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+
+                Text("\(state.account.providerID.displayName) · \(accountDetail(for: state))")
+                    .foregroundStyle(.secondary)
                     .textSelection(.enabled)
-            }
 
-            Text("\(state.account.providerID.displayName) · \(accountDetail(for: state))")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                LabeledContent("Actions") {
+                    ControlGroup {
+                        Button("Open Gmail") {
+                            appState.openGmail(accountID: state.account.id)
+                        }
 
-            AccountWebmailSettingsView(appState: appState, accountState: state)
+                        AccountActionsMenu(appState: appState, accountState: state)
+                    }
+                }
 
-            if let error = state.lastError {
-                accountErrorLabel(error)
+                AccountWebmailSettingsView(appState: appState, accountState: state)
+
+                if let error = state.lastError {
+                    accountErrorLabel(error)
+                }
             }
         }
     }
@@ -315,6 +340,31 @@ struct SettingsView: View {
             return "Complete Google sign-in in your browser."
         }
         return "Add a Gmail account to start watching Inbox."
+    }
+
+    private var notificationAlertStatus: String {
+        notificationSettingStatus(label: "Alerts", setting: appState.notificationAuthorizationState.alertSetting)
+    }
+
+    private var notificationSoundStatus: String {
+        notificationSettingStatus(label: "Sound", setting: appState.notificationAuthorizationState.soundSetting)
+    }
+
+    private var notificationNeedsAttention: Bool {
+        !appState.notificationAuthorizationState.canPostAlert
+    }
+
+    private func notificationSettingStatus(label: String, setting: UNNotificationSetting) -> String {
+        switch setting {
+        case .enabled:
+            "\(label) enabled"
+        case .disabled:
+            "\(label) disabled"
+        case .notSupported:
+            "\(label) not supported"
+        @unknown default:
+            "\(label) unavailable"
+        }
     }
 
     private func accountDetail(for state: AccountRuntimeState) -> String {

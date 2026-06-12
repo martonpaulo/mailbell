@@ -33,8 +33,7 @@ struct AccountActionsMenu: View {
                 showsRemoveConfirmation = true
             }
         } label: {
-            Label("Account actions", systemImage: "ellipsis.circle")
-                .labelStyle(.iconOnly)
+            Label("Actions", systemImage: "ellipsis.circle")
         }
         .help("Account actions")
         .confirmationDialog(
