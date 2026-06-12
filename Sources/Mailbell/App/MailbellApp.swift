@@ -36,7 +36,7 @@ struct MenuContent: View {
         Text(appState.status.menuLabel)
 
         if appState.accounts.isEmpty {
-            Text("No accounts")
+            Text("No Gmail accounts")
         } else {
             Text(Self.accountSummary(for: appState.accounts))
         }
@@ -59,7 +59,7 @@ struct MenuContent: View {
 
         Divider()
 
-        Button("Refresh") {
+        Button("Refresh Gmail") {
             appState.refreshMailNow()
         }
         .disabled(!appState.canRequestManualRefresh)
@@ -126,8 +126,7 @@ struct SettingsView: View {
             accountsSection
         }
         .formStyle(.grouped)
-        .frame(width: 660)
-        .frame(minHeight: 560)
+        .frame(minWidth: 660, minHeight: 560)
         .onAppear {
             refreshBehaviorState()
         }
@@ -155,16 +154,16 @@ struct SettingsView: View {
                 }
                 .disabled(!appState.canRequestManualRefresh)
 
-                Button("Refresh notification status") {
+                Button("Refresh Notification Status") {
                     appState.refreshNotificationAuthorizationState()
                 }
 
-                Button("Test notification") {
+                Button("Test Notification") {
                     appState.sendTestNotification()
                 }
 
                 if appState.notificationAuthorizationState.canRequestPermission {
-                    Button("Request Permission") {
+                    Button("Request Notification Permission") {
                         appState.requestNotificationAuthorization()
                     }
                 }
@@ -177,15 +176,11 @@ struct SettingsView: View {
             }
 
             if let message = appState.manualRefreshMessage {
-                Label(message, systemImage: "arrow.clockwise")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                SettingsStatusLabel(message: message, systemImage: "arrow.clockwise")
             }
 
             if let message = appState.notificationTestMessage {
-                Label(message, systemImage: "bell.badge")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                SettingsStatusLabel(message: message, systemImage: "bell.badge")
             }
         }
     }
@@ -282,10 +277,11 @@ struct SettingsView: View {
     }
 
     private func accountErrorLabel(_ message: String) -> some View {
-        Label(message, systemImage: "exclamationmark.triangle.fill")
-            .font(.caption)
-            .foregroundStyle(.orange)
-            .textSelection(.enabled)
+        SettingsStatusLabel(
+            message: message,
+            systemImage: "exclamationmark.triangle.fill",
+            tone: .warning
+        )
     }
 
     private var accountEmptyDetail: String {

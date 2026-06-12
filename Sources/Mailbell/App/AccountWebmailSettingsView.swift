@@ -21,7 +21,7 @@ struct AccountWebmailSettingsView: View {
                 }
                 .labelsHidden()
                 .pickerStyle(.menu)
-                .frame(width: 260, alignment: .leading)
+                .frame(minWidth: 260, maxWidth: 360, alignment: .leading)
                 .onChange(of: selectedBrowserID) {
                     userChangedPreference()
                 }
@@ -36,7 +36,7 @@ struct AccountWebmailSettingsView: View {
                     }
                     .labelsHidden()
                     .pickerStyle(.menu)
-                    .frame(width: 360, alignment: .leading)
+                    .frame(minWidth: 260, maxWidth: 420, alignment: .leading)
                     .onChange(of: selectedChromeProfileDirectory) {
                         userChangedPreference()
                     }
@@ -44,17 +44,19 @@ struct AccountWebmailSettingsView: View {
             }
 
             if let warning = missingSelectionWarning {
-                Label(warning, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .textSelection(.enabled)
+                SettingsStatusLabel(
+                    message: warning,
+                    systemImage: "exclamationmark.triangle.fill",
+                    tone: .warning
+                )
             }
 
             if let error = accountState.webmailOpenError {
-                Label(error, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .textSelection(.enabled)
+                SettingsStatusLabel(
+                    message: error,
+                    systemImage: "exclamationmark.triangle.fill",
+                    tone: .warning
+                )
             }
         }
         .task {
@@ -107,10 +109,10 @@ struct AccountWebmailSettingsView: View {
     private var missingSelectionWarning: String? {
         if let browserID = missingSelectedBrowserID,
            let browser = browserOptions.first(where: { $0.id == browserID }) {
-            return "Selected browser is not currently detected: \(browser.displayName)."
+            return "Selected browser is unavailable: \(browser.displayName)."
         }
         if selectedBrowserSupportsChromeProfiles, let missingChromeProfileDirectory {
-            return "Selected Chrome profile is not currently detected: \(missingChromeProfileDirectory)."
+            return "Selected Chrome profile is unavailable: \(missingChromeProfileDirectory)."
         }
         return nil
     }
@@ -157,7 +159,7 @@ struct AccountWebmailSettingsView: View {
 
     private func browserLabel(for browser: BrowserCandidate) -> String {
         if browser.id == missingSelectedBrowserID {
-            return "\(browser.displayName) (missing)"
+            return "\(browser.displayName) (unavailable)"
         }
         return browser.displayName
     }
@@ -177,7 +179,7 @@ struct AccountWebmailSettingsView: View {
             profiles: profiles
         ) {
             options.append(
-                ChromeProfilePickerOption(directory: missingDirectory, label: "\(missingDirectory) (missing)")
+                ChromeProfilePickerOption(directory: missingDirectory, label: "\(missingDirectory) (unavailable)")
             )
         }
         return options

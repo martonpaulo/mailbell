@@ -84,7 +84,7 @@ final class WebmailTests: XCTestCase {
         )
 
         XCTAssertEqual(options.map(\.directory), ["", "Default", "Profile 9"])
-        XCTAssertEqual(options.last?.label, "Profile 9 (missing)")
+        XCTAssertEqual(options.last?.label, "Profile 9 (unavailable)")
     }
 
     func testChromeProfileOptionsDoNotDuplicateExistingSavedProfile() {

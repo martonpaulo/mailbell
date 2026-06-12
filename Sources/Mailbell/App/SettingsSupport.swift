@@ -19,16 +19,16 @@ struct OAuthSetupPanel: View {
             .fixedSize(horizontal: false, vertical: true)
 
             if let readmeURL = SetupGuide.readmeURL {
-                Button("Open README") {
+                Button("Open Setup Guide") {
                     NSWorkspace.shared.open(readmeURL)
                 }
             }
 
-            Text("See README > Google Cloud Setup.")
+            Text("See the Google Cloud Setup section in README.")
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
 
-            DisclosureGroup("Details", isExpanded: $showsDetails) {
+            DisclosureGroup("Setup Details", isExpanded: $showsDetails) {
                 Text(details)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)

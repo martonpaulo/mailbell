@@ -29,7 +29,7 @@ struct AccountActionsMenu: View {
 
             Divider()
 
-            Button("Remove Account...", role: .destructive) {
+            Button("Remove Account…", role: .destructive) {
                 showsRemoveConfirmation = true
             }
         } label: {
