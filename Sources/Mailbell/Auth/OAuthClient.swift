@@ -5,7 +5,7 @@ import Foundation
 /// Implements Google's installed-app OAuth flow with PKCE over a loopback redirect.
 /// Also handles access-token refresh and fetching the account email.
 final class OAuthClient {
-    enum OAuthError: Error, LocalizedError {
+    enum OAuthError: Error, Equatable, LocalizedError {
         case browserOpenFailed
         case authorizationDenied(String)
         case missingCode
@@ -14,6 +14,7 @@ final class OAuthClient {
         case refreshUnavailable(String)
         case noRefreshToken
         case missingEmail(String)
+        case secureRandomUnavailable
 
         var errorDescription: String? {
             switch self {
@@ -25,6 +26,7 @@ final class OAuthClient {
             case let .refreshUnavailable(detail): "Token refresh unavailable: \(detail)"
             case .noRefreshToken: "No refresh token is stored; sign in again."
             case let .missingEmail(detail): "Could not read the account email: \(detail)"
+            case .secureRandomUnavailable: "Could not create secure OAuth state. Try again."
             }
         }
     }
@@ -60,9 +62,9 @@ final class OAuthClient {
         let redirectURI = server.redirectURI
         Log.info("OAuth redirect URI: \(redirectURI)")
 
-        let verifier = Self.randomURLSafeString(count: 64)
+        let verifier = try Self.randomURLSafeString(count: 64)
         let challenge = Self.codeChallenge(for: verifier)
-        let state = Self.randomURLSafeString(count: 24)
+        let state = try Self.randomURLSafeString(count: 24)
 
         var comps = URLComponents(url: config.authEndpoint, resolvingAgainstBaseURL: false)!
         comps.queryItems = [
@@ -251,9 +253,21 @@ final class OAuthClient {
 
     // MARK: - PKCE helpers
 
-    private static func randomURLSafeString(count: Int) -> String {
+    static func randomURLSafeString(
+        count: Int,
+        copyRandomBytes: (Int, UnsafeMutableRawPointer) -> OSStatus = { count, buffer in
+            SecRandomCopyBytes(kSecRandomDefault, count, buffer)
+        }
+    ) throws -> String {
+        guard count > 0 else { throw OAuthError.secureRandomUnavailable }
         var bytes = [UInt8](repeating: 0, count: count)
-        _ = SecRandomCopyBytes(kSecRandomDefault, count, &bytes)
+        let status = bytes.withUnsafeMutableBytes { buffer -> OSStatus in
+            guard let baseAddress = buffer.baseAddress else { return errSecParam }
+            return copyRandomBytes(count, baseAddress)
+        }
+        guard status == errSecSuccess else {
+            throw OAuthError.secureRandomUnavailable
+        }
         return Data(bytes).base64URLEncodedString()
     }
 

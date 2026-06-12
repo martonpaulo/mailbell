@@ -53,4 +53,22 @@ final class OAuthClientTests: XCTestCase {
         XCTAssertFalse(detail.contains("access_token"))
         XCTAssertFalse(detail.contains("Bearer"))
     }
+
+    func testRandomURLSafeStringThrowsWhenSecureRandomFails() {
+        XCTAssertThrowsError(
+            try OAuthClient.randomURLSafeString(
+                count: 24,
+                copyRandomBytes: { _, _ in errSecAllocate }
+            )
+        ) { error in
+            XCTAssertEqual(error as? OAuthClient.OAuthError, .secureRandomUnavailable)
+            XCTAssertEqual(error.localizedDescription, "Could not create secure OAuth state. Try again.")
+        }
+    }
+
+    func testRandomURLSafeStringRejectsEmptyOutput() {
+        XCTAssertThrowsError(try OAuthClient.randomURLSafeString(count: 0)) { error in
+            XCTAssertEqual(error as? OAuthClient.OAuthError, .secureRandomUnavailable)
+        }
+    }
 }

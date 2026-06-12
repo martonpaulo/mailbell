@@ -136,19 +136,34 @@ final class LoopbackServer: @unchecked Sendable {
                 respond(connection, succeeded: false)
                 return
             }
-            // Request line looks like: GET /?code=...&state=... HTTP/1.1
-            let parts = line.split(separator: " ")
-            guard parts.count >= 2 else {
+            guard let items = Self.callbackQueryItems(from: String(line)) else {
                 respond(connection, succeeded: false)
                 return
             }
-            let path = String(parts[1])
-            var comps = URLComponents()
-            comps.query = path.contains("?") ? String(path.split(separator: "?", maxSplits: 1)[1]) : ""
-            let items = comps.queryItems ?? []
             respond(connection, succeeded: true)
             resume(.success(items))
         }
+    }
+
+    static func callbackQueryItems(from requestLine: String) -> [URLQueryItem]? {
+        // Request line looks like: GET /?code=...&state=... HTTP/1.1
+        let parts = requestLine.split(separator: " ")
+        guard parts.count >= 2 else { return nil }
+
+        let path = String(parts[1])
+        guard path.hasPrefix("/"),
+              let queryStart = path.firstIndex(of: "?")
+        else {
+            return nil
+        }
+
+        var comps = URLComponents()
+        comps.query = String(path[path.index(after: queryStart)...])
+        let items = comps.queryItems ?? []
+        guard items.contains(where: { $0.name == "code" || $0.name == "error" }) else {
+            return nil
+        }
+        return items
     }
 
     private func respond(_ connection: NWConnection, succeeded: Bool) {
