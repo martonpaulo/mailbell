@@ -152,8 +152,8 @@ final class IMAPClient {
     /// Fetches headers for UIDs in `[fromUID, *]` (i.e. UID >= fromUID).
     func fetchHeaders(fromUID: Int) async throws -> [MessageHeader] {
         let tag = nextTag()
-        let fields = "BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE)]"
-        try await connection.send("\(tag) UID FETCH \(fromUID):* (UID X-GM-THRID \(fields))")
+        let fields = "BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)]"
+        try await connection.send("\(tag) UID FETCH \(fromUID):* (UID X-GM-MSGID X-GM-THRID \(fields))")
 
         var headers: [MessageHeader] = []
         while true {

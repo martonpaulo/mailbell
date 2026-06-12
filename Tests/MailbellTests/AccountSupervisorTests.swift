@@ -129,6 +129,60 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
+    func testMenuIconIsFilledOnlyWhenEmailStoreHasItems() async throws {
+        let (supervisor, account) = makeSupervisor()
+
+        XCTAssertEqual(supervisor.menuBarIconSystemImage, "bell")
+
+        let didAdmit = await supervisor.monitor(account.id, shouldNotify: makeHeader(gmMessageId: "icon"))
+        XCTAssertTrue(didAdmit)
+        XCTAssertEqual(supervisor.menuBarIconSystemImage, "bell.fill")
+
+        let item = try XCTUnwrap(supervisor.emailStoreItems.first)
+        supervisor.dismissEmail(id: item.id)
+
+        XCTAssertEqual(supervisor.menuBarIconSystemImage, "bell")
+    }
+
+    @MainActor
+    func testNotificationOpenActionRemovesEmailFromStore() async throws {
+        var openedURLs: [URL] = []
+        let (supervisor, account) = makeSupervisor(webmailOpen: { url, _ in
+            openedURLs.append(url)
+            return .opened
+        })
+
+        let header = makeHeader(gmMessageId: "notification-open", gmThreadId: "123456789")
+        let didAdmit = await supervisor.monitor(account.id, shouldNotify: header)
+        XCTAssertTrue(didAdmit)
+
+        let item = try XCTUnwrap(supervisor.emailStoreItems.first)
+        await supervisor.openEmail(id: item.id, accountID: account.id, url: item.webmailURL)
+
+        XCTAssertEqual(openedURLs, [item.webmailURL])
+        XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
+        let didReadmit = await supervisor.monitor(account.id, shouldNotify: header)
+        XCTAssertFalse(didReadmit)
+    }
+
+    @MainActor
+    func testNotificationDismissActionRemovesEmailFromStore() async throws {
+        let (supervisor, account) = makeSupervisor()
+        let header = makeHeader(gmMessageId: "notification-dismiss")
+
+        let didAdmit = await supervisor.monitor(account.id, shouldNotify: header)
+        XCTAssertTrue(didAdmit)
+        let item = try XCTUnwrap(supervisor.emailStoreItems.first)
+
+        supervisor.dismissEmail(id: item.id)
+        supervisor.dismissEmail(id: item.id)
+
+        XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
+        let didReadmit = await supervisor.monitor(account.id, shouldNotify: header)
+        XCTAssertFalse(didReadmit)
+    }
+
+    @MainActor
     private func makeSupervisor(
         configProvider: @escaping () throws -> OAuthConfig = {
             OAuthConfig(
@@ -139,23 +193,38 @@ final class AccountSupervisorTests: XCTestCase {
         account: MailAccount = MailAccount(providerID: .gmail, email: "test@example.com"),
         monitorFactory: @escaping (MailAccount, OAuthConfig) -> any AccountMonitoring = { account, _ in
             SpyMonitor(account: account, hasSession: false)
-        }
+        },
+        webmailOpen: @escaping @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome = { _, _ in .opened }
     ) -> (AccountSupervisor, MailAccount) {
         let suiteName = "mailbell.AccountSupervisorTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
         let store = AccountStore(userDefaults: defaults)
         store.saveAccounts([account])
+        let emailStore = EmailStore(persistence: EmailStorePersistence(userDefaults: defaults))
         let supervisor = AccountSupervisor(
             configProvider: configProvider,
             accountStore: store,
-            monitorFactory: monitorFactory
+            emailStore: emailStore,
+            monitorFactory: monitorFactory,
+            webmailOpen: webmailOpen
         )
         return (supervisor, account)
     }
 
-    private func makeHeader() -> MessageHeader {
-        MessageHeader(uid: 1, from: "sender@example.com", subject: "Subject", date: "", gmThreadId: nil)
+    private func makeHeader(
+        uid: Int = 1,
+        gmMessageId: String? = nil,
+        gmThreadId: String? = nil
+    ) -> MessageHeader {
+        MessageHeader(
+            uid: uid,
+            from: "sender@example.com",
+            subject: "Subject",
+            date: "",
+            gmThreadId: gmThreadId,
+            gmMessageId: gmMessageId
+        )
     }
 }
 

@@ -85,4 +85,13 @@ enum WebmailOpenOutcome: Equatable {
     case opened
     case openedWithFallback(message: String)
     case failed(message: String)
+
+    var didOpen: Bool {
+        switch self {
+        case .opened, .openedWithFallback:
+            true
+        case .failed:
+            false
+        }
+    }
 }

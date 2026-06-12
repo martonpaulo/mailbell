@@ -1,6 +1,7 @@
 import Foundation
 
 protocol MailMonitorDelegate: AnyObject {
+    func monitor(_ accountID: UUID, shouldNotify header: MessageHeader) async -> Bool
     func monitor(_ accountID: UUID, didChangeStatus status: MonitorStatus, error: String?)
     func monitor(_ accountID: UUID, didNotify header: MessageHeader, result: NotificationPostResult)
 }
@@ -171,6 +172,8 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
         let headers = try await client.fetchHeaders(fromUID: from)
         let plan = Self.notificationPlan(headers: headers, lastSeenUID: lastSeenUID)
         for header in plan.headersToNotify {
+            let shouldNotify = await delegate?.monitor(account.id, shouldNotify: header) ?? true
+            guard shouldNotify else { continue }
             let result = await NotificationManager.shared.notify(header, account: account)
             delegate?.monitor(account.id, didNotify: header, result: result)
         }

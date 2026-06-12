@@ -45,7 +45,8 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
             from: "\"Ana Silva\" <ana@example.com>",
             subject: "Shared formatter",
             date: "",
-            gmThreadId: nil
+            gmThreadId: nil,
+            gmMessageId: "123"
         )
 
         let content = NotificationManager.notificationContent(for: header, account: account)
@@ -53,7 +54,12 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
         XCTAssertEqual(content.title, "Ana Silva")
         XCTAssertEqual(content.subtitle, "")
         XCTAssertEqual(content.body, "Shared formatter")
+        XCTAssertEqual(content.categoryIdentifier, notificationEmailCategoryIdentifier)
         XCTAssertEqual(content.userInfo[notificationAccountIDKey] as? String, account.id.uuidString)
+        XCTAssertEqual(
+            content.userInfo[notificationEmailIDKey] as? String,
+            EmailStoreIdentity.id(accountID: account.id, header: header)
+        )
     }
 
     func testTestNotificationUsesSharedEmailFormatterShape() {

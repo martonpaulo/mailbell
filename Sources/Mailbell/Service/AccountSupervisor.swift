@@ -12,14 +12,16 @@ final class AccountSupervisor {
     weak var delegate: AccountSupervisorDelegate?
 
     private let configProvider: () throws -> OAuthConfig
-    private let accountStore: AccountStore
+    let accountStore: AccountStore
+    let emailStore: EmailStore
     private let monitorFactory: (MailAccount, OAuthConfig) -> any AccountMonitoring
+    let webmailOpen: @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome
     var accounts: [MailAccount]
     private var monitors: [UUID: any AccountMonitoring] = [:]
     var statuses: [UUID: MonitorStatus] = [:]
     private var connectionErrors: [UUID: String] = [:]
     private var notificationErrors: [UUID: String] = [:]
-    private var webmailOpenErrors: [UUID: String] = [:]
+    var webmailOpenErrors: [UUID: String] = [:]
     private var isAuthenticating = false
 
     private let pathMonitor = NWPathMonitor()
@@ -31,13 +33,19 @@ final class AccountSupervisor {
     init(
         configProvider: @escaping () throws -> OAuthConfig = OAuthConfig.loadOrThrow,
         accountStore: AccountStore = AccountStore(),
+        emailStore: EmailStore = EmailStore(),
         monitorFactory: @escaping (MailAccount, OAuthConfig) -> any AccountMonitoring = { account, config in
             MailMonitor(account: account, config: config)
+        },
+        webmailOpen: @escaping @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome = { url, account in
+            await WebmailOpener.open(url: url, account: account)
         }
     ) {
         self.configProvider = configProvider
         self.accountStore = accountStore
+        self.emailStore = emailStore
         self.monitorFactory = monitorFactory
+        self.webmailOpen = webmailOpen
         accounts = accountStore.loadAccounts()
         setupNetworkMonitoring()
         setupSleepWakeObservers()
@@ -75,6 +83,14 @@ final class AccountSupervisor {
                 }
                 return left.account.email.localizedCaseInsensitiveCompare(right.account.email) == .orderedAscending
             }
+    }
+
+    var emailStoreItems: [EmailStoreItem] {
+        emailStore.items
+    }
+
+    var menuBarIconSystemImage: String {
+        emailStore.hasItems ? "bell.fill" : "bell"
     }
 
     var aggregateStatus: MonitorStatus {
@@ -170,6 +186,7 @@ final class AccountSupervisor {
         webmailOpenErrors[accountID] = nil
         CheckpointStore(accountID: accountID).reset()
         TokenStore(accountID: accountID).clear()
+        emailStore.removeAccount(accountID: accountID)
         accounts = accountStore.remove(accountID: accountID)
         publish()
     }
@@ -271,41 +288,6 @@ final class AccountSupervisor {
     }
 }
 
-extension AccountSupervisor {
-    func updateWebmailPreference(accountID: UUID, preference: WebmailOpenPreference?) {
-        guard var account = accounts.first(where: { $0.id == accountID }) else { return }
-        guard account.webmailOpenPreference != preference else { return }
-        account.webmailOpenPreference = preference
-        accounts = accountStore.upsert(account)
-        webmailOpenErrors[accountID] = nil
-        publish()
-    }
-
-    func openGmail(accountID: UUID) async {
-        guard let account = accounts.first(where: { $0.id == accountID }) else { return }
-        let url = MailProviderRegistry.provider(for: account.providerID).webmailURL
-        await applyWebmailOpen(url: url, account: account, accountID: accountID)
-    }
-
-    func openWebmail(accountID: UUID?, url: URL) async {
-        let account = accountID.flatMap { id in accounts.first(where: { $0.id == id }) }
-        await applyWebmailOpen(url: url, account: account, accountID: account?.id ?? accountID)
-    }
-
-    private func applyWebmailOpen(url: URL, account: MailAccount?, accountID: UUID?) async {
-        let outcome = await WebmailOpener.open(url: url, account: account)
-        if let accountID {
-            switch outcome {
-            case .opened:
-                webmailOpenErrors[accountID] = nil
-            case let .openedWithFallback(message), let .failed(message):
-                webmailOpenErrors[accountID] = message
-            }
-            publish()
-        }
-    }
-}
-
 private extension AccountSupervisor {
     func setupNetworkMonitoring() {
         pathMonitor.pathUpdateHandler = { [weak self] path in
@@ -342,6 +324,21 @@ private extension AccountSupervisor {
 }
 
 extension AccountSupervisor: MailMonitorDelegate {
+    nonisolated func monitor(_ accountID: UUID, shouldNotify header: MessageHeader) async -> Bool {
+        await MainActor.run { [weak self] in
+            guard let self,
+                  let account = accounts.first(where: { $0.id == accountID })
+            else {
+                return false
+            }
+            let didAdmit = emailStore.admit(header: header, account: account)
+            if didAdmit {
+                publish()
+            }
+            return didAdmit
+        }
+    }
+
     nonisolated func monitor(_ accountID: UUID, didChangeStatus status: MonitorStatus, error: String?) {
         Task { @MainActor [weak self] in
             self?.statuses[accountID] = status

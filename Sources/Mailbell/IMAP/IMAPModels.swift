@@ -7,6 +7,26 @@ struct MessageHeader: Identifiable, Equatable {
     let subject: String
     let date: String
     let gmThreadId: String?
+    let gmMessageId: String?
+    let messageId: String?
+
+    init(
+        uid: Int,
+        from: String,
+        subject: String,
+        date: String,
+        gmThreadId: String?,
+        gmMessageId: String? = nil,
+        messageId: String? = nil
+    ) {
+        self.uid = uid
+        self.from = from
+        self.subject = subject
+        self.date = date
+        self.gmThreadId = gmThreadId
+        self.gmMessageId = gmMessageId
+        self.messageId = messageId
+    }
 
     var id: Int {
         uid

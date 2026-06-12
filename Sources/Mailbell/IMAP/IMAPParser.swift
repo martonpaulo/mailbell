@@ -5,6 +5,7 @@ enum IMAPParser {
         guard parseLiteralSize(firstLine) != nil else { return nil }
 
         let uid = parseNumber(in: firstLine, key: "UID") ?? 0
+        let msgid = parseToken(in: firstLine, key: "X-GM-MSGID")
         let thrid = parseToken(in: firstLine, key: "X-GM-THRID")
         let raw = String(bytes: headerBlock, encoding: .utf8) ?? ""
         let fields = parseHeaderFields(raw)
@@ -14,7 +15,9 @@ enum IMAPParser {
             from: MIMEHeaderDecoder.decode(fields["from"] ?? "Unknown sender"),
             subject: MIMEHeaderDecoder.decode(fields["subject"] ?? "(no subject)"),
             date: fields["date"] ?? "",
-            gmThreadId: thrid
+            gmThreadId: thrid,
+            gmMessageId: msgid,
+            messageId: fields["message-id"]
         )
     }
 

@@ -13,6 +13,8 @@ final class AppState: ObservableObject {
     @Published private(set) var notificationAuthorizationState: NotificationAuthorizationState = .unbundled
     @Published private(set) var notificationTestMessage: String?
     @Published private(set) var manualRefreshMessage: String?
+    @Published private(set) var emailStoreItems: [EmailStoreItem] = []
+    @Published private(set) var menuBarIconSystemImage = "bell"
 
     private let supervisor: AccountSupervisor
     private var notificationAuthorizationTask: Task<Void, Never>?
@@ -22,8 +24,16 @@ final class AppState: ObservableObject {
         supervisor.delegate = self
         accounts = supervisor.accountStates
         status = supervisor.aggregateStatus
+        emailStoreItems = supervisor.emailStoreItems
+        menuBarIconSystemImage = supervisor.menuBarIconSystemImage
         oauthSetupMessage = supervisor.oauthSetupMessage
 
+        NotificationManager.shared.emailOpenHandler = { [weak self] emailID, accountID, url in
+            await self?.supervisor.openEmail(id: emailID, accountID: accountID, url: url)
+        }
+        NotificationManager.shared.emailDismissHandler = { [weak self] emailID in
+            self?.supervisor.dismissEmail(id: emailID)
+        }
         NotificationManager.shared.webmailOpenHandler = { [weak self] accountID, url in
             await self?.supervisor.openWebmail(accountID: accountID, url: url)
         }
@@ -100,6 +110,16 @@ final class AppState: ObservableObject {
         }
     }
 
+    func openEmail(id: String) {
+        Task {
+            await supervisor.openEmail(id: id)
+        }
+    }
+
+    func dismissEmail(id: String) {
+        supervisor.dismissEmail(id: id)
+    }
+
     func refreshNotificationAuthorizationState() {
         notificationAuthorizationTask?.cancel()
         notificationAuthorizationTask = Task { [weak self] in
@@ -150,6 +170,8 @@ extension AppState: AccountSupervisorDelegate {
     func accountSupervisorDidUpdate(states: [AccountRuntimeState], aggregateStatus: MonitorStatus) {
         accounts = states
         status = aggregateStatus
+        emailStoreItems = supervisor.emailStoreItems
+        menuBarIconSystemImage = supervisor.menuBarIconSystemImage
         oauthSetupMessage = supervisor.oauthSetupMessage
     }
 }

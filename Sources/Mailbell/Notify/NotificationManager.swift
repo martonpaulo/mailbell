@@ -4,6 +4,14 @@ import UserNotifications
 
 let notificationWebmailURLKey = "webmailURL"
 let notificationAccountIDKey = "accountID"
+let notificationEmailIDKey = "emailID"
+let notificationEmailCategoryIdentifier = "mailbell.email"
+let notificationDismissActionIdentifier = "MAILBELL_DISMISS_EMAIL"
+
+enum EmailNotificationResponseAction: Equatable {
+    case open(emailID: String?, accountID: UUID?, url: URL)
+    case dismiss(emailID: String?)
+}
 
 struct NotificationAuthorizationState: Equatable {
     let isBundled: Bool
@@ -82,6 +90,8 @@ enum NotificationPostResult {
 final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationManager()
 
+    var emailOpenHandler: (@MainActor (String?, UUID?, URL) async -> Void)?
+    var emailDismissHandler: (@MainActor (String?) async -> Void)?
     var webmailOpenHandler: (@MainActor (UUID?, URL) async -> Void)?
 
     private let notificationCenter = UNUserNotificationCenter.current()
@@ -101,7 +111,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         EmailNotificationContentBuilder.build(
             header: header,
             webmailURL: webmailURL(for: header, account: account),
-            accountID: account.id
+            accountID: account.id,
+            emailID: EmailStoreIdentity.id(accountID: account.id, header: header)
         )
     }
 
@@ -125,6 +136,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         super.init()
         if isBundled {
             notificationCenter.delegate = self
+            registerEmailCategory()
         }
     }
 
@@ -215,6 +227,43 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    private func registerEmailCategory() {
+        let dismissAction = UNNotificationAction(
+            identifier: notificationDismissActionIdentifier,
+            title: "Dismiss",
+            options: []
+        )
+        let category = UNNotificationCategory(
+            identifier: notificationEmailCategoryIdentifier,
+            actions: [dismissAction],
+            intentIdentifiers: [],
+            options: []
+        )
+        notificationCenter.setNotificationCategories([category])
+    }
+
+    nonisolated static func responseAction(
+        actionIdentifier: String,
+        userInfo: [AnyHashable: Any]
+    ) -> EmailNotificationResponseAction? {
+        let emailID = userInfo[notificationEmailIDKey] as? String
+
+        if actionIdentifier == notificationDismissActionIdentifier {
+            return .dismiss(emailID: emailID)
+        }
+
+        guard actionIdentifier == UNNotificationDefaultActionIdentifier,
+              let urlString = userInfo[notificationWebmailURLKey] as? String,
+              let url = URL(string: urlString)
+        else {
+            return nil
+        }
+
+        let accountID = (userInfo[notificationAccountIDKey] as? String)
+            .flatMap(UUID.init(uuidString:))
+        return .open(emailID: emailID, accountID: accountID, url: url)
+    }
+
     nonisolated func userNotificationCenter(
         _: UNUserNotificationCenter,
         willPresent _: UNNotification,
@@ -228,19 +277,29 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        if let urlString = response.notification.request.content.userInfo[notificationWebmailURLKey] as? String,
-           let url = URL(string: urlString) {
-            let accountID = (response.notification.request.content.userInfo[notificationAccountIDKey] as? String)
-                .flatMap(UUID.init(uuidString:))
-            Task { @MainActor in
-                if let webmailOpenHandler {
+        guard let action = Self.responseAction(
+            actionIdentifier: response.actionIdentifier,
+            userInfo: response.notification.request.content.userInfo
+        ) else {
+            completionHandler()
+            return
+        }
+
+        Task { @MainActor in
+            switch action {
+            case let .open(emailID, accountID, url):
+                if let emailOpenHandler {
+                    await emailOpenHandler(emailID, accountID, url)
+                } else if let webmailOpenHandler {
                     await webmailOpenHandler(accountID, url)
                 } else {
                     NSWorkspace.shared.open(url)
                 }
+            case let .dismiss(emailID):
+                if let emailDismissHandler {
+                    await emailDismissHandler(emailID)
+                }
             }
-            completionHandler()
-            return
         }
         completionHandler()
     }

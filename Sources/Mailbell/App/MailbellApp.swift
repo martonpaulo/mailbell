@@ -8,7 +8,7 @@ struct MailbellApp: App {
 
     @SceneBuilder
     var body: some Scene {
-        MenuBarExtra("Mailbell", systemImage: "bell") {
+        MenuBarExtra("Mailbell", systemImage: appState.menuBarIconSystemImage) {
             MenuContent(appState: appState)
         }
 
@@ -55,6 +55,10 @@ struct MenuContent: View {
 
         Divider()
 
+        emailStoreSection
+
+        Divider()
+
         Button("Refresh") {
             appState.refreshMailNow()
         }
@@ -85,6 +89,28 @@ struct MenuContent: View {
 
     private static func accountNoun(count: Int) -> String {
         count == 1 ? "account" : "accounts"
+    }
+
+    private var emailStoreSection: some View {
+        Section("Unread") {
+            if appState.emailStoreItems.isEmpty {
+                Text("No unread emails")
+            } else {
+                ForEach(appState.emailStoreItems) { email in
+                    Menu(email.title) {
+                        Text("From: \(email.sender)")
+                        Text("Time: \(email.time)")
+                        Divider()
+                        Button("Dismiss") {
+                            appState.dismissEmail(id: email.id)
+                        }
+                        Button("Open") {
+                            appState.openEmail(id: email.id)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
