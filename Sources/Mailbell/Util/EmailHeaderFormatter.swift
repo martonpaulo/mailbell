@@ -1,31 +1,44 @@
 import Foundation
 
 enum EmailHeaderFormatter {
+    struct SenderIdentity: Equatable {
+        let name: String
+        let address: String?
+    }
+
     static func title(for header: MessageHeader) -> String {
         let title = header.subject.trimmingCharacters(in: .whitespacesAndNewlines)
         return title.isEmpty ? "(no subject)" : title
     }
 
     static func senderTitle(from rawSender: String) -> String {
+        senderIdentity(from: rawSender).name
+    }
+
+    static func senderIdentity(from rawSender: String) -> SenderIdentity {
         let sender = rawSender.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !sender.isEmpty else { return "Unknown sender" }
+        guard !sender.isEmpty else {
+            return SenderIdentity(name: "Unknown sender", address: nil)
+        }
 
         guard let angleStart = sender.firstIndex(of: "<"),
               let angleEnd = sender[angleStart...].firstIndex(of: ">")
         else {
-            return sender.trimmingMatchingQuotes()
+            let name = sender.trimmingMatchingQuotes()
+            return SenderIdentity(name: name, address: name.looksLikeEmailAddress ? name : nil)
         }
 
         let displayName = sender[..<angleStart]
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .trimmingMatchingQuotes()
-        if !displayName.isEmpty {
-            return displayName
-        }
-
         let email = sender[sender.index(after: angleStart) ..< angleEnd]
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        return email.isEmpty ? "Unknown sender" : email
+
+        if !displayName.isEmpty {
+            return SenderIdentity(name: displayName, address: email.nilIfEmpty)
+        }
+
+        return SenderIdentity(name: email.isEmpty ? "Unknown sender" : email, address: email.nilIfEmpty)
     }
 
     static func senderDetail(from rawSender: String) -> String {
@@ -68,5 +81,15 @@ private extension StringProtocol {
         }
         return String(trimmed.dropFirst().dropLast())
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
+private extension String {
+    var nilIfEmpty: String? {
+        isEmpty ? nil : self
+    }
+
+    var looksLikeEmailAddress: Bool {
+        contains("@") && !contains(" ")
     }
 }

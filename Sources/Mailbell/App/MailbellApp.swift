@@ -145,9 +145,13 @@ struct MenuContent: View {
                 Text(PendingCopy.emptyMenuTitle)
             } else {
                 ForEach(appState.emailStoreItems) { email in
+                    let sender = EmailHeaderFormatter.senderIdentity(from: email.sender)
                     Menu {
-                        Text("From: \(email.sender)")
-                        Text("Time: \(email.time)")
+                        Label(sender.name, systemImage: "person.crop.circle")
+                        if let address = sender.address, address != sender.name {
+                            Label(address, systemImage: "at")
+                        }
+                        Label(email.time, systemImage: "clock")
                         Divider()
                         Button("Open") {
                             appState.openEmail(id: email.id)
@@ -158,7 +162,7 @@ struct MenuContent: View {
                             Text("Dismiss")
                         }
                     } label: {
-                        Text(email.title)
+                        Label(email.title, systemImage: "envelope")
                     }
                 }
             }
