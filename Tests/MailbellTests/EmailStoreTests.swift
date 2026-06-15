@@ -179,6 +179,16 @@ final class EmailStoreTests: XCTestCase {
         XCTAssertTrue(persistence.isHandled("new"))
     }
 
+    func testHandledPersistenceLoadsRecordsAcrossInstances() {
+        let defaults = makeDefaults()
+        let firstPersistence = EmailStorePersistence(userDefaults: defaults)
+
+        firstPersistence.mark("persisted", disposition: .opened)
+
+        let secondPersistence = EmailStorePersistence(userDefaults: defaults)
+        XCTAssertTrue(secondPersistence.isHandled("persisted"))
+    }
+
     @MainActor
     private func makeStore(defaults: UserDefaults? = nil) -> EmailStore {
         let persistence = EmailStorePersistence(userDefaults: defaults ?? makeDefaults())

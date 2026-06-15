@@ -25,6 +25,7 @@ protocol AccountMonitoring: AnyObject {
 final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     struct NotificationPlan: Equatable {
         let uidsToFetch: [Int]
+        let uidsToNotify: [Int]
         let lastSeenUID: Int
     }
 
@@ -196,7 +197,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
                 .sorted { $0.uid < $1.uid }
             for header in headers {
                 let shouldNotify = await delegate?.monitor(account.id, shouldNotify: header) ?? true
-                guard shouldNotify else { continue }
+                guard shouldNotify, plan.uidsToNotify.contains(header.uid) else { continue }
                 let result = await NotificationManager.shared.notify(header, account: account)
                 delegate?.monitor(account.id, didNotify: header, result: result)
             }
@@ -223,10 +224,10 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     ) -> NotificationPlan {
         let fresh = Array(Set(uids.filter { $0 > lastSeenUID })).sorted()
         guard let newestUID = fresh.last else {
-            return NotificationPlan(uidsToFetch: [], lastSeenUID: lastSeenUID)
+            return NotificationPlan(uidsToFetch: [], uidsToNotify: [], lastSeenUID: lastSeenUID)
         }
         let capped = limit > 0 ? Array(fresh.suffix(limit)) : []
-        return NotificationPlan(uidsToFetch: capped, lastSeenUID: newestUID)
+        return NotificationPlan(uidsToFetch: fresh, uidsToNotify: capped, lastSeenUID: newestUID)
     }
 
     static func monitoredMailboxes(includeSpam: Bool, spamMailboxName: String?) -> [MonitoredMailbox] {

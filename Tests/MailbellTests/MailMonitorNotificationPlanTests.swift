@@ -2,12 +2,13 @@
 import XCTest
 
 final class MailMonitorNotificationPlanTests: XCTestCase {
-    func testFirstReconnectBatchFetchesOnlyNewestUIDsAndAdvancesCheckpoint() {
+    func testFetchPlanAdmitsAllFreshUIDsButNotifiesOnlyNewestUIDs() {
         let uids = Array(101 ... 125)
 
         let plan = MailMonitor.notificationPlan(uids: uids, lastSeenUID: 100, limit: 10)
 
-        XCTAssertEqual(plan.uidsToFetch, Array(116 ... 125))
+        XCTAssertEqual(plan.uidsToFetch, Array(101 ... 125))
+        XCTAssertEqual(plan.uidsToNotify, Array(116 ... 125))
         XCTAssertEqual(plan.lastSeenUID, 125)
     }
 
@@ -15,14 +16,24 @@ final class MailMonitorNotificationPlanTests: XCTestCase {
         let plan = MailMonitor.notificationPlan(uids: [8, 10], lastSeenUID: 10, limit: 10)
 
         XCTAssertTrue(plan.uidsToFetch.isEmpty)
+        XCTAssertTrue(plan.uidsToNotify.isEmpty)
         XCTAssertEqual(plan.lastSeenUID, 10)
     }
 
     func testNotificationPlanDeduplicatesUIDsBeforeCapping() {
         let plan = MailMonitor.notificationPlan(uids: [11, 12, 12, 13, 14], lastSeenUID: 10, limit: 3)
 
-        XCTAssertEqual(plan.uidsToFetch, [12, 13, 14])
+        XCTAssertEqual(plan.uidsToFetch, [11, 12, 13, 14])
+        XCTAssertEqual(plan.uidsToNotify, [12, 13, 14])
         XCTAssertEqual(plan.lastSeenUID, 14)
+    }
+
+    func testNotificationPlanCanAdmitPendingWithoutPostingNotifications() {
+        let plan = MailMonitor.notificationPlan(uids: [11, 12], lastSeenUID: 10, limit: 0)
+
+        XCTAssertEqual(plan.uidsToFetch, [11, 12])
+        XCTAssertTrue(plan.uidsToNotify.isEmpty)
+        XCTAssertEqual(plan.lastSeenUID, 12)
     }
 
     func testTestNotificationDoesNotMutateCheckpointOrBlockLaterRealNotification() {
@@ -40,6 +51,7 @@ final class MailMonitorNotificationPlanTests: XCTestCase {
         let plan = MailMonitor.notificationPlan(uids: [11], lastSeenUID: checkpoint.lastSeenUID)
 
         XCTAssertEqual(plan.uidsToFetch, [11])
+        XCTAssertEqual(plan.uidsToNotify, [11])
         XCTAssertEqual(plan.lastSeenUID, 11)
     }
 

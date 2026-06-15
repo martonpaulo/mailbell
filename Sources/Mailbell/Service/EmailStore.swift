@@ -62,11 +62,12 @@ private struct EmailStoreRecord: Codable, Equatable {
     var updatedAt: Date
 }
 
-struct EmailStorePersistence {
+final class EmailStorePersistence {
     private let userDefaults: UserDefaults
     private let recordsKey = "mailbell.emailStore.handledRecords.v1"
     private let maxRecordCount: Int
     private let now: () -> Date
+    private var cachedRecords: [String: EmailStoreRecord]?
 
     init(
         userDefaults: UserDefaults = .standard,
@@ -97,17 +98,23 @@ struct EmailStorePersistence {
     }
 
     private func records() -> [String: EmailStoreRecord] {
+        if let cachedRecords {
+            return cachedRecords
+        }
         guard let data = userDefaults.data(forKey: recordsKey),
               let decoded = try? JSONDecoder().decode([String: EmailStoreRecord].self, from: data)
         else {
+            cachedRecords = [:]
             return [:]
         }
+        cachedRecords = decoded
         return decoded
     }
 
     private func save(_ records: [String: EmailStoreRecord]) {
         guard let data = try? JSONEncoder().encode(records) else { return }
         userDefaults.set(data, forKey: recordsKey)
+        cachedRecords = records
     }
 
     private func pruned(_ records: [String: EmailStoreRecord]) -> [String: EmailStoreRecord] {
