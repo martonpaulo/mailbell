@@ -275,6 +275,7 @@ struct SettingsView: View {
                     Label(SettingsTab.about.title, systemImage: SettingsTab.about.systemImage)
                 }
         }
+        .tint(.accentColor)
         .onAppear {
             refreshBehaviorState()
         }
