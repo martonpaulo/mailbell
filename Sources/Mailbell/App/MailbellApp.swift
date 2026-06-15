@@ -397,7 +397,8 @@ struct SettingsView: View {
             Text("Accounts")
         } footer: {
             settingsFooter(
-                "Use a separate browser or Chrome profile per Gmail account to keep webmail opens on the intended account."
+                "Use a separate browser or Chrome profile per Gmail account to keep webmail opens "
+                    + "on the intended account."
             )
         }
     }

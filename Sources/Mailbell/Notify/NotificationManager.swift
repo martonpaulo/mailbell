@@ -275,7 +275,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     nonisolated func userNotificationCenter(
         _: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,
-        withCompletionHandler completionHandler: @escaping () -> Void
+        withCompletionHandler completionHandler: @escaping @Sendable () -> Void
     ) {
         guard let action = Self.responseAction(
             actionIdentifier: response.actionIdentifier,
@@ -286,6 +286,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         }
 
         Task { @MainActor in
+            defer { completionHandler() }
             switch action {
             case let .open(emailID, accountID, url):
                 if let emailOpenHandler {
@@ -301,7 +302,6 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
                 }
             }
         }
-        completionHandler()
     }
 }
 

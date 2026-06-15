@@ -43,6 +43,27 @@ final class MailMonitorNotificationPlanTests: XCTestCase {
         XCTAssertEqual(plan.lastSeenUID, 11)
     }
 
+    func testSpamMailboxDiscoveryFallsBackToInboxOnly() {
+        XCTAssertEqual(
+            MailMonitor.monitoredMailboxes(includeSpam: true, spamMailboxName: nil),
+            [MonitoredMailbox(role: .inbox, name: "INBOX")]
+        )
+        XCTAssertEqual(
+            MailMonitor.monitoredMailboxes(includeSpam: true, spamMailboxName: "  "),
+            [MonitoredMailbox(role: .inbox, name: "INBOX")]
+        )
+    }
+
+    func testSpamMailboxDiscoveryIncludesSpamWhenAvailable() {
+        XCTAssertEqual(
+            MailMonitor.monitoredMailboxes(includeSpam: true, spamMailboxName: "[Gmail]/Spam"),
+            [
+                MonitoredMailbox(role: .inbox, name: "INBOX"),
+                MonitoredMailbox(role: .spam, name: "[Gmail]/Spam")
+            ]
+        )
+    }
+
     private func makeDefaults() -> UserDefaults {
         let suiteName = "mailbell.MailMonitorNotificationPlanTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!

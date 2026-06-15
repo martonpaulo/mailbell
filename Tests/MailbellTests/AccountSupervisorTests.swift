@@ -291,7 +291,7 @@ final class AccountSupervisorTests: XCTestCase {
         },
         account: MailAccount = MailAccount(providerID: .gmail, email: "test@example.com"),
         includeSpam: Bool = false,
-        monitorFactory: @escaping (MailAccount, OAuthConfig, Bool) -> any AccountMonitoring = { account, _, includeSpam in
+        monitorFactory: @escaping AccountMonitorFactory = { account, _, includeSpam in
             SpyMonitor(account: account, hasSession: false, includeSpam: includeSpam)
         },
         webmailOpen: @escaping @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome = { _, _ in .opened }
@@ -318,7 +318,7 @@ final class AccountSupervisorTests: XCTestCase {
             )
         },
         includeSpam: Bool = false,
-        monitorFactory: @escaping (MailAccount, OAuthConfig, Bool) -> any AccountMonitoring = { account, _, includeSpam in
+        monitorFactory: @escaping AccountMonitorFactory = { account, _, includeSpam in
             SpyMonitor(account: account, hasSession: false, includeSpam: includeSpam)
         },
         webmailOpen: @escaping @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome = { _, _ in .opened }

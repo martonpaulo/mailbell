@@ -219,7 +219,8 @@ final class EmailStore {
             title: EmailHeaderFormatter.title(for: header),
             sender: EmailHeaderFormatter.senderDetail(from: header.from),
             time: EmailHeaderFormatter.timeText(for: header),
-            webmailURL: MailProviderRegistry.provider(for: account.providerID).webmailURL(for: header, account: account),
+            webmailURL: MailProviderRegistry.provider(for: account.providerID)
+                .webmailURL(for: header, account: account),
             receivedAt: now()
         )
     }

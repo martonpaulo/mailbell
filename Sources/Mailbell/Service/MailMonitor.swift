@@ -229,6 +229,18 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
         return NotificationPlan(uidsToFetch: capped, lastSeenUID: newestUID)
     }
 
+    static func monitoredMailboxes(includeSpam: Bool, spamMailboxName: String?) -> [MonitoredMailbox] {
+        var mailboxes = [MonitoredMailbox(role: .inbox, name: "INBOX")]
+        guard includeSpam,
+              let spamMailboxName = spamMailboxName?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !spamMailboxName.isEmpty
+        else {
+            return mailboxes
+        }
+        mailboxes.append(MonitoredMailbox(role: .spam, name: spamMailboxName))
+        return mailboxes
+    }
+
     // MARK: - Tokens
 
     private func validAccessToken() async throws -> String {
@@ -297,13 +309,21 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     }
 
     private func monitoredMailboxes(client: IMAPClient) async throws -> [MonitoredMailbox] {
-        var mailboxes = [MonitoredMailbox(role: .inbox, name: "INBOX")]
-        guard includeSpam else { return mailboxes }
-        guard let spamMailbox = try await client.mailboxName(for: .junk) else {
-            throw IMAPClient.IMAPError.unexpected("Gmail Spam mailbox not found.")
+        guard includeSpam else {
+            return Self.monitoredMailboxes(includeSpam: false, spamMailboxName: nil)
         }
-        mailboxes.append(MonitoredMailbox(role: .spam, name: spamMailbox))
-        return mailboxes
+        do {
+            let spamMailbox = try await client.mailboxName(for: .junk)
+            if spamMailbox == nil {
+                Log.error("Gmail Spam mailbox not found; continuing with Inbox only.")
+            }
+            return Self.monitoredMailboxes(includeSpam: true, spamMailboxName: spamMailbox)
+        } catch {
+            Log.error(
+                "Could not discover Gmail Spam mailbox; continuing with Inbox only: \(error.localizedDescription)"
+            )
+            return Self.monitoredMailboxes(includeSpam: true, spamMailboxName: nil)
+        }
     }
 
     private func selectInbox(client: IMAPClient) async throws {
@@ -318,7 +338,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     }
 }
 
-private struct MonitoredMailbox {
+struct MonitoredMailbox: Equatable {
     let role: MessageMailbox
     let name: String
 }

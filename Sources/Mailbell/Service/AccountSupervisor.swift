@@ -7,6 +7,8 @@ protocol AccountSupervisorDelegate: AnyObject {
     func accountSupervisorDidUpdate(states: [AccountRuntimeState], aggregateStatus: MonitorStatus)
 }
 
+typealias AccountMonitorFactory = (MailAccount, OAuthConfig, Bool) -> any AccountMonitoring
+
 @MainActor
 final class AccountSupervisor {
     weak var delegate: AccountSupervisorDelegate?
@@ -14,7 +16,7 @@ final class AccountSupervisor {
     private let configProvider: () throws -> OAuthConfig
     let accountStore: AccountStore
     let emailStore: EmailStore
-    private let monitorFactory: (MailAccount, OAuthConfig, Bool) -> any AccountMonitoring
+    private let monitorFactory: AccountMonitorFactory
     let webmailOpen: @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome
     var accounts: [MailAccount]
     private var includeSpam: Bool
@@ -36,7 +38,7 @@ final class AccountSupervisor {
         accountStore: AccountStore = AccountStore(),
         emailStore: EmailStore = EmailStore(),
         includeSpam: Bool = false,
-        monitorFactory: @escaping (MailAccount, OAuthConfig, Bool) -> any AccountMonitoring = { account, config, includeSpam in
+        monitorFactory: @escaping AccountMonitorFactory = { account, config, includeSpam in
             MailMonitor(account: account, config: config, includeSpam: includeSpam)
         },
         webmailOpen: @escaping @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome = { url, account in
