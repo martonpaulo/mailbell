@@ -1,8 +1,14 @@
 import Foundation
 
+enum MessageMailbox: String, Equatable {
+    case inbox
+    case spam
+}
+
 /// A minimal message header set, just enough to render a notification.
 struct MessageHeader: Identifiable, Equatable {
     let uid: Int
+    let mailbox: MessageMailbox
     let from: String
     let subject: String
     let date: String
@@ -12,6 +18,7 @@ struct MessageHeader: Identifiable, Equatable {
 
     init(
         uid: Int,
+        mailbox: MessageMailbox = .inbox,
         from: String,
         subject: String,
         date: String,
@@ -20,6 +27,7 @@ struct MessageHeader: Identifiable, Equatable {
         messageId: String? = nil
     ) {
         self.uid = uid
+        self.mailbox = mailbox
         self.from = from
         self.subject = subject
         self.date = date
@@ -30,6 +38,19 @@ struct MessageHeader: Identifiable, Equatable {
 
     var id: Int {
         uid
+    }
+
+    func assigningMailbox(_ mailbox: MessageMailbox) -> MessageHeader {
+        MessageHeader(
+            uid: uid,
+            mailbox: mailbox,
+            from: from,
+            subject: subject,
+            date: date,
+            gmThreadId: gmThreadId,
+            gmMessageId: gmMessageId,
+            messageId: messageId
+        )
     }
 }
 

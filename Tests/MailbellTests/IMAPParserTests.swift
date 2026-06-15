@@ -21,6 +21,13 @@ final class IMAPParserTests: XCTestCase {
         XCTAssertNil(IMAPParser.parseSearchUIDs("A0001 OK SEARCH completed"))
     }
 
+    func testParsesSpecialUseJunkMailbox() {
+        let line = #"* LIST (\HasNoChildren \Junk) "/" "[Gmail]/Spam""#
+
+        XCTAssertEqual(IMAPParser.parseSpecialUseMailbox(line, flag: "\\Junk"), "[Gmail]/Spam")
+        XCTAssertNil(IMAPParser.parseSpecialUseMailbox(line, flag: "\\Trash"))
+    }
+
     func testParsesHeaderFields() {
         let raw = "From: Sender <sender@example.com>\r\n"
             + "Subject: Hello\r\n"

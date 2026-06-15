@@ -14,13 +14,16 @@ struct MailbellApp: App {
         } label: {
             MenuBarLabel(
                 systemImage: appState.menuBarIconSystemImage,
-                pendingCount: appState.emailStoreItems.count
+                pendingCount: appState.emailStoreItems.count,
+                showsPendingCount: appState.showPendingCount
             )
         }
 
         Settings {
             SettingsView(appState: appState)
         }
+        .defaultSize(width: 740, height: 600)
+        .windowResizability(.contentMinSize)
     }
 }
 
@@ -38,16 +41,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 private struct MenuBarLabel: View {
     let systemImage: String
     let pendingCount: Int
+    let showsPendingCount: Bool
 
     var body: some View {
         HStack(spacing: 3) {
             Image(systemName: systemImage)
-            if pendingCount > 0 {
+            if showsPendingCount, pendingCount > 0 {
                 Text("\(pendingCount)")
                     .monospacedDigit()
             }
         }
-        .accessibilityLabel(PendingCopy.menuBarAccessibilityLabel(count: pendingCount))
+        .accessibilityLabel(
+            PendingCopy.menuBarAccessibilityLabel(count: pendingCount, showsCount: showsPendingCount)
+        )
     }
 }
 
@@ -125,7 +131,7 @@ struct MenuContent: View {
                     Text(
                         AccountPresentation.multiAccountMenuTitle(
                             for: accountState,
-                            pendingCount: pendingCount(accountID: accountState.account.id)
+                            pendingCount: pendingMenuCount(accountID: accountState.account.id)
                         )
                     )
                 }
@@ -173,6 +179,10 @@ struct MenuContent: View {
         appState.emailStoreItems.filter { $0.accountID == accountID }.count
     }
 
+    private func pendingMenuCount(accountID: UUID) -> Int? {
+        appState.showPendingCount ? pendingCount(accountID: accountID) : nil
+    }
+
     private func perform(_ action: AccountRecoveryAction, accountID: UUID) {
         switch action {
         case .enable:
@@ -197,6 +207,7 @@ struct SettingsView: View {
     var body: some View {
         Form {
             notificationSection
+            pendingSettingsSection
             startupSection
             accountSettings
         }
@@ -207,7 +218,7 @@ struct SettingsView: View {
     }
 
     private var notificationSection: some View {
-        Section("Notifications") {
+        Section {
             LabeledContent("Status") {
                 Label(
                     appState.notificationAuthorizationState.summary,
@@ -215,16 +226,6 @@ struct SettingsView: View {
                         ? "bell.badge.fill"
                         : "bell.slash"
                 )
-            }
-
-            Text(notificationSettingsDetail)
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
-
-            if notificationNeedsAttention {
-                Text(appState.notificationAuthorizationState.detail)
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
             }
 
             LabeledContent("Actions") {
@@ -256,11 +257,42 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
             }
+        } header: {
+            Text("Notifications")
+        } footer: {
+            settingsFooter(notificationFooterText)
+        }
+    }
+
+    private var pendingSettingsSection: some View {
+        Section {
+            Toggle(
+                "Show pending count",
+                isOn: Binding(
+                    get: { appState.showPendingCount },
+                    set: { appState.setShowPendingCount($0) }
+                )
+            )
+
+            Toggle(
+                "Include spam",
+                isOn: Binding(
+                    get: { appState.includeSpam },
+                    set: { appState.setIncludeSpam($0) }
+                )
+            )
+        } header: {
+            Text(PendingCopy.menuSectionTitle)
+        } footer: {
+            settingsFooter(
+                "Shows the number of unread or not dismissed emails.\n"
+                    + "When disabled, spam messages are ignored for alerts and pending count."
+            )
         }
     }
 
     private var startupSection: some View {
-        Section("Startup") {
+        Section {
             Toggle("Start at login", isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { _, newValue in
                     LoginItem.set(newValue)
@@ -274,10 +306,6 @@ struct SettingsView: View {
                 )
             }
 
-            Text(loginItemStatus.detail)
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
-
             if loginItemStatus == .requiresApproval || loginItemStatus == .unavailable {
                 LabeledContent("System Settings") {
                     Button("Open System Settings") {
@@ -285,6 +313,10 @@ struct SettingsView: View {
                     }
                 }
             }
+        } header: {
+            Text("Startup")
+        } footer: {
+            settingsFooter(loginItemStatus.detail)
         }
     }
 
@@ -299,7 +331,7 @@ struct SettingsView: View {
     }
 
     private var singleAccountSettings: some View {
-        Section("Account") {
+        Section {
             if let setupMessage = appState.oauthSetupMessage {
                 OAuthSetupPanel(details: setupMessage)
             }
@@ -317,9 +349,6 @@ struct SettingsView: View {
                 }
 
                 Label("No account connected", systemImage: "person.crop.circle.badge.exclamationmark")
-                Text(accountEmptyDetail)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
 
             if let message = appState.manualRefreshMessage {
@@ -329,11 +358,19 @@ struct SettingsView: View {
             if let error = appState.lastError {
                 accountErrorLabel(error)
             }
+        } header: {
+            Text("Account")
+        } footer: {
+            if let state = appState.accounts.first {
+                settingsFooter(accountDetailText(for: state))
+            } else {
+                settingsFooter(accountEmptyDetail)
+            }
         }
     }
 
     private var multiAccountOverview: some View {
-        Section("Accounts") {
+        Section {
             if let setupMessage = appState.oauthSetupMessage {
                 OAuthSetupPanel(details: setupMessage)
             }
@@ -353,24 +390,32 @@ struct SettingsView: View {
                 refreshMessageLabel(message)
             }
 
-            Text("Use a separate browser or Chrome profile per Gmail account to keep webmail opens on the intended account.")
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
-
             if let error = appState.lastError {
                 accountErrorLabel(error)
             }
+        } header: {
+            Text("Accounts")
+        } footer: {
+            settingsFooter(
+                "Use a separate browser or Chrome profile per Gmail account to keep webmail opens on the intended account."
+            )
         }
     }
 
     private var multiAccountSections: some View {
         ForEach(appState.accounts) { state in
-            Section(state.account.email) {
+            Section {
                 accountIdentityRows(for: state, includeEmail: false)
-                LabeledContent(PendingCopy.menuSectionTitle) {
-                    Text(PendingCopy.countText(pendingCount(accountID: state.account.id)))
+                if appState.showPendingCount {
+                    LabeledContent(PendingCopy.menuSectionTitle) {
+                        Text(PendingCopy.countText(pendingCount(accountID: state.account.id)))
+                    }
                 }
                 accountControlRows(for: state, showsMultiAccountHint: true)
+            } header: {
+                Text(state.account.email)
+            } footer: {
+                settingsFooter(accountDetailText(for: state))
             }
         }
     }
@@ -389,10 +434,6 @@ struct SettingsView: View {
         LabeledContent("Status") {
             Text(AccountPresentation.statusText(for: state))
         }
-
-        Text("\(state.account.providerID.displayName) - \(AccountPresentation.detailText(for: state))")
-            .foregroundStyle(.secondary)
-            .textSelection(.enabled)
     }
 
     @ViewBuilder
@@ -453,6 +494,17 @@ struct SettingsView: View {
             .textSelection(.enabled)
     }
 
+    private func settingsFooter(_ text: String) -> some View {
+        Text(text)
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .textSelection(.enabled)
+    }
+
+    private func accountDetailText(for state: AccountRuntimeState) -> String {
+        "\(state.account.providerID.displayName) · \(AccountPresentation.detailText(for: state))"
+    }
+
     private var accountEmptyDetail: String {
         if appState.oauthSetupMessage != nil {
             return "Set up your local Google OAuth credentials before adding an account."
@@ -467,7 +519,12 @@ struct SettingsView: View {
         [
             notificationSettingStatus(label: "Alerts", setting: appState.notificationAuthorizationState.alertSetting),
             notificationSettingStatus(label: "Sound", setting: appState.notificationAuthorizationState.soundSetting)
-        ].joined(separator: " - ")
+        ].joined(separator: " · ")
+    }
+
+    private var notificationFooterText: String {
+        guard notificationNeedsAttention else { return notificationSettingsDetail }
+        return "\(notificationSettingsDetail)\n\(appState.notificationAuthorizationState.detail)"
     }
 
     private var notificationNeedsAttention: Bool {

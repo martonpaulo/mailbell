@@ -43,6 +43,16 @@ enum IMAPParser {
         return parts.dropFirst().compactMap { Int($0) }
     }
 
+    static func parseSpecialUseMailbox(_ line: String, flag: String) -> String? {
+        let uppercasedLine = line.uppercased()
+        guard uppercasedLine.hasPrefix("* LIST "),
+              uppercasedLine.contains(flag.uppercased())
+        else {
+            return nil
+        }
+        return parseLastQuotedString(in: line)
+    }
+
     static func parseNumber(in line: String, key: String) -> Int? {
         guard let range = line.range(of: "\(key) ") else { return nil }
         let tail = line[range.upperBound...]
@@ -62,6 +72,41 @@ enum IMAPParser {
               let close = line.range(of: "}", options: .backwards),
               open.upperBound < close.lowerBound else { return nil }
         return Int(line[open.upperBound ..< close.lowerBound])
+    }
+
+    private static func parseLastQuotedString(in line: String) -> String? {
+        var quotedStrings: [String] = []
+        var current = ""
+        var isInsideQuotes = false
+        var isEscaped = false
+
+        for character in line {
+            if isEscaped {
+                current.append(character)
+                isEscaped = false
+                continue
+            }
+            if character == "\\" {
+                isEscaped = isInsideQuotes
+                if !isInsideQuotes {
+                    current.append(character)
+                }
+                continue
+            }
+            if character == "\"" {
+                if isInsideQuotes {
+                    quotedStrings.append(current)
+                    current = ""
+                }
+                isInsideQuotes.toggle()
+                continue
+            }
+            if isInsideQuotes {
+                current.append(character)
+            }
+        }
+
+        return quotedStrings.last
     }
 
     static func parseHeaderFields(_ raw: String) -> [String: String] {

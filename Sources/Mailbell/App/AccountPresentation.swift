@@ -8,8 +8,8 @@ enum PendingCopy {
         "\(count) pending"
     }
 
-    static func menuBarAccessibilityLabel(count: Int) -> String {
-        guard count > 0 else { return "Mailbell" }
+    static func menuBarAccessibilityLabel(count: Int, showsCount: Bool = true) -> String {
+        guard showsCount, count > 0 else { return "Mailbell" }
         return "Mailbell, \(count) \(count == 1 ? "pending email" : "pending emails")"
     }
 }
@@ -92,7 +92,11 @@ enum AccountPresentation {
         "\(statusText(for: state)) - \(state.account.email)"
     }
 
-    static func multiAccountMenuTitle(for state: AccountRuntimeState, pendingCount: Int) -> String {
-        "\(state.account.email) - \(statusText(for: state)) - \(PendingCopy.countText(pendingCount))"
+    static func multiAccountMenuTitle(for state: AccountRuntimeState, pendingCount: Int?) -> String {
+        var parts = [state.account.email, statusText(for: state)]
+        if let pendingCount {
+            parts.append(PendingCopy.countText(pendingCount))
+        }
+        return parts.joined(separator: " - ")
     }
 }

@@ -17,6 +17,7 @@ protocol AccountMonitoring: AnyObject {
     func stop(clearSession: Bool)
     func forceReconnect()
     func refreshNow()
+    func setIncludeSpam(_ includeSpam: Bool)
 }
 
 /// Runs one account's IMAP connection state machine:
@@ -32,9 +33,10 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     static let maximumNotificationsPerFetch = 10
 
     private(set) var account: MailAccount
+    private var includeSpam: Bool
     private let config: OAuthConfig
     private let store: TokenStore
-    private var checkpoint: CheckpointStore
+    private var checkpoints: [MessageMailbox: CheckpointStore]
     private let oauth: OAuthClient
 
     private var client: IMAPClient?
@@ -43,11 +45,12 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     /// IDLE re-arm window: below the 29-minute IMAP limit (RFC 2177).
     private let idleTimeout: TimeInterval = 25 * 60
 
-    init(account: MailAccount, config: OAuthConfig) {
+    init(account: MailAccount, config: OAuthConfig, includeSpam: Bool = false) {
         self.account = account
+        self.includeSpam = includeSpam
         self.config = config
         store = TokenStore(accountID: account.id, providerID: account.providerID)
-        checkpoint = CheckpointStore(accountID: account.id)
+        checkpoints = Self.checkpoints(accountID: account.id)
         oauth = OAuthClient(config: config)
     }
 
@@ -57,7 +60,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
 
     func updateAccount(_ account: MailAccount) {
         self.account = account
-        checkpoint = CheckpointStore(accountID: account.id)
+        checkpoints = Self.checkpoints(accountID: account.id)
     }
 
     // MARK: - Public actions
@@ -79,7 +82,9 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
         client = nil
         if clearSession {
             store.clear()
-            checkpoint.reset()
+            for checkpoint in checkpoints.values {
+                checkpoint.reset()
+            }
         }
         notifyStatus(.signedOut)
     }
@@ -101,6 +106,12 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
         client?.disconnect()
     }
 
+    func setIncludeSpam(_ includeSpam: Bool) {
+        guard self.includeSpam != includeSpam else { return }
+        self.includeSpam = includeSpam
+        client?.disconnect()
+    }
+
     // MARK: - Run loop (state machine)
 
     private func runLoop() async {
@@ -115,13 +126,14 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
                 self.client = client
                 try await client.connect()
                 try await client.authenticate(email: email, accessToken: accessToken)
-                let mailbox = try await client.selectInbox()
-                try await reconcileCheckpoint(mailbox: mailbox, client: client, email: email)
-                try await syncUnreadStore(client: client)
+                let mailboxes = try await monitoredMailboxes(client: client)
+                try await reconcileCheckpoints(client: client, mailboxes: mailboxes)
+                try await syncUnreadStore(client: client, mailboxes: mailboxes)
+                try await selectInbox(client: client)
 
                 backoff = 1
                 notifyStatus(.connected)
-                try await idleLoop(client: client)
+                try await idleLoop(client: client, mailboxes: mailboxes)
             } catch let error as OAuthClient.OAuthError {
                 switch error {
                 case .refreshFailed, .noRefreshToken:
@@ -153,41 +165,54 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
         }
     }
 
-    private func idleLoop(client: IMAPClient) async throws {
+    private func idleLoop(client: IMAPClient, mailboxes: [MonitoredMailbox]) async throws {
         // Catch up on anything that arrived before this connection settled.
-        try await fetchAndNotify(client: client)
+        try await fetchAndNotify(client: client, mailboxes: mailboxes)
+        try await selectInbox(client: client)
 
         while !Task.isCancelled {
             let event = try await client.idle(timeout: idleTimeout)
             switch event {
             case .timedOut:
-                try await fetchAndNotify(client: client)
+                try await fetchAndNotify(client: client, mailboxes: mailboxes)
+                try await selectInbox(client: client)
                 continue // re-arm IDLE
             case .newMessages:
-                try await fetchAndNotify(client: client)
+                try await fetchAndNotify(client: client, mailboxes: mailboxes)
+                try await selectInbox(client: client)
             }
         }
     }
 
-    private func fetchAndNotify(client: IMAPClient) async throws {
-        let from = max(lastSeenUID + 1, 1)
-        let uids = try await client.searchUIDs(fromUID: from)
-        let plan = Self.notificationPlan(uids: uids, lastSeenUID: lastSeenUID)
-        let headers = try await client.fetchHeaders(uids: plan.uidsToFetch)
-            .sorted { $0.uid < $1.uid }
-        for header in headers {
-            let shouldNotify = await delegate?.monitor(account.id, shouldNotify: header) ?? true
-            guard shouldNotify else { continue }
-            let result = await NotificationManager.shared.notify(header, account: account)
-            delegate?.monitor(account.id, didNotify: header, result: result)
+    private func fetchAndNotify(client: IMAPClient, mailboxes: [MonitoredMailbox]) async throws {
+        for mailbox in mailboxes {
+            try await client.selectMailbox(mailbox.name)
+            let lastSeenUID = lastSeenUID(for: mailbox.role)
+            let from = max(lastSeenUID + 1, 1)
+            let uids = try await client.searchUIDs(fromUID: from)
+            let plan = Self.notificationPlan(uids: uids, lastSeenUID: lastSeenUID)
+            let headers = try await client.fetchHeaders(uids: plan.uidsToFetch)
+                .map { $0.assigningMailbox(mailbox.role) }
+                .sorted { $0.uid < $1.uid }
+            for header in headers {
+                let shouldNotify = await delegate?.monitor(account.id, shouldNotify: header) ?? true
+                guard shouldNotify else { continue }
+                let result = await NotificationManager.shared.notify(header, account: account)
+                delegate?.monitor(account.id, didNotify: header, result: result)
+            }
+            setLastSeenUID(max(lastSeenUID, plan.lastSeenUID), for: mailbox.role)
         }
-        lastSeenUID = max(lastSeenUID, plan.lastSeenUID)
     }
 
-    private func syncUnreadStore(client: IMAPClient) async throws {
-        let uids = try await client.searchUnreadUIDs()
-        let headers = try await client.fetchHeaders(uids: uids)
-            .sorted { $0.uid < $1.uid }
+    private func syncUnreadStore(client: IMAPClient, mailboxes: [MonitoredMailbox]) async throws {
+        var headers: [MessageHeader] = []
+        for mailbox in mailboxes {
+            try await client.selectMailbox(mailbox.name)
+            let uids = try await client.searchUnreadUIDs()
+            let mailboxHeaders = try await client.fetchHeaders(uids: uids)
+                .map { $0.assigningMailbox(mailbox.role) }
+            headers.append(contentsOf: mailboxHeaders)
+        }
         await delegate?.monitor(account.id, didSyncUnread: headers)
     }
 
@@ -225,29 +250,42 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
 
     // MARK: - Checkpoint / gap fill
 
-    private var lastSeenUID: Int {
-        get { checkpoint.lastSeenUID }
-        set { checkpoint.lastSeenUID = newValue }
+    private func lastSeenUID(for mailbox: MessageMailbox) -> Int {
+        checkpoints[mailbox]?.lastSeenUID ?? 0
     }
 
-    private var storedUIDValidity: Int {
-        get { checkpoint.storedUIDValidity }
-        set { checkpoint.storedUIDValidity = newValue }
+    private func setLastSeenUID(_ value: Int, for mailbox: MessageMailbox) {
+        checkpoints[mailbox]?.lastSeenUID = value
+    }
+
+    private func storedUIDValidity(for mailbox: MessageMailbox) -> Int {
+        checkpoints[mailbox]?.storedUIDValidity ?? 0
+    }
+
+    private func setStoredUIDValidity(_ value: Int, for mailbox: MessageMailbox) {
+        checkpoints[mailbox]?.storedUIDValidity = value
     }
 
     /// Decides whether to gap-fill, rebaseline, or start clean using the
     /// `(UIDVALIDITY, lastSeenUID)` checkpoint.
-    private func reconcileCheckpoint(mailbox: MailboxState, client _: IMAPClient, email _: String) async throws {
+    private func reconcileCheckpoints(client: IMAPClient, mailboxes: [MonitoredMailbox]) async throws {
+        for mailbox in mailboxes {
+            let state = try await client.selectMailbox(mailbox.name)
+            try await reconcileCheckpoint(mailbox: state, role: mailbox.role)
+        }
+    }
+
+    private func reconcileCheckpoint(mailbox: MailboxState, role: MessageMailbox) async throws {
         let baselineUID = max(mailbox.uidNext - 1, 0)
-        if storedUIDValidity == 0 {
+        if storedUIDValidity(for: role) == 0 {
             // First run: baseline to the current top so we do not notify the backlog.
-            storedUIDValidity = mailbox.uidValidity
-            lastSeenUID = baselineUID
-        } else if storedUIDValidity != mailbox.uidValidity {
+            setStoredUIDValidity(mailbox.uidValidity, for: role)
+            setLastSeenUID(baselineUID, for: role)
+        } else if storedUIDValidity(for: role) != mailbox.uidValidity {
             // UIDVALIDITY changed: the old UIDs are meaningless. Rebaseline silently.
             Log.info("UIDVALIDITY changed; rebaselining without notifying backlog.")
-            storedUIDValidity = mailbox.uidValidity
-            lastSeenUID = baselineUID
+            setStoredUIDValidity(mailbox.uidValidity, for: role)
+            setLastSeenUID(baselineUID, for: role)
         }
         // Otherwise keep the checkpoint; idleLoop's initial fetch fills the gap.
     }
@@ -257,4 +295,30 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     private func notifyStatus(_ status: MonitorStatus, error: String? = nil) {
         delegate?.monitor(account.id, didChangeStatus: status, error: error)
     }
+
+    private func monitoredMailboxes(client: IMAPClient) async throws -> [MonitoredMailbox] {
+        var mailboxes = [MonitoredMailbox(role: .inbox, name: "INBOX")]
+        guard includeSpam else { return mailboxes }
+        guard let spamMailbox = try await client.mailboxName(for: .junk) else {
+            throw IMAPClient.IMAPError.unexpected("Gmail Spam mailbox not found.")
+        }
+        mailboxes.append(MonitoredMailbox(role: .spam, name: spamMailbox))
+        return mailboxes
+    }
+
+    private func selectInbox(client: IMAPClient) async throws {
+        try await client.selectInbox()
+    }
+
+    private static func checkpoints(accountID: UUID) -> [MessageMailbox: CheckpointStore] {
+        [
+            .inbox: CheckpointStore(accountID: accountID, mailbox: "INBOX"),
+            .spam: CheckpointStore(accountID: accountID, mailbox: "SPAM")
+        ]
+    }
+}
+
+private struct MonitoredMailbox {
+    let role: MessageMailbox
+    let name: String
 }

@@ -4,6 +4,7 @@ struct EmailStoreItem: Identifiable, Equatable {
     let id: String
     let accountID: UUID
     let accountEmail: String
+    let mailbox: MessageMailbox
     let title: String
     let sender: String
     let time: String
@@ -31,7 +32,7 @@ enum EmailStoreIdentity {
         if let value = normalizedMessageID(header.messageId) {
             return ("rfcMessage", value)
         }
-        return ("uid", String(header.uid))
+        return ("\(header.mailbox.rawValue).uid", String(header.uid))
     }
 
     private static func normalized(_ value: String?) -> String? {
@@ -201,11 +202,20 @@ final class EmailStore {
         persistence.removeRecords(accountID: accountID)
     }
 
+    func removeSpamItems() -> Bool {
+        let previousItems = itemsByID
+        itemsByID = itemsByID.filter { _, item in
+            item.mailbox != .spam
+        }
+        return previousItems != itemsByID
+    }
+
     private func makeItem(id: String, header: MessageHeader, account: MailAccount) -> EmailStoreItem {
         EmailStoreItem(
             id: id,
             accountID: account.id,
             accountEmail: account.email,
+            mailbox: header.mailbox,
             title: EmailHeaderFormatter.title(for: header),
             sender: EmailHeaderFormatter.senderDetail(from: header.from),
             time: EmailHeaderFormatter.timeText(for: header),

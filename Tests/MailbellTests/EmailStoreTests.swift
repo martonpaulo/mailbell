@@ -109,6 +109,36 @@ final class EmailStoreTests: XCTestCase {
         )
     }
 
+    func testStableIdentitySeparatesUIDFallbackByMailbox() {
+        let account = makeAccount()
+        let inbox = makeHeader(uid: 1, mailbox: .inbox)
+        let spam = makeHeader(uid: 1, mailbox: .spam)
+
+        XCTAssertNotEqual(
+            EmailStoreIdentity.id(accountID: account.id, header: inbox),
+            EmailStoreIdentity.id(accountID: account.id, header: spam)
+        )
+    }
+
+    @MainActor
+    func testRemoveSpamItemsKeepsInboxItems() {
+        let store = makeStore()
+        let account = makeAccount()
+
+        XCTAssertTrue(store.admit(header: makeHeader(subject: "Inbox", gmMessageId: "inbox"), account: account))
+        XCTAssertTrue(
+            store.admit(
+                header: makeHeader(mailbox: .spam, subject: "Spam", gmMessageId: "spam"),
+                account: account
+            )
+        )
+
+        XCTAssertTrue(store.removeSpamItems())
+
+        XCTAssertEqual(store.items.map(\.title), ["Inbox"])
+        XCTAssertFalse(store.removeSpamItems())
+    }
+
     @MainActor
     func testDismissAndOpenAreIdempotent() {
         let defaults = makeDefaults()
@@ -175,6 +205,7 @@ final class EmailStoreTests: XCTestCase {
 
     private func makeHeader(
         uid: Int = 1,
+        mailbox: MessageMailbox = .inbox,
         subject: String = "Subject",
         gmMessageId: String? = nil,
         gmThreadId: String? = nil,
@@ -182,6 +213,7 @@ final class EmailStoreTests: XCTestCase {
     ) -> MessageHeader {
         MessageHeader(
             uid: uid,
+            mailbox: mailbox,
             from: "Sender <sender@example.com>",
             subject: subject,
             date: "Tue, 02 Jun 2026 12:00:00 +0000",

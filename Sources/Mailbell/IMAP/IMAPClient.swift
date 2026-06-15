@@ -22,6 +22,17 @@ final class IMAPClient {
         case timedOut
     }
 
+    enum SpecialUseMailbox {
+        case junk
+
+        var flag: String {
+            switch self {
+            case .junk:
+                "\\Junk"
+            }
+        }
+    }
+
     /// Ensures `DONE` is sent at most once per IDLE, even though both the timeout
     /// task and the read loop may race to end the IDLE.
     private actor DoneGate {
@@ -83,8 +94,13 @@ final class IMAPClient {
 
     @discardableResult
     func selectInbox() async throws -> MailboxState {
+        try await selectMailbox("INBOX")
+    }
+
+    @discardableResult
+    func selectMailbox(_ mailboxName: String) async throws -> MailboxState {
         let tag = nextTag()
-        try await connection.send("\(tag) SELECT INBOX")
+        try await connection.send("\(tag) SELECT \(Self.quotedString(mailboxName))")
         var state = MailboxState(uidValidity: 0, uidNext: 0, exists: 0)
 
         while true {
@@ -101,6 +117,23 @@ final class IMAPClient {
             if line.hasPrefix("\(tag) OK") { return state }
             if line.hasPrefix("\(tag) NO") || line.hasPrefix("\(tag) BAD") {
                 throw IMAPError.selectFailed(line)
+            }
+        }
+    }
+
+    func mailboxName(for specialUse: SpecialUseMailbox) async throws -> String? {
+        let tag = nextTag()
+        try await connection.send("\(tag) LIST \"\" \"*\"")
+
+        var mailboxName: String?
+        while true {
+            let line = try await connection.readLine()
+            if mailboxName == nil {
+                mailboxName = IMAPParser.parseSpecialUseMailbox(line, flag: specialUse.flag)
+            }
+            if line.hasPrefix("\(tag) OK") { return mailboxName }
+            if line.hasPrefix("\(tag) NO") || line.hasPrefix("\(tag) BAD") {
+                throw IMAPError.unexpected(line)
             }
         }
     }
@@ -229,6 +262,10 @@ final class IMAPClient {
 
     private static func sequenceRange(start: Int, end: Int) -> String {
         start == end ? "\(start)" : "\(start):\(end)"
+    }
+
+    private static func quotedString(_ value: String) -> String {
+        "\"\(value.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\""))\""
     }
 
     private func parseFetch(_ firstLine: String) async throws -> MessageHeader? {

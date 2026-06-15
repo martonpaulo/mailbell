@@ -15,12 +15,18 @@ final class AppState: ObservableObject {
     @Published private(set) var manualRefreshMessage: String?
     @Published private(set) var emailStoreItems: [EmailStoreItem] = []
     @Published private(set) var menuBarIconSystemImage = "bell"
+    @Published private(set) var showPendingCount: Bool
+    @Published private(set) var includeSpam: Bool
 
+    private let settingsStore: AppSettingsStore
     private let supervisor: AccountSupervisor
     private var notificationAuthorizationTask: Task<Void, Never>?
 
-    init() {
-        supervisor = AccountSupervisor()
+    init(settingsStore: AppSettingsStore = AppSettingsStore()) {
+        self.settingsStore = settingsStore
+        showPendingCount = settingsStore.showPendingCount
+        includeSpam = settingsStore.includeSpam
+        supervisor = AccountSupervisor(includeSpam: settingsStore.includeSpam)
         supervisor.delegate = self
         accounts = supervisor.accountStates
         status = supervisor.aggregateStatus
@@ -90,6 +96,21 @@ final class AppState: ObservableObject {
 
     func setAccountEnabled(_ isEnabled: Bool, accountID: UUID) {
         supervisor.setEnabled(isEnabled, accountID: accountID)
+    }
+
+    func setShowPendingCount(_ isShown: Bool) {
+        guard showPendingCount != isShown else { return }
+        showPendingCount = isShown
+        settingsStore.showPendingCount = isShown
+    }
+
+    func setIncludeSpam(_ isIncluded: Bool) {
+        guard includeSpam != isIncluded else { return }
+        includeSpam = isIncluded
+        settingsStore.includeSpam = isIncluded
+        supervisor.setIncludeSpam(isIncluded)
+        emailStoreItems = supervisor.emailStoreItems
+        menuBarIconSystemImage = supervisor.menuBarIconSystemImage
     }
 
     func reconnect(accountID: UUID) {

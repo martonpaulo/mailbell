@@ -14,9 +14,10 @@ final class AccountSupervisor {
     private let configProvider: () throws -> OAuthConfig
     let accountStore: AccountStore
     let emailStore: EmailStore
-    private let monitorFactory: (MailAccount, OAuthConfig) -> any AccountMonitoring
+    private let monitorFactory: (MailAccount, OAuthConfig, Bool) -> any AccountMonitoring
     let webmailOpen: @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome
     var accounts: [MailAccount]
+    private var includeSpam: Bool
     private var monitors: [UUID: any AccountMonitoring] = [:]
     var statuses: [UUID: MonitorStatus] = [:]
     private var connectionErrors: [UUID: String] = [:]
@@ -34,8 +35,9 @@ final class AccountSupervisor {
         configProvider: @escaping () throws -> OAuthConfig = OAuthConfig.loadOrThrow,
         accountStore: AccountStore = AccountStore(),
         emailStore: EmailStore = EmailStore(),
-        monitorFactory: @escaping (MailAccount, OAuthConfig) -> any AccountMonitoring = { account, config in
-            MailMonitor(account: account, config: config)
+        includeSpam: Bool = false,
+        monitorFactory: @escaping (MailAccount, OAuthConfig, Bool) -> any AccountMonitoring = { account, config, includeSpam in
+            MailMonitor(account: account, config: config, includeSpam: includeSpam)
         },
         webmailOpen: @escaping @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome = { url, account in
             await WebmailOpener.open(url: url, account: account)
@@ -44,6 +46,7 @@ final class AccountSupervisor {
         self.configProvider = configProvider
         self.accountStore = accountStore
         self.emailStore = emailStore
+        self.includeSpam = includeSpam
         self.monitorFactory = monitorFactory
         self.webmailOpen = webmailOpen
         accounts = accountStore.loadAccounts()
@@ -162,6 +165,19 @@ final class AccountSupervisor {
         publish()
     }
 
+    func setIncludeSpam(_ includeSpam: Bool) {
+        guard self.includeSpam != includeSpam else { return }
+        self.includeSpam = includeSpam
+        for monitor in monitors.values {
+            monitor.setIncludeSpam(includeSpam)
+        }
+        if !includeSpam, emailStore.removeSpamItems() {
+            publish()
+            return
+        }
+        publish()
+    }
+
     func reconnect(accountID: UUID) {
         guard let account = accounts.first(where: { $0.id == accountID }) else { return }
         guard let monitor = ensureMonitor(for: account) else {
@@ -185,6 +201,7 @@ final class AccountSupervisor {
         notificationErrors[accountID] = nil
         webmailOpenErrors[accountID] = nil
         CheckpointStore(accountID: accountID).reset()
+        CheckpointStore(accountID: accountID, mailbox: "SPAM").reset()
         TokenStore(accountID: accountID).clear()
         emailStore.removeAccount(accountID: accountID)
         accounts = accountStore.remove(accountID: accountID)
@@ -266,7 +283,7 @@ final class AccountSupervisor {
 
         do {
             let config = try configProvider()
-            let monitor = monitorFactory(account, config)
+            let monitor = monitorFactory(account, config, includeSpam)
             monitor.delegate = self
             monitors[account.id] = monitor
             statuses[account.id] = initialStatus(for: account)
@@ -331,7 +348,8 @@ extension AccountSupervisor: MailMonitorDelegate {
             else {
                 return
             }
-            if emailStore.replaceUnread(headers: headers, account: account) {
+            let filteredHeaders = includeSpam ? headers : headers.filter { $0.mailbox != .spam }
+            if emailStore.replaceUnread(headers: filteredHeaders, account: account) {
                 publish()
             }
         }
@@ -342,6 +360,9 @@ extension AccountSupervisor: MailMonitorDelegate {
             guard let self,
                   let account = accounts.first(where: { $0.id == accountID })
             else {
+                return false
+            }
+            guard includeSpam || header.mailbox != .spam else {
                 return false
             }
             let didAdmit = emailStore.admit(header: header, account: account)

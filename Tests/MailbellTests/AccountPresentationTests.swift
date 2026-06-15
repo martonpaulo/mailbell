@@ -15,6 +15,7 @@ final class AccountPresentationTests: XCTestCase {
         XCTAssertEqual(PendingCopy.menuSectionTitle, "Pending")
         XCTAssertEqual(PendingCopy.emptyMenuTitle, "No pending emails")
         XCTAssertEqual(PendingCopy.menuBarAccessibilityLabel(count: 2), "Mailbell, 2 pending emails")
+        XCTAssertEqual(PendingCopy.menuBarAccessibilityLabel(count: 2, showsCount: false), "Mailbell")
     }
 
     func testSingleAndMultiAccountPresentationTitles() {
@@ -25,6 +26,10 @@ final class AccountPresentationTests: XCTestCase {
         XCTAssertEqual(
             AccountPresentation.multiAccountMenuTitle(for: multi, pendingCount: 3),
             "two@example.com - Sign in needed - 3 pending"
+        )
+        XCTAssertEqual(
+            AccountPresentation.multiAccountMenuTitle(for: multi, pendingCount: nil),
+            "two@example.com - Sign in needed"
         )
     }
 

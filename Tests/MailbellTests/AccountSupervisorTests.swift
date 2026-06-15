@@ -94,8 +94,8 @@ final class AccountSupervisorTests: XCTestCase {
     @MainActor
     func testManualRefreshUsesExistingMonitorWithoutStartingDuplicateLoop() {
         var monitors: [SpyMonitor] = []
-        let (supervisor, _) = makeSupervisor(monitorFactory: { account, _ in
-            let monitor = SpyMonitor(account: account, hasSession: true)
+        let (supervisor, _) = makeSupervisor(monitorFactory: { account, _, includeSpam in
+            let monitor = SpyMonitor(account: account, hasSession: true, includeSpam: includeSpam)
             monitors.append(monitor)
             return monitor
         })
@@ -138,8 +138,8 @@ final class AccountSupervisorTests: XCTestCase {
 
     @MainActor
     func testManualRefreshReportsSignInRequiredWhenSessionIsMissing() {
-        let (supervisor, _) = makeSupervisor(monitorFactory: { account, _ in
-            SpyMonitor(account: account, hasSession: false)
+        let (supervisor, _) = makeSupervisor(monitorFactory: { account, _, includeSpam in
+            SpyMonitor(account: account, hasSession: false, includeSpam: includeSpam)
         })
 
         XCTAssertEqual(supervisor.refreshNow(), .signInRequired)
@@ -238,6 +238,50 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
+    func testSpamHeaderIsIgnoredWhenIncludeSpamIsDisabled() async {
+        let (supervisor, account) = makeSupervisor(includeSpam: false)
+
+        let didAdmit = await supervisor.monitor(
+            account.id,
+            shouldNotify: makeHeader(mailbox: .spam, gmMessageId: "spam-disabled")
+        )
+
+        XCTAssertFalse(didAdmit)
+        XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
+    }
+
+    @MainActor
+    func testSpamHeaderIsAdmittedWhenIncludeSpamIsEnabled() async throws {
+        let (supervisor, account) = makeSupervisor(includeSpam: true)
+
+        let didAdmit = await supervisor.monitor(
+            account.id,
+            shouldNotify: makeHeader(mailbox: .spam, gmMessageId: "spam-enabled")
+        )
+
+        XCTAssertTrue(didAdmit)
+        let item = try XCTUnwrap(supervisor.emailStoreItems.first)
+        XCTAssertEqual(item.mailbox, .spam)
+    }
+
+    @MainActor
+    func testDisablingSpamRemovesSpamItemsAndUpdatesMonitors() async {
+        var monitors: [SpyMonitor] = []
+        let (supervisor, account) = makeSupervisor(includeSpam: true, monitorFactory: { account, _, includeSpam in
+            let monitor = SpyMonitor(account: account, hasSession: true, includeSpam: includeSpam)
+            monitors.append(monitor)
+            return monitor
+        })
+
+        _ = await supervisor.monitor(account.id, shouldNotify: makeHeader(mailbox: .spam, gmMessageId: "spam"))
+
+        supervisor.setIncludeSpam(false)
+
+        XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
+        XCTAssertEqual(monitors.first?.includeSpam, false)
+    }
+
+    @MainActor
     private func makeSupervisor(
         configProvider: @escaping () throws -> OAuthConfig = {
             OAuthConfig(
@@ -246,8 +290,9 @@ final class AccountSupervisorTests: XCTestCase {
             )
         },
         account: MailAccount = MailAccount(providerID: .gmail, email: "test@example.com"),
-        monitorFactory: @escaping (MailAccount, OAuthConfig) -> any AccountMonitoring = { account, _ in
-            SpyMonitor(account: account, hasSession: false)
+        includeSpam: Bool = false,
+        monitorFactory: @escaping (MailAccount, OAuthConfig, Bool) -> any AccountMonitoring = { account, _, includeSpam in
+            SpyMonitor(account: account, hasSession: false, includeSpam: includeSpam)
         },
         webmailOpen: @escaping @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome = { _, _ in .opened }
     ) -> (AccountSupervisor, MailAccount) {
@@ -255,6 +300,7 @@ final class AccountSupervisorTests: XCTestCase {
             makeSupervisor(
                 accounts: [account],
                 configProvider: configProvider,
+                includeSpam: includeSpam,
                 monitorFactory: monitorFactory,
                 webmailOpen: webmailOpen
             ),
@@ -271,8 +317,9 @@ final class AccountSupervisorTests: XCTestCase {
                 clientSecret: "dummy-local-client-secret"
             )
         },
-        monitorFactory: @escaping (MailAccount, OAuthConfig) -> any AccountMonitoring = { account, _ in
-            SpyMonitor(account: account, hasSession: false)
+        includeSpam: Bool = false,
+        monitorFactory: @escaping (MailAccount, OAuthConfig, Bool) -> any AccountMonitoring = { account, _, includeSpam in
+            SpyMonitor(account: account, hasSession: false, includeSpam: includeSpam)
         },
         webmailOpen: @escaping @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome = { _, _ in .opened }
     ) -> AccountSupervisor {
@@ -286,6 +333,7 @@ final class AccountSupervisorTests: XCTestCase {
             configProvider: configProvider,
             accountStore: store,
             emailStore: emailStore,
+            includeSpam: includeSpam,
             monitorFactory: monitorFactory,
             webmailOpen: webmailOpen
         )
@@ -293,12 +341,14 @@ final class AccountSupervisorTests: XCTestCase {
 
     private func makeHeader(
         uid: Int = 1,
+        mailbox: MessageMailbox = .inbox,
         subject: String = "Subject",
         gmMessageId: String? = nil,
         gmThreadId: String? = nil
     ) -> MessageHeader {
         MessageHeader(
             uid: uid,
+            mailbox: mailbox,
             from: "sender@example.com",
             subject: subject,
             date: "",
@@ -312,14 +362,16 @@ private final class SpyMonitor: AccountMonitoring {
     weak var delegate: MailMonitorDelegate?
     private(set) var account: MailAccount
     var hasSession: Bool
+    private(set) var includeSpam: Bool
     private(set) var startCallCount = 0
     private(set) var stopCallCount = 0
     private(set) var forceReconnectCallCount = 0
     private(set) var refreshNowCallCount = 0
 
-    init(account: MailAccount, hasSession: Bool) {
+    init(account: MailAccount, hasSession: Bool, includeSpam: Bool = false) {
         self.account = account
         self.hasSession = hasSession
+        self.includeSpam = includeSpam
     }
 
     func updateAccount(_ account: MailAccount) {
@@ -340,5 +392,9 @@ private final class SpyMonitor: AccountMonitoring {
 
     func refreshNow() {
         refreshNowCallCount += 1
+    }
+
+    func setIncludeSpam(_ includeSpam: Bool) {
+        self.includeSpam = includeSpam
     }
 }
