@@ -95,7 +95,7 @@ Preserve the IMAP IDLE reconnect model in `MailMonitor` or its direct successor:
 ## Design / Accent Color
 
 - Mailbell's app accent color is `#6D3EF2`.
-- Use the native `AccentColor` asset through `.accentColor` or `.tint(.accentColor)` for app identity, selected controls, links, and interactive emphasis.
+- Use the native `AccentColor` asset through `Color.mailbellAccent`, `NSColor.mailbellAccent`, or `.tint(.mailbellAccent)` for app identity, selected controls, links, and interactive emphasis.
 - Do not hardcode alternate app-accent colors or create duplicate purple color sources.
 - Do not use the accent color for semantic success, warning, error, destructive, disabled, or inactive states. Keep those on system semantic colors.
 

@@ -8,7 +8,7 @@ struct AccountActionsMenu: View {
     var body: some View {
         Menu {
             if let action = AccountRecoveryAction.needed(for: accountState), action != .enable {
-                Button(appState.isAuthorizing && action.requiresAuthorizationSlot ? "Authorizing..." : action.title) {
+                Button(appState.isAuthorizing && action.requiresAuthorizationSlot ? "Authorizing…" : action.title) {
                     perform(action)
                 }
                 .disabled(action.requiresAuthorizationSlot && appState.isAuthorizing)
@@ -19,7 +19,7 @@ struct AccountActionsMenu: View {
                 .disabled(!accountState.account.isEnabled || appState.isAuthorizing)
             }
 
-            Button(accountState.account.isEnabled ? "Disable" : "Enable") {
+            Button(accountState.account.isEnabled ? "Disable Account" : "Enable Account") {
                 appState.setAccountEnabled(
                     !accountState.account.isEnabled,
                     accountID: accountState.account.id
@@ -33,9 +33,9 @@ struct AccountActionsMenu: View {
                 showsRemoveConfirmation = true
             }
         } label: {
-            Label("More...", systemImage: "ellipsis.circle")
+            Label("Manage…", systemImage: "ellipsis.circle")
         }
-        .help("Account actions")
+        .help("Manage account")
         .confirmationDialog(
             "Remove \(accountState.account.email)?",
             isPresented: $showsRemoveConfirmation,

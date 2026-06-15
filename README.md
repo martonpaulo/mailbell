@@ -174,7 +174,7 @@ After changing `.env`, rerun `make install` or `make dmg`; installed bundles con
 1. Launch `/Applications/Mailbell.app`.
 2. Mailbell appears in the menu bar only; it has no Dock icon by default.
 3. Allow notification permission when macOS asks.
-4. Open Mailbell `Settings...`.
+4. Open Mailbell `Settings…`.
 5. In `Accounts`, choose `Add Google Account`.
 6. Complete the Google browser sign-in. If Google shows an app warning, continue only if the Cloud project and OAuth client are yours.
 7. After sign-in, Mailbell stores the account session in Keychain and starts watching Gmail `INBOX`.

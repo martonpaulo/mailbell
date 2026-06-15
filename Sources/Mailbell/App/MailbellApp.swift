@@ -77,13 +77,13 @@ struct MenuContent: View {
 
         Button {
             appState.refreshMailNow()
-        } label: { Text("Sync Now") }
+        } label: { Text("Check Now") }
             .disabled(!appState.canRequestManualRefresh)
 
         Divider()
 
         SettingsLink {
-            Text("Settings...")
+            Text("Settings…")
         }
 
         Button {
@@ -100,7 +100,7 @@ struct MenuContent: View {
                 Text("Google OAuth setup required")
                 Text(setupMessage)
             }
-            Button(appState.isAuthorizing ? "Authorizing..." : "Add Gmail Account") {
+            Button(appState.isAuthorizing ? "Authorizing…" : "Add Gmail Account") {
                 appState.addGoogleAccount()
             }
             .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
@@ -109,7 +109,8 @@ struct MenuContent: View {
 
     private func singleAccountSection(_ accountState: AccountRuntimeState) -> some View {
         Group {
-            Text(AccountPresentation.compactTitle(for: accountState))
+            Text(accountState.account.email)
+            Text(AccountPresentation.statusText(for: accountState))
             if let action = AccountRecoveryAction.needed(for: accountState) {
                 Button(action.title) {
                     perform(action, accountID: accountState.account.id)
@@ -125,21 +126,22 @@ struct MenuContent: View {
     private var multiAccountSection: some View {
         Section("Accounts") {
             ForEach(appState.accounts) { accountState in
-                Button {
-                    appState.openGmail(accountID: accountState.account.id)
-                } label: {
-                    Text(
-                        AccountPresentation.multiAccountMenuTitle(
-                            for: accountState,
-                            pendingCount: pendingMenuCount(accountID: accountState.account.id)
-                        )
-                    )
-                }
-                if let action = AccountRecoveryAction.needed(for: accountState) {
-                    Button("\(action.title) - \(accountState.account.email)") {
-                        perform(action, accountID: accountState.account.id)
+                Menu {
+                    Text(AccountPresentation.statusText(for: accountState))
+                    if let reviewCount = reviewMenuCount(accountID: accountState.account.id) {
+                        Text(PendingCopy.reviewCountText(reviewCount))
                     }
-                    .disabled(actionDisabled(action))
+                    Button("Open Gmail") {
+                        appState.openGmail(accountID: accountState.account.id)
+                    }
+                    if let action = AccountRecoveryAction.needed(for: accountState) {
+                        Button(action.title) {
+                            perform(action, accountID: accountState.account.id)
+                        }
+                        .disabled(actionDisabled(action))
+                    }
+                } label: {
+                    Text(accountState.account.email)
                 }
             }
         }
@@ -183,7 +185,7 @@ struct MenuContent: View {
         appState.emailStoreItems.filter { $0.accountID == accountID }.count
     }
 
-    private func pendingMenuCount(accountID: UUID) -> Int? {
+    private func reviewMenuCount(accountID: UUID) -> Int? {
         appState.showPendingCount ? pendingCount(accountID: accountID) : nil
     }
 
@@ -275,7 +277,7 @@ struct SettingsView: View {
                     Label(SettingsTab.about.title, systemImage: SettingsTab.about.systemImage)
                 }
         }
-        .tint(.accentColor)
+        .tint(.mailbellAccent)
         .onAppear {
             refreshBehaviorState()
         }
@@ -459,8 +461,8 @@ struct SettingsView: View {
                 addAccountButton(title: "Add Account")
             }
 
-            LabeledContent("Mail Sync") {
-                Button("Sync Now") {
+            LabeledContent("Check Mail") {
+                Button("Check Now") {
                     appState.refreshMailNow()
                 }
                 .disabled(!appState.canRequestManualRefresh)
@@ -498,13 +500,13 @@ struct SettingsView: View {
                 )
             )
 
-            LabeledContent("Gmail") {
+            LabeledContent("Open in Browser") {
                 Button("Open") {
                     appState.openGmail(accountID: state.account.id)
                 }
             }
 
-            LabeledContent("Account") {
+            LabeledContent("Manage Account") {
                 AccountActionsMenu(appState: appState, accountState: state)
             }
         } header: {
@@ -605,8 +607,10 @@ struct SettingsView: View {
     private var aboutSupportSection: some View {
         Section {
             if let readmeURL = SetupGuide.readmeURL {
-                Button("Open Setup Guide") {
-                    NSWorkspace.shared.open(readmeURL)
+                LabeledContent("Setup Guide") {
+                    Button("Open") {
+                        NSWorkspace.shared.open(readmeURL)
+                    }
                 }
             }
         } header: {
@@ -632,7 +636,7 @@ struct SettingsView: View {
     }
 
     private func addAccountButton(title: String) -> some View {
-        Button(appState.isAuthorizing ? "Authorizing..." : title) {
+        Button(appState.isAuthorizing ? "Authorizing…" : title) {
             appState.addGoogleAccount()
         }
         .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
@@ -714,7 +718,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var notificationActionsFooter: some View {
         if appState.isSendingTestNotification {
-            ProgressView("Sending test notification...")
+            ProgressView("Sending test notification…")
         } else {
             settingsFooter(notificationActionsFooterText)
         }
@@ -750,9 +754,9 @@ struct SettingsView: View {
             return "Complete Google sign-in in your browser."
         }
         if appState.canRequestManualRefresh {
-            return "Syncs Gmail unread state and updates messages awaiting review."
+            return "Checks Gmail for unread messages and updates the review count."
         }
-        return "Enable an account to sync Gmail."
+        return "Enable an account to check Gmail."
     }
 
     private func accountFooterText(for state: AccountRuntimeState) -> String {

@@ -8,13 +8,13 @@ extension AccountSupervisor {
         var message: String {
             switch self {
             case .requested:
-                "Sync requested. Mailbell will reconnect and update Gmail state."
+                "Check requested. Mailbell will reconnect and update Gmail state."
             case .noEnabledAccounts:
-                "Enable an account to sync Gmail."
+                "Enable an account to check Gmail."
             case .signInRequired:
-                "Sign in again to sync Gmail."
+                "Sign in again to check Gmail."
             case .unavailable:
-                "Sync unavailable. Check account setup."
+                "Cannot check Gmail. Check account setup."
             }
         }
     }

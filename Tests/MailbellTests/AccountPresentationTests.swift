@@ -12,8 +12,8 @@ final class AccountPresentationTests: XCTestCase {
     }
 
     func testPendingCopyDoesNotClaimGmailUnreadState() {
-        XCTAssertEqual(PendingCopy.menuSectionTitle, "Pending")
-        XCTAssertEqual(PendingCopy.emptyMenuTitle, "No pending emails")
+        XCTAssertEqual(PendingCopy.menuSectionTitle, "Awaiting Review")
+        XCTAssertEqual(PendingCopy.emptyMenuTitle, "No messages")
         XCTAssertEqual(PendingCopy.openActionTitle, "Open")
         XCTAssertEqual(PendingCopy.markAsReadActionTitle, "Mark as Read")
         XCTAssertEqual(PendingCopy.dismissActionTitle, "Dismiss")
@@ -21,23 +21,14 @@ final class AccountPresentationTests: XCTestCase {
         XCTAssertEqual(PendingCopy.reviewCountText(0), "No messages")
         XCTAssertEqual(PendingCopy.reviewCountText(1), "1 message")
         XCTAssertEqual(PendingCopy.reviewCountText(2), "2 messages")
-        XCTAssertEqual(PendingCopy.menuBarAccessibilityLabel(count: 2), "Mailbell, 2 pending emails")
+        XCTAssertEqual(PendingCopy.menuBarAccessibilityLabel(count: 2), "Mailbell, 2 messages awaiting review")
+        XCTAssertEqual(PendingCopy.menuBarAccessibilityLabel(count: 1), "Mailbell, 1 message awaiting review")
         XCTAssertEqual(PendingCopy.menuBarAccessibilityLabel(count: 2, showsCount: false), "Mailbell")
     }
 
-    func testSingleAndMultiAccountPresentationTitles() {
-        let single = state(email: "one@example.com", status: .connected)
-        let multi = state(email: "two@example.com", status: .reauthRequired)
-
-        XCTAssertEqual(AccountPresentation.compactTitle(for: single), "Connected - one@example.com")
-        XCTAssertEqual(
-            AccountPresentation.multiAccountMenuTitle(for: multi, pendingCount: 3),
-            "two@example.com - Sign in needed - 3 messages"
-        )
-        XCTAssertEqual(
-            AccountPresentation.multiAccountMenuTitle(for: multi, pendingCount: nil),
-            "two@example.com - Sign in needed"
-        )
+    func testAccountStatusPresentation() {
+        XCTAssertEqual(AccountPresentation.statusText(for: state(status: .connected)), "Connected")
+        XCTAssertEqual(AccountPresentation.statusText(for: state(status: .reauthRequired)), "Sign in needed")
     }
 
     private func state(

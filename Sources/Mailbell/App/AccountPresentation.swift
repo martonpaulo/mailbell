@@ -1,8 +1,8 @@
 import Foundation
 
 enum PendingCopy {
-    static let menuSectionTitle = "Pending"
-    static let emptyMenuTitle = "No pending emails"
+    static let menuSectionTitle = "Awaiting Review"
+    static let emptyMenuTitle = "No messages"
     static let openActionTitle = "Open"
     static let markAsReadActionTitle = "Mark as Read"
     static let dismissActionTitle = "Dismiss"
@@ -25,7 +25,7 @@ enum PendingCopy {
 
     static func menuBarAccessibilityLabel(count: Int, showsCount: Bool = true) -> String {
         guard showsCount, count > 0 else { return "Mailbell" }
-        return "Mailbell, \(count) \(count == 1 ? "pending email" : "pending emails")"
+        return "Mailbell, \(count) \(count == 1 ? "message" : "messages") awaiting review"
     }
 }
 
@@ -103,15 +103,4 @@ enum AccountPresentation {
         }
     }
 
-    static func compactTitle(for state: AccountRuntimeState) -> String {
-        "\(statusText(for: state)) - \(state.account.email)"
-    }
-
-    static func multiAccountMenuTitle(for state: AccountRuntimeState, pendingCount: Int?) -> String {
-        var parts = [state.account.email, statusText(for: state)]
-        if let pendingCount {
-            parts.append(PendingCopy.countText(pendingCount))
-        }
-        return parts.joined(separator: " - ")
-    }
 }
