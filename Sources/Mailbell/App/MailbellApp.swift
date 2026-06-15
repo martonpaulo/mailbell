@@ -9,8 +9,13 @@ struct MailbellApp: App {
 
     @SceneBuilder
     var body: some Scene {
-        MenuBarExtra("Mailbell", systemImage: appState.menuBarIconSystemImage) {
+        MenuBarExtra {
             MenuContent(appState: appState)
+        } label: {
+            MenuBarLabel(
+                systemImage: appState.menuBarIconSystemImage,
+                unreadCount: appState.emailStoreItems.count
+            )
         }
 
         Settings {
@@ -27,6 +32,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {
         true
+    }
+}
+
+private struct MenuBarLabel: View {
+    let systemImage: String
+    let unreadCount: Int
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: systemImage)
+            if unreadCount > 0 {
+                Text("\(unreadCount)")
+                    .monospacedDigit()
+            }
+        }
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var accessibilityLabel: String {
+        guard unreadCount > 0 else { return "Mailbell" }
+        return "Mailbell, \(unreadCount) \(unreadCount == 1 ? "unread email" : "unread emails")"
     }
 }
 
