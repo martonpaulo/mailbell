@@ -49,7 +49,7 @@ final class AppState: ObservableObject {
     }
 
     var canRequestManualRefresh: Bool {
-        hasAccounts && !isAuthorizing
+        AccountPresentation.canRefresh(accounts) && !isAuthorizing
     }
 
     func signIn() {

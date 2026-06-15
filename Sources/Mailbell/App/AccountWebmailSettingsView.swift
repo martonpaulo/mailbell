@@ -3,6 +3,7 @@ import SwiftUI
 struct AccountWebmailSettingsView: View {
     @ObservedObject var appState: AppState
     let accountState: AccountRuntimeState
+    var showsAccountIsolationHint = false
 
     @State private var browsers: [BrowserCandidate] = []
     @State private var chromeProfiles: [ChromeProfileCandidate] = []
@@ -48,6 +49,12 @@ struct AccountWebmailSettingsView: View {
 
             if let error = accountState.webmailOpenError {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
+                    .textSelection(.enabled)
+            }
+
+            if showsAccountIsolationHint {
+                Text("Choose the browser or Chrome profile already signed in to \(accountState.account.email).")
+                    .foregroundStyle(.secondary)
                     .textSelection(.enabled)
             }
         }

@@ -5,7 +5,7 @@ import XCTest
 final class NotificationResponseActionTests: XCTestCase {
     func testDefaultNotificationClickOpensEmail() throws {
         let accountID = UUID()
-        let url = try XCTUnwrap(URL(string: "https://mail.google.com/mail/u/0/#inbox/abc"))
+        let url = try XCTUnwrap(URL(string: "https://mail.google.com/mail/#inbox/abc"))
 
         let action = NotificationManager.responseAction(
             actionIdentifier: UNNotificationDefaultActionIdentifier,

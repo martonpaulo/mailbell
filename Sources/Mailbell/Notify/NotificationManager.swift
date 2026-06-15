@@ -101,7 +101,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     }
 
     nonisolated static func webmailURL(for header: MessageHeader, account: MailAccount) -> URL {
-        MailProviderRegistry.provider(for: account.providerID).webmailURL(for: header)
+        MailProviderRegistry.provider(for: account.providerID).webmailURL(for: header, account: account)
     }
 
     nonisolated static func notificationContent(

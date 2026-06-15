@@ -111,11 +111,29 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
+    func testManualRefreshReportsNoEnabledAccountsWhenAccountListIsEmpty() {
+        let supervisor = makeSupervisor(accounts: [])
+
+        XCTAssertFalse(AccountPresentation.canRefresh(supervisor.accountStates))
+        XCTAssertEqual(supervisor.refreshNow(), .noEnabledAccounts)
+    }
+
+    @MainActor
     func testManualRefreshReportsNoEnabledAccounts() {
         let disabledAccount = MailAccount(providerID: .gmail, email: "test@example.com", isEnabled: false)
         let (supervisor, _) = makeSupervisor(account: disabledAccount)
 
+        XCTAssertFalse(AccountPresentation.canRefresh(supervisor.accountStates))
         XCTAssertEqual(supervisor.refreshNow(), .noEnabledAccounts)
+    }
+
+    @MainActor
+    func testManualRefreshIsAvailableWhenAnyAccountIsEnabled() {
+        let enabledAccount = MailAccount(providerID: .gmail, email: "enabled@example.com")
+        let disabledAccount = MailAccount(providerID: .gmail, email: "disabled@example.com", isEnabled: false)
+        let supervisor = makeSupervisor(accounts: [disabledAccount, enabledAccount])
+
+        XCTAssertTrue(AccountPresentation.canRefresh(supervisor.accountStates))
     }
 
     @MainActor
@@ -163,8 +181,10 @@ final class AccountSupervisorTests: XCTestCase {
     @MainActor
     func testNotificationOpenActionRemovesEmailFromStore() async throws {
         var openedURLs: [URL] = []
-        let (supervisor, account) = makeSupervisor(webmailOpen: { url, _ in
+        var openedAccountIDs: [UUID?] = []
+        let (supervisor, account) = makeSupervisor(webmailOpen: { url, account in
             openedURLs.append(url)
+            openedAccountIDs.append(account?.id)
             return .opened
         })
 
@@ -176,9 +196,28 @@ final class AccountSupervisorTests: XCTestCase {
         await supervisor.openEmail(id: item.id, accountID: account.id, url: item.webmailURL)
 
         XCTAssertEqual(openedURLs, [item.webmailURL])
+        XCTAssertEqual(openedAccountIDs, [account.id])
         XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
         let didReadmit = await supervisor.monitor(account.id, shouldNotify: header)
         XCTAssertFalse(didReadmit)
+    }
+
+    @MainActor
+    func testOpenGmailPassesSelectedAccountToWebmailOpener() async {
+        let first = MailAccount(providerID: .gmail, email: "first@example.com")
+        let second = MailAccount(providerID: .gmail, email: "second@example.com")
+        var openedURLs: [URL] = []
+        var openedAccountIDs: [UUID?] = []
+        let supervisor = makeSupervisor(accounts: [first, second], webmailOpen: { url, account in
+            openedURLs.append(url)
+            openedAccountIDs.append(account?.id)
+            return .opened
+        })
+
+        await supervisor.openGmail(accountID: second.id)
+
+        XCTAssertEqual(openedURLs, [MailProviderRegistry.provider(for: .gmail).webmailURL(for: second)])
+        XCTAssertEqual(openedAccountIDs, [second.id])
     }
 
     @MainActor
@@ -212,20 +251,44 @@ final class AccountSupervisorTests: XCTestCase {
         },
         webmailOpen: @escaping @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome = { _, _ in .opened }
     ) -> (AccountSupervisor, MailAccount) {
+        (
+            makeSupervisor(
+                accounts: [account],
+                configProvider: configProvider,
+                monitorFactory: monitorFactory,
+                webmailOpen: webmailOpen
+            ),
+            account
+        )
+    }
+
+    @MainActor
+    private func makeSupervisor(
+        accounts: [MailAccount],
+        configProvider: @escaping () throws -> OAuthConfig = {
+            OAuthConfig(
+                clientID: "dummy-local-client-id.apps.googleusercontent.com",
+                clientSecret: "dummy-local-client-secret"
+            )
+        },
+        monitorFactory: @escaping (MailAccount, OAuthConfig) -> any AccountMonitoring = { account, _ in
+            SpyMonitor(account: account, hasSession: false)
+        },
+        webmailOpen: @escaping @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome = { _, _ in .opened }
+    ) -> AccountSupervisor {
         let suiteName = "mailbell.AccountSupervisorTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
         let store = AccountStore(userDefaults: defaults)
-        store.saveAccounts([account])
+        store.saveAccounts(accounts)
         let emailStore = EmailStore(persistence: EmailStorePersistence(userDefaults: defaults))
-        let supervisor = AccountSupervisor(
+        return AccountSupervisor(
             configProvider: configProvider,
             accountStore: store,
             emailStore: emailStore,
             monitorFactory: monitorFactory,
             webmailOpen: webmailOpen
         )
-        return (supervisor, account)
     }
 
     private func makeHeader(

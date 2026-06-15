@@ -7,11 +7,11 @@ struct AccountActionsMenu: View {
 
     var body: some View {
         Menu {
-            if accountState.status == .reauthRequired {
-                Button(appState.isAuthorizing ? "Authorizing..." : "Sign in again") {
-                    appState.reauthenticate(accountID: accountState.account.id)
+            if let action = AccountRecoveryAction.needed(for: accountState), action != .enable {
+                Button(appState.isAuthorizing && action.requiresAuthorizationSlot ? "Authorizing..." : action.title) {
+                    perform(action)
                 }
-                .disabled(appState.isAuthorizing)
+                .disabled(action.requiresAuthorizationSlot && appState.isAuthorizing)
             } else {
                 Button("Reconnect Account") {
                     appState.reconnect(accountID: accountState.account.id)
@@ -50,6 +50,17 @@ struct AccountActionsMenu: View {
                 "Mailbell will delete local tokens and stop notifications for this account. "
                     + "Gmail mail will not be changed."
             )
+        }
+    }
+
+    private func perform(_ action: AccountRecoveryAction) {
+        switch action {
+        case .enable:
+            appState.setAccountEnabled(true, accountID: accountState.account.id)
+        case .reconnect:
+            appState.reconnect(accountID: accountState.account.id)
+        case .signInAgain:
+            appState.reauthenticate(accountID: accountState.account.id)
         }
     }
 }

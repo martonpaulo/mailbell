@@ -14,7 +14,7 @@ struct MailbellApp: App {
         } label: {
             MenuBarLabel(
                 systemImage: appState.menuBarIconSystemImage,
-                unreadCount: appState.emailStoreItems.count
+                pendingCount: appState.emailStoreItems.count
             )
         }
 
@@ -37,22 +37,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 private struct MenuBarLabel: View {
     let systemImage: String
-    let unreadCount: Int
+    let pendingCount: Int
 
     var body: some View {
         HStack(spacing: 3) {
             Image(systemName: systemImage)
-            if unreadCount > 0 {
-                Text("\(unreadCount)")
+            if pendingCount > 0 {
+                Text("\(pendingCount)")
                     .monospacedDigit()
             }
         }
-        .accessibilityLabel(accessibilityLabel)
-    }
-
-    private var accessibilityLabel: String {
-        guard unreadCount > 0 else { return "Mailbell" }
-        return "Mailbell, \(unreadCount) \(unreadCount == 1 ? "unread email" : "unread emails")"
+        .accessibilityLabel(PendingCopy.menuBarAccessibilityLabel(count: pendingCount))
     }
 }
 
@@ -60,31 +55,12 @@ struct MenuContent: View {
     @ObservedObject var appState: AppState
 
     var body: some View {
-        Label(appState.status.menuLabel, systemImage: appState.status.systemImage)
-
         if appState.accounts.isEmpty {
-            Label("No Gmail accounts", systemImage: "person.crop.circle.badge.exclamationmark")
+            noAccountSection
+        } else if appState.accounts.count == 1, let accountState = appState.accounts.first {
+            singleAccountSection(accountState)
         } else {
-            Label(Self.accountSummary(for: appState.accounts), systemImage: "person.2")
-        }
-
-        Divider()
-
-        if appState.accounts.isEmpty {
-            Button {
-                appState.addGoogleAccount()
-            } label: {
-                Label(appState.isAuthorizing ? "Authorizing..." : "Add Gmail Account", systemImage: "plus")
-            }
-            .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
-            if appState.oauthSetupMessage != nil {
-                Label("Google OAuth setup required", systemImage: "key.fill")
-            }
-        }
-
-        if !appState.accounts.isEmpty {
-            Divider()
-            accountsSection
+            multiAccountSection
         }
 
         Divider()
@@ -95,80 +71,117 @@ struct MenuContent: View {
 
         Button {
             appState.refreshMailNow()
-        } label: {
-            Label("Refresh Gmail", systemImage: "arrow.clockwise")
-        }
+        } label: { Text("Refresh Gmail") }
         .disabled(!appState.canRequestManualRefresh)
 
         Divider()
 
         SettingsLink {
-            Label("Settings…", systemImage: "gear")
+            Text("Settings...")
         }
 
         Button {
             appState.quit()
         } label: {
-            Label("Quit Mailbell", systemImage: "power")
+            Text("Quit Mailbell")
         }
     }
 
-    private static func accountSummary(for states: [AccountRuntimeState]) -> String {
-        let enabled = states.filter(\.account.isEnabled)
-        guard !enabled.isEmpty else { return "All accounts disabled" }
-
-        let connected = enabled.filter { $0.status == .connected }.count
-        if connected == enabled.count {
-            return "\(connected) \(Self.accountNoun(count: connected)) connected"
+    private var noAccountSection: some View {
+        Group {
+            Text("Not connected")
+            if let setupMessage = appState.oauthSetupMessage {
+                Text("Google OAuth setup required")
+                Text(setupMessage)
+            }
+            Button(appState.isAuthorizing ? "Authorizing..." : "Add Gmail Account") {
+                appState.addGoogleAccount()
+            }
+            .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
         }
-        if connected > 0 {
-            return "\(connected) of \(enabled.count) connected"
-        }
-        return "\(enabled.count) \(Self.accountNoun(count: enabled.count)) enabled"
     }
 
-    private static func accountNoun(count: Int) -> String {
-        count == 1 ? "account" : "accounts"
+    private func singleAccountSection(_ accountState: AccountRuntimeState) -> some View {
+        Group {
+            Text(AccountPresentation.compactTitle(for: accountState))
+            if let action = AccountRecoveryAction.needed(for: accountState) {
+                Button(action.title) {
+                    perform(action, accountID: accountState.account.id)
+                }
+                .disabled(actionDisabled(action))
+            }
+            Button("Open Gmail") {
+                appState.openGmail(accountID: accountState.account.id)
+            }
+        }
     }
 
-    private var accountsSection: some View {
+    private var multiAccountSection: some View {
         Section("Accounts") {
             ForEach(appState.accounts) { accountState in
                 Button {
                     appState.openGmail(accountID: accountState.account.id)
                 } label: {
-                    Label(accountState.account.email, systemImage: accountState.status.systemImage)
+                    Text(
+                        AccountPresentation.multiAccountMenuTitle(
+                            for: accountState,
+                            pendingCount: pendingCount(accountID: accountState.account.id)
+                        )
+                    )
+                }
+                if let action = AccountRecoveryAction.needed(for: accountState) {
+                    Button("\(action.title) - \(accountState.account.email)") {
+                        perform(action, accountID: accountState.account.id)
+                    }
+                    .disabled(actionDisabled(action))
                 }
             }
         }
     }
 
     private var emailStoreSection: some View {
-        Section("Unread") {
+        Section(PendingCopy.menuSectionTitle) {
             if appState.emailStoreItems.isEmpty {
-                Label("No unread emails", systemImage: "tray")
+                Text(PendingCopy.emptyMenuTitle)
             } else {
                 ForEach(appState.emailStoreItems) { email in
                     Menu {
-                        Label("From: \(email.sender)", systemImage: "person")
-                        Label("Time: \(email.time)", systemImage: "clock")
+                        Text("From: \(email.sender)")
+                        Text("Time: \(email.time)")
                         Divider()
+                        Button("Open") {
+                            appState.openEmail(id: email.id)
+                        }
                         Button {
                             appState.dismissEmail(id: email.id)
                         } label: {
-                            Label("Dismiss", systemImage: "xmark.circle")
-                        }
-                        Button {
-                            appState.openEmail(id: email.id)
-                        } label: {
-                            Label("Open", systemImage: "arrow.up.forward.square")
+                            Text("Dismiss")
                         }
                     } label: {
-                        Label(email.title, systemImage: "envelope")
+                        Text(email.title)
                     }
                 }
             }
         }
+    }
+
+    private func pendingCount(accountID: UUID) -> Int {
+        appState.emailStoreItems.filter { $0.accountID == accountID }.count
+    }
+
+    private func perform(_ action: AccountRecoveryAction, accountID: UUID) {
+        switch action {
+        case .enable:
+            appState.setAccountEnabled(true, accountID: accountID)
+        case .reconnect:
+            appState.reconnect(accountID: accountID)
+        case .signInAgain:
+            appState.reauthenticate(accountID: accountID)
+        }
+    }
+
+    private func actionDisabled(_ action: AccountRecoveryAction) -> Bool {
+        action.requiresAuthorizationSlot && appState.isAuthorizing
     }
 }
 
@@ -181,8 +194,7 @@ struct SettingsView: View {
         Form {
             notificationSection
             startupSection
-            accountsSection
-            accountSections
+            accountSettings
         }
         .formStyle(.grouped)
         .onAppear {
@@ -201,11 +213,7 @@ struct SettingsView: View {
                 )
             }
 
-            Text(notificationAlertStatus)
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
-
-            Text(notificationSoundStatus)
+            Text(notificationSettingsDetail)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
 
@@ -215,45 +223,28 @@ struct SettingsView: View {
                     .textSelection(.enabled)
             }
 
-            LabeledContent("Gmail") {
-                Button("Refresh Gmail") {
-                    appState.refreshMailNow()
-                }
-                .disabled(!appState.canRequestManualRefresh)
-            }
+            LabeledContent("Actions") {
+                ControlGroup {
+                    Button("Refresh Status") {
+                        appState.refreshNotificationAuthorizationState()
+                    }
 
-            LabeledContent("Notification Status") {
-                Button("Refresh Notification Status") {
-                    appState.refreshNotificationAuthorizationState()
-                }
-            }
+                    Button("Test") {
+                        appState.sendTestNotification()
+                    }
 
-            LabeledContent("Test Notification") {
-                Button("Test Notification") {
-                    appState.sendTestNotification()
-                }
-            }
+                    if appState.notificationAuthorizationState.canRequestPermission {
+                        Button("Request Notification Permission") {
+                            appState.requestNotificationAuthorization()
+                        }
+                    }
 
-            if appState.notificationAuthorizationState.canRequestPermission {
-                LabeledContent("Permission") {
-                    Button("Request Notification Permission") {
-                        appState.requestNotificationAuthorization()
+                    if appState.notificationAuthorizationState.shouldOpenSystemSettings {
+                        Button("Open System Settings") {
+                            SystemSettings.open()
+                        }
                     }
                 }
-            }
-
-            if appState.notificationAuthorizationState.shouldOpenSystemSettings {
-                LabeledContent("System Settings") {
-                    Button("Open System Settings") {
-                        SystemSettings.open()
-                    }
-                }
-            }
-
-            if let message = appState.manualRefreshMessage {
-                Label(message, systemImage: "arrow.clockwise")
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
             }
 
             if let message = appState.notificationTestMessage {
@@ -293,25 +284,42 @@ struct SettingsView: View {
         }
     }
 
-    private var accountsSection: some View {
-        Section("Accounts") {
+    @ViewBuilder
+    private var accountSettings: some View {
+        if appState.accounts.count <= 1 {
+            singleAccountSettings
+        } else {
+            multiAccountOverview
+            multiAccountSections
+        }
+    }
+
+    private var singleAccountSettings: some View {
+        Section("Account") {
             if let setupMessage = appState.oauthSetupMessage {
                 OAuthSetupPanel(details: setupMessage)
             }
 
-            LabeledContent("Gmail") {
-                Button("Add Gmail Account") {
-                    appState.addGoogleAccount()
-                }
-                .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
-                .help(appState.isAuthorizing ? "Complete Google sign-in in your browser." : "Add a Gmail account.")
-            }
+            if let state = appState.accounts.first {
+                accountIdentityRows(for: state, includeEmail: true)
+                accountControlRows(for: state, showsMultiAccountHint: false)
 
-            if appState.accounts.isEmpty {
-                Label("No accounts connected", systemImage: "person.crop.circle.badge.exclamationmark")
+                LabeledContent("Accounts") {
+                    addAccountButton(title: "Add Another Gmail Account")
+                }
+            } else {
+                LabeledContent("Gmail") {
+                    addAccountButton(title: "Add Gmail Account")
+                }
+
+                Label("No account connected", systemImage: "person.crop.circle.badge.exclamationmark")
                 Text(accountEmptyDetail)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+
+            if let message = appState.manualRefreshMessage {
+                refreshMessageLabel(message)
             }
 
             if let error = appState.lastError {
@@ -320,41 +328,124 @@ struct SettingsView: View {
         }
     }
 
-    private var accountSections: some View {
-        ForEach(appState.accounts) { state in
-            Section("Gmail Account") {
-                LabeledContent("Email") {
-                    Text(state.account.email)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .textSelection(.enabled)
+    private var multiAccountOverview: some View {
+        Section("Accounts") {
+            if let setupMessage = appState.oauthSetupMessage {
+                OAuthSetupPanel(details: setupMessage)
+            }
+
+            LabeledContent("Gmail") {
+                addAccountButton(title: "Add Gmail Account")
+            }
+
+            LabeledContent("Sync") {
+                Button("Refresh Gmail") {
+                    appState.refreshMailNow()
                 }
+                .disabled(!appState.canRequestManualRefresh)
+            }
 
-                Text("\(state.account.providerID.displayName) · \(accountDetail(for: state))")
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
+            if let message = appState.manualRefreshMessage {
+                refreshMessageLabel(message)
+            }
 
-                LabeledContent("Actions") {
-                    ControlGroup {
-                        Button("Open Gmail") {
-                            appState.openGmail(accountID: state.account.id)
-                        }
+            Text("Use a separate browser or Chrome profile per Gmail account to keep webmail opens on the intended account.")
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
 
-                        AccountActionsMenu(appState: appState, accountState: state)
-                    }
-                }
-
-                AccountWebmailSettingsView(appState: appState, accountState: state)
-
-                if let error = state.lastError {
-                    accountErrorLabel(error)
-                }
+            if let error = appState.lastError {
+                accountErrorLabel(error)
             }
         }
     }
 
+    private var multiAccountSections: some View {
+        ForEach(appState.accounts) { state in
+            Section(state.account.email) {
+                accountIdentityRows(for: state, includeEmail: false)
+                LabeledContent(PendingCopy.menuSectionTitle) {
+                    Text(PendingCopy.countText(pendingCount(accountID: state.account.id)))
+                }
+                accountControlRows(for: state, showsMultiAccountHint: true)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func accountIdentityRows(for state: AccountRuntimeState, includeEmail: Bool) -> some View {
+        if includeEmail {
+            LabeledContent("Email") {
+                Text(state.account.email)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .textSelection(.enabled)
+            }
+        }
+
+        LabeledContent("Status") {
+            Text(AccountPresentation.statusText(for: state))
+        }
+
+        Text("\(state.account.providerID.displayName) - \(AccountPresentation.detailText(for: state))")
+            .foregroundStyle(.secondary)
+            .textSelection(.enabled)
+    }
+
+    @ViewBuilder
+    private func accountControlRows(
+        for state: AccountRuntimeState,
+        showsMultiAccountHint: Bool
+    ) -> some View {
+        Toggle(
+            "Enable account",
+            isOn: Binding(
+                get: { state.account.isEnabled },
+                set: { appState.setAccountEnabled($0, accountID: state.account.id) }
+            )
+        )
+
+        LabeledContent("Actions") {
+            ControlGroup {
+                Button("Open Gmail") {
+                    appState.openGmail(accountID: state.account.id)
+                }
+
+                Button("Refresh Gmail") {
+                    appState.refreshMailNow()
+                }
+                .disabled(!state.account.isEnabled || appState.isAuthorizing)
+
+                AccountActionsMenu(appState: appState, accountState: state)
+            }
+        }
+
+        AccountWebmailSettingsView(
+            appState: appState,
+            accountState: state,
+            showsAccountIsolationHint: showsMultiAccountHint
+        )
+
+        if let error = state.lastError {
+            accountErrorLabel(error)
+        }
+    }
+
+    private func addAccountButton(title: String) -> some View {
+        Button(appState.isAuthorizing ? "Authorizing..." : title) {
+            appState.addGoogleAccount()
+        }
+        .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
+        .help(appState.isAuthorizing ? "Complete Google sign-in in your browser." : "Add a Gmail account.")
+    }
+
     private func accountErrorLabel(_ message: String) -> some View {
         Label(message, systemImage: "exclamationmark.triangle.fill")
+            .textSelection(.enabled)
+    }
+
+    private func refreshMessageLabel(_ message: String) -> some View {
+        Label(message, systemImage: "arrow.clockwise")
+            .foregroundStyle(.secondary)
             .textSelection(.enabled)
     }
 
@@ -368,12 +459,11 @@ struct SettingsView: View {
         return "Add a Gmail account to start watching Inbox."
     }
 
-    private var notificationAlertStatus: String {
-        notificationSettingStatus(label: "Alerts", setting: appState.notificationAuthorizationState.alertSetting)
-    }
-
-    private var notificationSoundStatus: String {
-        notificationSettingStatus(label: "Sound", setting: appState.notificationAuthorizationState.soundSetting)
+    private var notificationSettingsDetail: String {
+        [
+            notificationSettingStatus(label: "Alerts", setting: appState.notificationAuthorizationState.alertSetting),
+            notificationSettingStatus(label: "Sound", setting: appState.notificationAuthorizationState.soundSetting)
+        ].joined(separator: " - ")
     }
 
     private var notificationNeedsAttention: Bool {
@@ -393,24 +483,6 @@ struct SettingsView: View {
         }
     }
 
-    private func accountDetail(for state: AccountRuntimeState) -> String {
-        guard state.account.isEnabled else { return "Disabled." }
-        switch state.status {
-        case .signedOut:
-            return "Ready."
-        case .connecting:
-            return "Connecting."
-        case .connected:
-            return "Watching Inbox."
-        case .reconnecting:
-            return "Reconnecting."
-        case .reauthRequired:
-            return "Sign in again."
-        case .error:
-            return "Needs attention."
-        }
-    }
-
     private func refreshBehaviorState() {
         appState.refreshNotificationAuthorizationState()
         refreshLoginItemStatus()
@@ -419,5 +491,9 @@ struct SettingsView: View {
     private func refreshLoginItemStatus() {
         loginItemStatus = LoginItem.status
         launchAtLogin = loginItemStatus == .enabled || loginItemStatus == .requiresApproval
+    }
+
+    private func pendingCount(accountID: UUID) -> Int {
+        appState.emailStoreItems.filter { $0.accountID == accountID }.count
     }
 }

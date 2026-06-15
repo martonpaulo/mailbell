@@ -12,7 +12,7 @@ extension AccountSupervisor {
 
     func openGmail(accountID: UUID) async {
         guard let account = accounts.first(where: { $0.id == accountID }) else { return }
-        let url = MailProviderRegistry.provider(for: account.providerID).webmailURL
+        let url = MailProviderRegistry.provider(for: account.providerID).webmailURL(for: account)
         await applyWebmailOpen(url: url, account: account, accountID: accountID)
     }
 
