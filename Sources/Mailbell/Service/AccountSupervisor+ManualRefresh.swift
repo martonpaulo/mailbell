@@ -7,14 +7,14 @@ extension AccountSupervisor {
 
         var message: String {
             switch self {
-            case let .requested(accountCount):
-                "Refresh requested for \(accountCount) \(accountCount == 1 ? "account" : "accounts")."
+            case .requested:
+                "Sync requested. Mailbell will reconnect and update Gmail state."
             case .noEnabledAccounts:
-                "Enable a Gmail account before refreshing."
+                "Enable an account to sync Gmail."
             case .signInRequired:
-                "Sign in again before refreshing."
+                "Sign in again to sync Gmail."
             case .unavailable:
-                "Refresh unavailable. Check account setup."
+                "Sync unavailable. Check account setup."
             }
         }
     }

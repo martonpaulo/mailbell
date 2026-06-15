@@ -17,6 +17,10 @@ final class AccountPresentationTests: XCTestCase {
         XCTAssertEqual(PendingCopy.openActionTitle, "Open")
         XCTAssertEqual(PendingCopy.markAsReadActionTitle, "Mark as Read")
         XCTAssertEqual(PendingCopy.dismissActionTitle, "Dismiss")
+        XCTAssertEqual(PendingCopy.reviewSectionTitle, "Awaiting Review")
+        XCTAssertEqual(PendingCopy.reviewCountText(0), "No messages")
+        XCTAssertEqual(PendingCopy.reviewCountText(1), "1 message")
+        XCTAssertEqual(PendingCopy.reviewCountText(2), "2 messages")
         XCTAssertEqual(PendingCopy.menuBarAccessibilityLabel(count: 2), "Mailbell, 2 pending emails")
         XCTAssertEqual(PendingCopy.menuBarAccessibilityLabel(count: 2, showsCount: false), "Mailbell")
     }
@@ -28,7 +32,7 @@ final class AccountPresentationTests: XCTestCase {
         XCTAssertEqual(AccountPresentation.compactTitle(for: single), "Connected - one@example.com")
         XCTAssertEqual(
             AccountPresentation.multiAccountMenuTitle(for: multi, pendingCount: 3),
-            "two@example.com - Sign in needed - 3 pending"
+            "two@example.com - Sign in needed - 3 messages"
         )
         XCTAssertEqual(
             AccountPresentation.multiAccountMenuTitle(for: multi, pendingCount: nil),

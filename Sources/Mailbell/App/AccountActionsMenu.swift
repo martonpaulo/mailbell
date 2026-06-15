@@ -13,13 +13,13 @@ struct AccountActionsMenu: View {
                 }
                 .disabled(action.requiresAuthorizationSlot && appState.isAuthorizing)
             } else {
-                Button("Reconnect Account") {
+                Button("Reconnect") {
                     appState.reconnect(accountID: accountState.account.id)
                 }
                 .disabled(!accountState.account.isEnabled || appState.isAuthorizing)
             }
 
-            Button(accountState.account.isEnabled ? "Disable Account" : "Enable Account") {
+            Button(accountState.account.isEnabled ? "Disable" : "Enable") {
                 appState.setAccountEnabled(
                     !accountState.account.isEnabled,
                     accountID: accountState.account.id
@@ -33,7 +33,7 @@ struct AccountActionsMenu: View {
                 showsRemoveConfirmation = true
             }
         } label: {
-            Label("Actions", systemImage: "ellipsis.circle")
+            Label("More...", systemImage: "ellipsis.circle")
         }
         .help("Account actions")
         .confirmationDialog(

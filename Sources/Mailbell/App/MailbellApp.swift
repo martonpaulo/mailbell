@@ -77,7 +77,7 @@ struct MenuContent: View {
 
         Button {
             appState.refreshMailNow()
-        } label: { Text("Refresh Gmail") }
+        } label: { Text("Sync Now") }
             .disabled(!appState.canRequestManualRefresh)
 
         Divider()
@@ -324,24 +324,19 @@ struct SettingsView: View {
     private var notificationStatusSection: some View {
         Section {
             LabeledContent("Permission") {
-                Label(
-                    appState.notificationAuthorizationState.summary,
-                    systemImage: appState.notificationAuthorizationState.canPostAlert
-                        ? "bell.badge.fill"
-                        : "bell.slash"
-                )
+                notificationPermissionStatus
             }
 
             LabeledContent("Alerts") {
-                Text(notificationSettingStatus(setting: appState.notificationAuthorizationState.alertSetting))
+                notificationSettingStatusValue(appState.notificationAuthorizationState.alertSetting, context: "Alerts")
             }
 
             LabeledContent("Sound") {
-                Text(notificationSettingStatus(setting: appState.notificationAuthorizationState.soundSetting))
+                notificationSettingStatusValue(appState.notificationAuthorizationState.soundSetting, context: "Sound")
             }
 
             LabeledContent("Badge") {
-                Text(notificationSettingStatus(setting: appState.notificationAuthorizationState.badgeSetting))
+                notificationSettingStatusValue(appState.notificationAuthorizationState.badgeSetting, context: "Badge")
             }
         } header: {
             Text("Notifications")
@@ -352,28 +347,40 @@ struct SettingsView: View {
 
     private var notificationActionsSection: some View {
         Section {
-            Button("Refresh Status") {
-                appState.refreshNotificationAuthorizationState()
+            LabeledContent("Notification Status") {
+                Button("Refresh") {
+                    appState.refreshNotificationAuthorizationState(showStatusMessage: true)
+                }
             }
 
-            Button("Send Test Notification") {
-                appState.sendTestNotification()
+            LabeledContent("Test Notification") {
+                if appState.isSendingTestNotification {
+                    ProgressView()
+                        .accessibilityLabel("Test notification: Sending")
+                } else {
+                    Button("Send") {
+                        appState.sendTestNotification()
+                    }
+                }
             }
-            .disabled(appState.isSendingTestNotification)
 
             if appState.notificationAuthorizationState.canRequestPermission {
-                Button("Request Notification Permission") {
-                    appState.requestNotificationAuthorization()
+                LabeledContent("Permission Request") {
+                    Button("Request") {
+                        appState.requestNotificationAuthorization()
+                    }
                 }
             }
 
             if appState.notificationAuthorizationState.shouldOpenSystemSettings {
-                Button("Open System Settings") {
-                    SystemSettings.open()
+                LabeledContent("System Settings") {
+                    Button("Open") {
+                        SystemSettings.open()
+                    }
                 }
             }
         } header: {
-            Text("Actions")
+            Text("Notification Controls")
         } footer: {
             notificationActionsFooter
         }
@@ -382,7 +389,7 @@ struct SettingsView: View {
     private var pendingCountSection: some View {
         Section {
             Toggle(
-                "Show pending count",
+                "Show review count",
                 isOn: Binding(
                     get: { appState.showPendingCount },
                     set: { appState.setShowPendingCount($0) }
@@ -392,7 +399,7 @@ struct SettingsView: View {
             Text("Menu Bar")
         } footer: {
             settingsFooter(
-                "Shows the number of pending emails in the menu bar when there is something to review."
+                "Shows the number of messages awaiting review in the menu bar."
             )
         }
     }
@@ -406,10 +413,7 @@ struct SettingsView: View {
                 }
 
             LabeledContent("Login item") {
-                Label(
-                    loginItemStatus.title,
-                    systemImage: loginItemStatus == .enabled ? "checkmark.circle.fill" : "info.circle"
-                )
+                loginItemStatusValue
             }
 
             if loginItemStatus == .requiresApproval || loginItemStatus == .unavailable {
@@ -431,7 +435,7 @@ struct SettingsView: View {
         Section {
             if let setupMessage = appState.oauthSetupMessage {
                 LabeledContent("Setup") {
-                    Text("Required")
+                    SettingsStatusValue("Required", tone: .warning, context: "Setup")
                 }
                 DisclosureGroup("Setup Details") {
                     Text(setupMessage)
@@ -446,17 +450,21 @@ struct SettingsView: View {
                 }
             } else {
                 LabeledContent("Status") {
-                    Text("No account connected")
+                    SettingsStatusValue("No account connected", tone: .inactive, context: "Accounts")
                 }
             }
 
-            addAccountButton(title: appState.hasAccounts ? "Add Another Gmail Account" : "Add Gmail Account")
-
-            Button("Refresh Gmail") {
-                appState.refreshMailNow()
+            LabeledContent("New Account") {
+                addAccountButton(title: "Add Account")
             }
-            .disabled(!appState.canRequestManualRefresh)
-            .help(refreshHelpText)
+
+            LabeledContent("Mail Sync") {
+                Button("Sync Now") {
+                    appState.refreshMailNow()
+                }
+                .disabled(!appState.canRequestManualRefresh)
+                .help(refreshHelpText)
+            }
         } header: {
             Text("Gmail")
         } footer: {
@@ -476,8 +484,8 @@ struct SettingsView: View {
             accountIdentityRows(for: state)
 
             if appState.showPendingCount {
-                LabeledContent(PendingCopy.menuSectionTitle) {
-                    Text(PendingCopy.countText(pendingCount(accountID: state.account.id)))
+                LabeledContent(PendingCopy.reviewSectionTitle) {
+                    Text(PendingCopy.reviewCountText(pendingCount(accountID: state.account.id)))
                 }
             }
 
@@ -489,13 +497,17 @@ struct SettingsView: View {
                 )
             )
 
-            Button("Open Gmail") {
-                appState.openGmail(accountID: state.account.id)
+            LabeledContent("Gmail") {
+                Button("Open") {
+                    appState.openGmail(accountID: state.account.id)
+                }
             }
 
-            AccountActionsMenu(appState: appState, accountState: state)
+            LabeledContent("Account") {
+                AccountActionsMenu(appState: appState, accountState: state)
+            }
         } header: {
-            Text(state.account.email)
+            Text("Gmail Account")
         } footer: {
             settingsFooter(accountFooterText(for: state))
         }
@@ -514,8 +526,8 @@ struct SettingsView: View {
             Text("Spam")
         } footer: {
             settingsFooter(
-                "When enabled, unread Spam can appear in alerts and the pending count. "
-                    + "When disabled, Mailbell ignores Spam and removes existing spam pending items."
+                "When enabled, unread Spam can appear in alerts and the review count. "
+                    + "When disabled, Mailbell ignores Spam and removes existing Spam messages awaiting review."
             )
         }
     }
@@ -535,12 +547,19 @@ struct SettingsView: View {
         } else {
             ForEach(appState.accounts) { state in
                 Section {
+                    LabeledContent("Account") {
+                        Text(state.account.email)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .textSelection(.enabled)
+                    }
+
                     AccountWebmailSettingsView(
                         appState: appState,
                         accountState: state
                     )
                 } header: {
-                    Text("Open \(state.account.email)")
+                    Text("Gmail Opening")
                 } footer: {
                     settingsFooter(webmailFooterText(for: state))
                 }
@@ -606,7 +625,7 @@ struct SettingsView: View {
             }
 
             LabeledContent("Status") {
-                Text(AccountPresentation.statusText(for: state))
+                accountStatusValue(for: state)
             }
         }
     }
@@ -626,6 +645,71 @@ struct SettingsView: View {
             .textSelection(.enabled)
     }
 
+    private var notificationPermissionStatus: SettingsStatusValue {
+        let state = appState.notificationAuthorizationState
+        guard state.isBundled else {
+            return SettingsStatusValue(state.summary, tone: .warning, context: "Notification permission")
+        }
+
+        switch state.status {
+        case .authorized, .provisional, .ephemeral:
+            return SettingsStatusValue(state.summary, tone: .success, context: "Notification permission")
+        case .denied:
+            return SettingsStatusValue(state.summary, tone: .error, context: "Notification permission")
+        case .notDetermined:
+            return SettingsStatusValue(state.summary, tone: .warning, context: "Notification permission")
+        @unknown default:
+            return SettingsStatusValue(state.summary, tone: .warning, context: "Notification permission")
+        }
+    }
+
+    private func notificationSettingStatusValue(
+        _ setting: UNNotificationSetting,
+        context: String
+    ) -> SettingsStatusValue {
+        switch setting {
+        case .enabled:
+            return SettingsStatusValue("Enabled", tone: .success, context: context)
+        case .disabled:
+            return SettingsStatusValue("Disabled", tone: .inactive, context: context)
+        case .notSupported:
+            return SettingsStatusValue("Not supported", tone: .inactive, context: context)
+        @unknown default:
+            return SettingsStatusValue("Unavailable", tone: .warning, context: context)
+        }
+    }
+
+    private var loginItemStatusValue: SettingsStatusValue {
+        switch loginItemStatus {
+        case .enabled:
+            SettingsStatusValue(loginItemStatus.title, tone: .success, context: "Login item")
+        case .disabled:
+            SettingsStatusValue(loginItemStatus.title, tone: .inactive, context: "Login item")
+        case .requiresApproval, .unavailable:
+            SettingsStatusValue(loginItemStatus.title, tone: .warning, context: "Login item")
+        }
+    }
+
+    @ViewBuilder
+    private func accountStatusValue(for state: AccountRuntimeState) -> some View {
+        let title = AccountPresentation.statusText(for: state)
+        if !state.account.isEnabled {
+            SettingsStatusValue(title, tone: .inactive, context: "Account status")
+        } else {
+            switch state.status {
+            case .connected:
+                SettingsStatusValue(title, tone: .success, context: "Account status")
+            case .connecting, .reconnecting:
+                ProgressView(title)
+                    .accessibilityLabel("Account status: \(title)")
+            case .signedOut:
+                SettingsStatusValue(title, tone: .inactive, context: "Account status")
+            case .reauthRequired, .error:
+                SettingsStatusValue(title, tone: .error, context: "Account status")
+            }
+        }
+    }
+
     @ViewBuilder
     private var notificationActionsFooter: some View {
         if appState.isSendingTestNotification {
@@ -639,7 +723,10 @@ struct SettingsView: View {
         if let message = appState.notificationTestMessage {
             return message
         }
-        return "Use Refresh Status after changing notification settings in macOS."
+        if let message = appState.notificationStatusMessage {
+            return message
+        }
+        return "Use Refresh after changing notification settings in macOS."
     }
 
     private var accountCountText: String {
@@ -662,9 +749,9 @@ struct SettingsView: View {
             return "Complete Google sign-in in your browser."
         }
         if appState.canRequestManualRefresh {
-            return "Refresh Gmail requests a reconnect and reconciles pending mail with Gmail unread state."
+            return "Syncs Gmail unread state and updates messages awaiting review."
         }
-        return "Enable a Gmail account before refreshing."
+        return "Enable an account to sync Gmail."
     }
 
     private func accountFooterText(for state: AccountRuntimeState) -> String {
@@ -677,7 +764,7 @@ struct SettingsView: View {
 
     private func webmailFooterText(for state: AccountRuntimeState) -> String {
         var lines = [
-            "Choose the browser or Chrome profile already signed in to \(state.account.email)."
+            "Choose the browser or Chrome profile already signed in to this Gmail account."
         ]
         if let error = state.webmailOpenError {
             lines.append(error)
@@ -686,49 +773,35 @@ struct SettingsView: View {
     }
 
     private func accountDetailText(for state: AccountRuntimeState) -> String {
-        "\(state.account.providerID.displayName) · \(AccountPresentation.detailText(for: state))"
-    }
+        guard state.account.isEnabled else {
+            return "Gmail monitoring is paused for this account."
+        }
 
-    private var notificationSettingsDetail: String {
-        [
-            notificationSettingStatus(label: "Alerts", setting: appState.notificationAuthorizationState.alertSetting),
-            notificationSettingStatus(label: "Sound", setting: appState.notificationAuthorizationState.soundSetting)
-        ].joined(separator: " · ")
+        switch state.status {
+        case .connected:
+            return appState.includeSpam ? "Gmail · Monitoring Inbox and Spam" : "Gmail · Monitoring Inbox"
+        case .connecting:
+            return "Gmail · Connecting"
+        case .reconnecting:
+            return "Gmail · Reconnecting"
+        case .signedOut:
+            return "Gmail · Not connected"
+        case .reauthRequired:
+            return "Gmail · Sign in again to resume monitoring"
+        case .error:
+            return "Gmail · Check the error and reconnect"
+        }
     }
 
     private var notificationFooterText: String {
-        guard notificationNeedsAttention else { return notificationSettingsDetail }
-        return "\(notificationSettingsDetail)\n\(appState.notificationAuthorizationState.detail)"
+        guard notificationNeedsAttention else {
+            return "Mailbell uses macOS notification settings for alerts, sound, and badge."
+        }
+        return appState.notificationAuthorizationState.detail
     }
 
     private var notificationNeedsAttention: Bool {
         !appState.notificationAuthorizationState.canPostAlert
-    }
-
-    private func notificationSettingStatus(setting: UNNotificationSetting) -> String {
-        switch setting {
-        case .enabled:
-            "Enabled"
-        case .disabled:
-            "Disabled"
-        case .notSupported:
-            "Not supported"
-        @unknown default:
-            "Unavailable"
-        }
-    }
-
-    private func notificationSettingStatus(label: String, setting: UNNotificationSetting) -> String {
-        switch setting {
-        case .enabled:
-            "\(label) enabled"
-        case .disabled:
-            "\(label) disabled"
-        case .notSupported:
-            "\(label) not supported"
-        @unknown default:
-            "\(label) unavailable"
-        }
     }
 
     private func refreshBehaviorState() {

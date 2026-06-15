@@ -12,6 +12,7 @@ final class AppState: ObservableObject {
     @Published private(set) var isAuthorizing = false
     @Published private(set) var isSendingTestNotification = false
     @Published private(set) var notificationAuthorizationState: NotificationAuthorizationState = .unbundled
+    @Published private(set) var notificationStatusMessage: String?
     @Published private(set) var notificationTestMessage: String?
     @Published private(set) var manualRefreshMessage: String?
     @Published private(set) var emailStoreItems: [EmailStoreItem] = []
@@ -148,12 +149,16 @@ final class AppState: ObservableObject {
         supervisor.dismissEmail(id: id)
     }
 
-    func refreshNotificationAuthorizationState() {
+    func refreshNotificationAuthorizationState(showStatusMessage: Bool = false) {
         notificationAuthorizationTask?.cancel()
         notificationAuthorizationTask = Task { [weak self] in
             let state = await NotificationManager.shared.authorizationState()
             guard !Task.isCancelled else { return }
             self?.applyNotificationAuthorizationState(state)
+            if showStatusMessage {
+                self?.notificationTestMessage = nil
+                self?.notificationStatusMessage = "Notification permission refreshed."
+            }
         }
     }
 
@@ -163,6 +168,8 @@ final class AppState: ObservableObject {
             let state = await NotificationManager.shared.requestAuthorization()
             guard !Task.isCancelled else { return }
             self?.applyNotificationAuthorizationState(state)
+            self?.notificationTestMessage = nil
+            self?.notificationStatusMessage = nil
         }
     }
 
@@ -176,6 +183,7 @@ final class AppState: ObservableObject {
         Task {
             isSendingTestNotification = true
             notificationTestMessage = nil
+            notificationStatusMessage = nil
             defer { isSendingTestNotification = false }
             let result = await NotificationManager.shared.notifyTest(account: accounts.first?.account)
             let state = await NotificationManager.shared.authorizationState()

@@ -6,7 +6,7 @@ enum MailProviderID: String, Codable, CaseIterable {
     var displayName: String {
         switch self {
         case .gmail:
-            "Google Gmail"
+            "Gmail"
         }
     }
 }

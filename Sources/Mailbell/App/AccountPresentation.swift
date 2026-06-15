@@ -6,9 +6,21 @@ enum PendingCopy {
     static let openActionTitle = "Open"
     static let markAsReadActionTitle = "Mark as Read"
     static let dismissActionTitle = "Dismiss"
+    static let reviewSectionTitle = "Awaiting Review"
 
     static func countText(_ count: Int) -> String {
-        "\(count) pending"
+        reviewCountText(count)
+    }
+
+    static func reviewCountText(_ count: Int) -> String {
+        switch count {
+        case 0:
+            "No messages"
+        case 1:
+            "1 message"
+        default:
+            "\(count) messages"
+        }
     }
 
     static func menuBarAccessibilityLabel(count: Int, showsCount: Bool = true) -> String {
@@ -74,18 +86,18 @@ enum AccountPresentation {
     }
 
     static func detailText(for state: AccountRuntimeState) -> String {
-        guard state.account.isEnabled else { return "Mailbell is not watching this account." }
+        guard state.account.isEnabled else { return "Gmail monitoring is paused for this account." }
         switch state.status {
         case .signedOut:
-            return "Ready to connect."
+            return "Not connected."
         case .connecting:
             return "Connecting to Gmail."
         case .connected:
-            return "Watching Inbox."
+            return "Monitoring Inbox."
         case .reconnecting:
             return "Reconnecting to Gmail."
         case .reauthRequired:
-            return "Sign in again to resume notifications."
+            return "Sign in again to resume monitoring."
         case .error:
             return "Check the error and reconnect."
         }
