@@ -3,7 +3,6 @@ import SwiftUI
 struct AccountWebmailSettingsView: View {
     @ObservedObject var appState: AppState
     let accountState: AccountRuntimeState
-    var showsAccountIsolationHint = false
 
     @State private var browsers: [BrowserCandidate] = []
     @State private var chromeProfiles: [ChromeProfileCandidate] = []
@@ -52,11 +51,6 @@ struct AccountWebmailSettingsView: View {
                     .textSelection(.enabled)
             }
 
-            if showsAccountIsolationHint {
-                Text("Choose the browser or Chrome profile already signed in to \(accountState.account.email).")
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-            }
         }
         .task {
             await loadBrowserDataIfNeeded()

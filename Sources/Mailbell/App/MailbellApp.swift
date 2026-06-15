@@ -203,27 +203,127 @@ struct MenuContent: View {
     }
 }
 
+enum SettingsTab: CaseIterable, Identifiable {
+    case general
+    case notifications
+    case accounts
+    case advanced
+    case about
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .general:
+            "General"
+        case .notifications:
+            "Notifications"
+        case .accounts:
+            "Accounts"
+        case .advanced:
+            "Advanced"
+        case .about:
+            "About"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .general:
+            "gearshape"
+        case .notifications:
+            "bell"
+        case .accounts:
+            "person.crop.circle"
+        case .advanced:
+            "slider.horizontal.3"
+        case .about:
+            "info.circle"
+        }
+    }
+}
+
 struct SettingsView: View {
     @ObservedObject var appState: AppState
     @State private var launchAtLogin = LoginItem.isEnabled
     @State private var loginItemStatus = LoginItem.status
 
     var body: some View {
-        Form {
-            notificationSection
-            pendingSettingsSection
-            startupSection
-            accountSettings
+        TabView {
+            generalTab
+                .tabItem {
+                    Label(SettingsTab.general.title, systemImage: SettingsTab.general.systemImage)
+                }
+
+            notificationsTab
+                .tabItem {
+                    Label(SettingsTab.notifications.title, systemImage: SettingsTab.notifications.systemImage)
+                }
+
+            accountsTab
+                .tabItem {
+                    Label(SettingsTab.accounts.title, systemImage: SettingsTab.accounts.systemImage)
+                }
+
+            advancedTab
+                .tabItem {
+                    Label(SettingsTab.advanced.title, systemImage: SettingsTab.advanced.systemImage)
+                }
+
+            aboutTab
+                .tabItem {
+                    Label(SettingsTab.about.title, systemImage: SettingsTab.about.systemImage)
+                }
         }
-        .formStyle(.grouped)
         .onAppear {
             refreshBehaviorState()
         }
     }
 
-    private var notificationSection: some View {
+    private var generalTab: some View {
+        Form {
+            pendingCountSection
+            startupSection
+        }
+        .formStyle(.grouped)
+    }
+
+    private var notificationsTab: some View {
+        Form {
+            notificationStatusSection
+            notificationActionsSection
+        }
+        .formStyle(.grouped)
+    }
+
+    private var accountsTab: some View {
+        Form {
+            accountOverviewSection
+            accountSections
+        }
+        .formStyle(.grouped)
+    }
+
+    private var advancedTab: some View {
+        Form {
+            spamSection
+            webmailSections
+            oauthSetupSection
+        }
+        .formStyle(.grouped)
+    }
+
+    private var aboutTab: some View {
+        Form {
+            aboutAppSection
+            aboutSupportSection
+        }
+        .formStyle(.grouped)
+    }
+
+    private var notificationStatusSection: some View {
         Section {
-            LabeledContent("Status") {
+            LabeledContent("Permission") {
                 Label(
                     appState.notificationAuthorizationState.summary,
                     systemImage: appState.notificationAuthorizationState.canPostAlert
@@ -232,34 +332,16 @@ struct SettingsView: View {
                 )
             }
 
-            LabeledContent("Actions") {
-                ControlGroup {
-                    Button("Refresh Status") {
-                        appState.refreshNotificationAuthorizationState()
-                    }
-
-                    Button("Test") {
-                        appState.sendTestNotification()
-                    }
-
-                    if appState.notificationAuthorizationState.canRequestPermission {
-                        Button("Request Notification Permission") {
-                            appState.requestNotificationAuthorization()
-                        }
-                    }
-
-                    if appState.notificationAuthorizationState.shouldOpenSystemSettings {
-                        Button("Open System Settings") {
-                            SystemSettings.open()
-                        }
-                    }
-                }
+            LabeledContent("Alerts") {
+                Text(notificationSettingStatus(setting: appState.notificationAuthorizationState.alertSetting))
             }
 
-            if let message = appState.notificationTestMessage {
-                Label(message, systemImage: "bell.badge")
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
+            LabeledContent("Sound") {
+                Text(notificationSettingStatus(setting: appState.notificationAuthorizationState.soundSetting))
+            }
+
+            LabeledContent("Badge") {
+                Text(notificationSettingStatus(setting: appState.notificationAuthorizationState.badgeSetting))
             }
         } header: {
             Text("Notifications")
@@ -268,7 +350,36 @@ struct SettingsView: View {
         }
     }
 
-    private var pendingSettingsSection: some View {
+    private var notificationActionsSection: some View {
+        Section {
+            Button("Refresh Status") {
+                appState.refreshNotificationAuthorizationState()
+            }
+
+            Button("Send Test Notification") {
+                appState.sendTestNotification()
+            }
+            .disabled(appState.isSendingTestNotification)
+
+            if appState.notificationAuthorizationState.canRequestPermission {
+                Button("Request Notification Permission") {
+                    appState.requestNotificationAuthorization()
+                }
+            }
+
+            if appState.notificationAuthorizationState.shouldOpenSystemSettings {
+                Button("Open System Settings") {
+                    SystemSettings.open()
+                }
+            }
+        } header: {
+            Text("Actions")
+        } footer: {
+            notificationActionsFooter
+        }
+    }
+
+    private var pendingCountSection: some View {
         Section {
             Toggle(
                 "Show pending count",
@@ -277,20 +388,11 @@ struct SettingsView: View {
                     set: { appState.setShowPendingCount($0) }
                 )
             )
-
-            Toggle(
-                "Include spam",
-                isOn: Binding(
-                    get: { appState.includeSpam },
-                    set: { appState.setIncludeSpam($0) }
-                )
-            )
         } header: {
-            Text(PendingCopy.menuSectionTitle)
+            Text("Menu Bar")
         } footer: {
             settingsFooter(
-                "Shows the number of unread or not dismissed emails.\n"
-                    + "When disabled, spam messages are ignored for alerts and pending count."
+                "Shows the number of pending emails in the menu bar when there is something to review."
             )
         }
     }
@@ -325,158 +427,187 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
-    private var accountSettings: some View {
-        if appState.accounts.count <= 1 {
-            singleAccountSettings
-        } else {
-            multiAccountOverview
-            multiAccountSections
-        }
-    }
-
-    private var singleAccountSettings: some View {
+    private var accountOverviewSection: some View {
         Section {
             if let setupMessage = appState.oauthSetupMessage {
-                OAuthSetupPanel(details: setupMessage)
+                LabeledContent("Setup") {
+                    Text("Required")
+                }
+                DisclosureGroup("Setup Details") {
+                    Text(setupMessage)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
             }
 
-            if let state = appState.accounts.first {
-                accountIdentityRows(for: state, includeEmail: true)
-                accountControlRows(for: state, showsMultiAccountHint: false)
-
+            if appState.hasAccounts {
                 LabeledContent("Accounts") {
-                    addAccountButton(title: "Add Another Gmail Account")
+                    Text(accountCountText)
                 }
             } else {
-                LabeledContent("Gmail") {
-                    addAccountButton(title: "Add Gmail Account")
+                LabeledContent("Status") {
+                    Text("No account connected")
                 }
-
-                Label("No account connected", systemImage: "person.crop.circle.badge.exclamationmark")
             }
 
-            if let message = appState.manualRefreshMessage {
-                refreshMessageLabel(message)
-            }
+            addAccountButton(title: appState.hasAccounts ? "Add Another Gmail Account" : "Add Gmail Account")
 
-            if let error = appState.lastError {
-                accountErrorLabel(error)
+            Button("Refresh Gmail") {
+                appState.refreshMailNow()
             }
+            .disabled(!appState.canRequestManualRefresh)
+            .help(refreshHelpText)
         } header: {
-            Text("Account")
+            Text("Gmail")
         } footer: {
-            if let state = appState.accounts.first {
-                settingsFooter(accountDetailText(for: state))
-            } else {
-                settingsFooter(accountEmptyDetail)
-            }
+            settingsFooter(accountOverviewFooterText)
         }
     }
 
-    private var multiAccountOverview: some View {
+    @ViewBuilder
+    private var accountSections: some View {
+        ForEach(appState.accounts) { state in
+            accountSection(for: state)
+        }
+    }
+
+    private func accountSection(for state: AccountRuntimeState) -> some View {
         Section {
-            if let setupMessage = appState.oauthSetupMessage {
-                OAuthSetupPanel(details: setupMessage)
-            }
+            accountIdentityRows(for: state)
 
-            LabeledContent("Gmail") {
-                addAccountButton(title: "Add Gmail Account")
-            }
-
-            LabeledContent("Sync") {
-                Button("Refresh Gmail") {
-                    appState.refreshMailNow()
+            if appState.showPendingCount {
+                LabeledContent(PendingCopy.menuSectionTitle) {
+                    Text(PendingCopy.countText(pendingCount(accountID: state.account.id)))
                 }
-                .disabled(!appState.canRequestManualRefresh)
             }
 
-            if let message = appState.manualRefreshMessage {
-                refreshMessageLabel(message)
+            Toggle(
+                "Enable account",
+                isOn: Binding(
+                    get: { state.account.isEnabled },
+                    set: { appState.setAccountEnabled($0, accountID: state.account.id) }
+                )
+            )
+
+            Button("Open Gmail") {
+                appState.openGmail(accountID: state.account.id)
             }
 
-            if let error = appState.lastError {
-                accountErrorLabel(error)
-            }
+            AccountActionsMenu(appState: appState, accountState: state)
         } header: {
-            Text("Accounts")
+            Text(state.account.email)
+        } footer: {
+            settingsFooter(accountFooterText(for: state))
+        }
+    }
+
+    private var spamSection: some View {
+        Section {
+            Toggle(
+                "Include spam",
+                isOn: Binding(
+                    get: { appState.includeSpam },
+                    set: { appState.setIncludeSpam($0) }
+                )
+            )
+        } header: {
+            Text("Spam")
         } footer: {
             settingsFooter(
-                "Use a separate browser or Chrome profile per Gmail account to keep webmail opens "
-                    + "on the intended account."
+                "When enabled, unread Spam can appear in alerts and the pending count. "
+                    + "When disabled, Mailbell ignores Spam and removes existing spam pending items."
             )
         }
     }
 
-    private var multiAccountSections: some View {
-        ForEach(appState.accounts) { state in
+    @ViewBuilder
+    private var webmailSections: some View {
+        if appState.accounts.isEmpty {
             Section {
-                accountIdentityRows(for: state, includeEmail: false)
-                if appState.showPendingCount {
-                    LabeledContent(PendingCopy.menuSectionTitle) {
-                        Text(PendingCopy.countText(pendingCount(accountID: state.account.id)))
-                    }
+                LabeledContent("Open with") {
+                    Text("Add a Gmail account")
                 }
-                accountControlRows(for: state, showsMultiAccountHint: true)
             } header: {
-                Text(state.account.email)
+                Text("Webmail")
             } footer: {
-                settingsFooter(accountDetailText(for: state))
+                settingsFooter("Webmail routing is configured per Gmail account.")
+            }
+        } else {
+            ForEach(appState.accounts) { state in
+                Section {
+                    AccountWebmailSettingsView(
+                        appState: appState,
+                        accountState: state
+                    )
+                } header: {
+                    Text("Open \(state.account.email)")
+                } footer: {
+                    settingsFooter(webmailFooterText(for: state))
+                }
             }
         }
     }
 
     @ViewBuilder
-    private func accountIdentityRows(for state: AccountRuntimeState, includeEmail: Bool) -> some View {
-        if includeEmail {
+    private var oauthSetupSection: some View {
+        if let setupMessage = appState.oauthSetupMessage {
+            Section {
+                OAuthSetupPanel(details: setupMessage)
+            } header: {
+                Text("Google OAuth Setup")
+            } footer: {
+                settingsFooter("Mailbell uses your local Google Desktop OAuth client for Gmail IMAP access.")
+            }
+        }
+    }
+
+    private var aboutAppSection: some View {
+        Section {
+            LabeledContent("App") {
+                Text("Mailbell")
+            }
+
+            LabeledContent("Version") {
+                Text(appVersionText)
+            }
+
+            LabeledContent("Bundle ID") {
+                Text(AppIdentity.bundleIdentifier)
+                    .textSelection(.enabled)
+            }
+        } header: {
+            Text("About")
+        } footer: {
+            settingsFooter("Mailbell is a local macOS menu bar notifier for Gmail.")
+        }
+    }
+
+    private var aboutSupportSection: some View {
+        Section {
+            if let readmeURL = SetupGuide.readmeURL {
+                Button("Open Setup Guide") {
+                    NSWorkspace.shared.open(readmeURL)
+                }
+            }
+        } header: {
+            Text("Support")
+        } footer: {
+            settingsFooter("The setup guide explains local OAuth credentials, IMAP access, and troubleshooting.")
+        }
+    }
+
+    private func accountIdentityRows(for state: AccountRuntimeState) -> some View {
+        Group {
             LabeledContent("Email") {
                 Text(state.account.email)
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .textSelection(.enabled)
             }
-        }
 
-        LabeledContent("Status") {
-            Text(AccountPresentation.statusText(for: state))
-        }
-    }
-
-    @ViewBuilder
-    private func accountControlRows(
-        for state: AccountRuntimeState,
-        showsMultiAccountHint: Bool
-    ) -> some View {
-        Toggle(
-            "Enable account",
-            isOn: Binding(
-                get: { state.account.isEnabled },
-                set: { appState.setAccountEnabled($0, accountID: state.account.id) }
-            )
-        )
-
-        LabeledContent("Actions") {
-            ControlGroup {
-                Button("Open Gmail") {
-                    appState.openGmail(accountID: state.account.id)
-                }
-
-                Button("Refresh Gmail") {
-                    appState.refreshMailNow()
-                }
-                .disabled(!state.account.isEnabled || appState.isAuthorizing)
-
-                AccountActionsMenu(appState: appState, accountState: state)
+            LabeledContent("Status") {
+                Text(AccountPresentation.statusText(for: state))
             }
-        }
-
-        AccountWebmailSettingsView(
-            appState: appState,
-            accountState: state,
-            showsAccountIsolationHint: showsMultiAccountHint
-        )
-
-        if let error = state.lastError {
-            accountErrorLabel(error)
         }
     }
 
@@ -488,17 +619,6 @@ struct SettingsView: View {
         .help(appState.isAuthorizing ? "Complete Google sign-in in your browser." : "Add a Gmail account.")
     }
 
-    private func accountErrorLabel(_ message: String) -> some View {
-        Label(message, systemImage: "exclamationmark.triangle.fill")
-            .textSelection(.enabled)
-    }
-
-    private func refreshMessageLabel(_ message: String) -> some View {
-        Label(message, systemImage: "arrow.clockwise")
-            .foregroundStyle(.secondary)
-            .textSelection(.enabled)
-    }
-
     private func settingsFooter(_ text: String) -> some View {
         Text(text)
             .font(.footnote)
@@ -506,18 +626,67 @@ struct SettingsView: View {
             .textSelection(.enabled)
     }
 
-    private func accountDetailText(for state: AccountRuntimeState) -> String {
-        "\(state.account.providerID.displayName) · \(AccountPresentation.detailText(for: state))"
+    @ViewBuilder
+    private var notificationActionsFooter: some View {
+        if appState.isSendingTestNotification {
+            ProgressView("Sending test notification...")
+        } else {
+            settingsFooter(notificationActionsFooterText)
+        }
     }
 
-    private var accountEmptyDetail: String {
-        if appState.oauthSetupMessage != nil {
-            return "Set up your local Google OAuth credentials before adding an account."
+    private var notificationActionsFooterText: String {
+        if let message = appState.notificationTestMessage {
+            return message
         }
+        return "Use Refresh Status after changing notification settings in macOS."
+    }
+
+    private var accountCountText: String {
+        "\(appState.accounts.count) \(appState.accounts.count == 1 ? "account" : "accounts")"
+    }
+
+    private var accountOverviewFooterText: String {
+        var lines = [refreshHelpText]
+        if let message = appState.manualRefreshMessage {
+            lines = [message]
+        }
+        if let error = appState.lastError {
+            lines.append(error)
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    private var refreshHelpText: String {
         if appState.isAuthorizing {
             return "Complete Google sign-in in your browser."
         }
-        return "Add a Gmail account to start watching Inbox."
+        if appState.canRequestManualRefresh {
+            return "Refresh Gmail requests a reconnect and reconciles pending mail with Gmail unread state."
+        }
+        return "Enable a Gmail account before refreshing."
+    }
+
+    private func accountFooterText(for state: AccountRuntimeState) -> String {
+        var lines = [accountDetailText(for: state)]
+        if let error = state.lastError {
+            lines.append(error)
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    private func webmailFooterText(for state: AccountRuntimeState) -> String {
+        var lines = [
+            "Choose the browser or Chrome profile already signed in to \(state.account.email)."
+        ]
+        if let error = state.webmailOpenError {
+            lines.append(error)
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    private func accountDetailText(for state: AccountRuntimeState) -> String {
+        "\(state.account.providerID.displayName) · \(AccountPresentation.detailText(for: state))"
     }
 
     private var notificationSettingsDetail: String {
@@ -534,6 +703,19 @@ struct SettingsView: View {
 
     private var notificationNeedsAttention: Bool {
         !appState.notificationAuthorizationState.canPostAlert
+    }
+
+    private func notificationSettingStatus(setting: UNNotificationSetting) -> String {
+        switch setting {
+        case .enabled:
+            "Enabled"
+        case .disabled:
+            "Disabled"
+        case .notSupported:
+            "Not supported"
+        @unknown default:
+            "Unavailable"
+        }
     }
 
     private func notificationSettingStatus(label: String, setting: UNNotificationSetting) -> String {
@@ -561,5 +743,19 @@ struct SettingsView: View {
 
     private func pendingCount(accountID: UUID) -> Int {
         appState.emailStoreItems.filter { $0.accountID == accountID }.count
+    }
+
+    private var appVersionText: String {
+        let info = Bundle.main.infoDictionary
+        let version = (info?["CFBundleShortVersionString"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let build = (info?["CFBundleVersion"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let displayVersion = version?.isEmpty == false ? version! : "Development"
+        guard let build, !build.isEmpty, build != displayVersion else {
+            return displayVersion
+        }
+        return "\(displayVersion) (\(build))"
     }
 }

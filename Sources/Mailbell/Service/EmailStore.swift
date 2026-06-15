@@ -185,7 +185,12 @@ final class EmailStore {
         for header in headers {
             let id = EmailStoreIdentity.id(accountID: account.id, header: header)
             guard !persistence.isHandled(id) else { continue }
-            nextItems[id] = previousItems[id] ?? makeItem(id: id, header: header, account: account)
+            nextItems[id] = makeItem(
+                id: id,
+                header: header,
+                account: account,
+                receivedAt: previousItems[id]?.receivedAt ?? now()
+            )
         }
 
         guard nextItems != itemsByID else { return false }
@@ -228,7 +233,12 @@ final class EmailStore {
         return previousItems != itemsByID
     }
 
-    private func makeItem(id: String, header: MessageHeader, account: MailAccount) -> EmailStoreItem {
+    private func makeItem(
+        id: String,
+        header: MessageHeader,
+        account: MailAccount,
+        receivedAt: Date? = nil
+    ) -> EmailStoreItem {
         EmailStoreItem(
             id: id,
             accountID: account.id,
@@ -240,7 +250,7 @@ final class EmailStore {
             time: EmailHeaderFormatter.timeText(for: header),
             webmailURL: MailProviderRegistry.provider(for: account.providerID)
                 .webmailURL(for: header, account: account),
-            receivedAt: now()
+            receivedAt: receivedAt ?? now()
         )
     }
 }

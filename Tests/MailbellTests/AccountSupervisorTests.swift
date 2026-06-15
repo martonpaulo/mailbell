@@ -179,6 +179,22 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
+    func testUnreadSyncRemovesExternallyReadPendingAndUpdatesMenuIcon() async throws {
+        let (supervisor, account) = makeSupervisor()
+        let header = makeHeader(uid: 1, subject: "Read in Gmail", gmMessageId: "read-in-gmail")
+
+        let didAdmit = await supervisor.monitor(account.id, shouldNotify: header)
+        XCTAssertTrue(didAdmit)
+        XCTAssertEqual(supervisor.emailStoreItems.count, 1)
+        XCTAssertEqual(supervisor.menuBarIconSystemImage, "bell.fill")
+
+        await supervisor.monitor(account.id, didSyncUnread: [])
+
+        XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
+        XCTAssertEqual(supervisor.menuBarIconSystemImage, "bell")
+    }
+
+    @MainActor
     func testNotificationOpenActionRemovesEmailFromStore() async throws {
         var openedURLs: [URL] = []
         var openedAccountIDs: [UUID?] = []

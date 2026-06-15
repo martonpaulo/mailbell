@@ -102,6 +102,43 @@ final class EmailStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testUnreadSyncIsIdempotentForSameProviderState() {
+        let store = makeStore()
+        let account = makeAccount()
+        let header = makeHeader(uid: 1, subject: "Still unread", gmMessageId: "still-unread")
+
+        XCTAssertTrue(store.replaceUnread(headers: [header], account: account))
+        XCTAssertFalse(store.replaceUnread(headers: [header], account: account))
+        XCTAssertEqual(store.items.map(\.title), ["Still unread"])
+    }
+
+    @MainActor
+    func testUnreadSyncUpdatesExistingItemFromCurrentProviderHeader() throws {
+        let store = makeStore()
+        let account = makeAccount()
+        let inboxHeader = makeHeader(uid: 1, subject: "Inbox", gmMessageId: "same-message")
+        let spamHeader = makeHeader(
+            uid: 42,
+            mailbox: .spam,
+            mailboxName: "[Gmail]/Spam",
+            subject: "Moved to spam",
+            gmMessageId: "same-message"
+        )
+
+        XCTAssertTrue(store.replaceUnread(headers: [inboxHeader], account: account))
+        let original = try XCTUnwrap(store.items.first)
+
+        XCTAssertTrue(store.replaceUnread(headers: [spamHeader], account: account))
+
+        let updated = try XCTUnwrap(store.items.first)
+        XCTAssertEqual(updated.id, original.id)
+        XCTAssertEqual(updated.receivedAt, original.receivedAt)
+        XCTAssertEqual(updated.title, "Moved to spam")
+        XCTAssertEqual(updated.mailbox, .spam)
+        XCTAssertEqual(updated.imapIdentity, IMAPMessageIdentity(uid: 42, mailboxName: "[Gmail]/Spam"))
+    }
+
+    @MainActor
     func testDuplicateEmailsAreDeduplicatedByStableID() {
         let store = makeStore()
         let account = makeAccount()

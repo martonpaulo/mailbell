@@ -28,7 +28,7 @@ final class IMAPClient {
         }
     }
 
-    enum IdleEvent {
+    enum IdleEvent: Equatable {
         case newMessages(exists: Int)
         case timedOut
     }
@@ -206,6 +206,11 @@ final class IMAPClient {
     /// Returns unread message UIDs in the selected mailbox.
     func searchUnreadUIDs() async throws -> [Int] {
         try await searchUIDs(criteria: "UNSEEN")
+    }
+
+    /// Returns unread message UIDs in `[fromUID, *]` without fetching header payloads.
+    func searchUnreadUIDs(fromUID: Int) async throws -> [Int] {
+        try await searchUIDs(criteria: "UID \(max(fromUID, 1)):* UNSEEN")
     }
 
     private func searchUIDs(criteria: String) async throws -> [Int] {

@@ -42,6 +42,16 @@ final class IMAPClientTests: XCTestCase {
 
         XCTAssertTrue(sequenceSet.isEmpty)
     }
+
+    func testSearchUnreadUIDsFromUIDScopesUnreadSearch() async throws {
+        let connection = ScriptedIMAPConnection(lines: ["* SEARCH 42 43", "A0001 OK SEARCH completed"])
+        let client = IMAPClient(connection: connection)
+
+        let uids = try await client.searchUnreadUIDs(fromUID: 42)
+
+        XCTAssertEqual(uids, [42, 43])
+        XCTAssertEqual(connection.sentLines, ["A0001 UID SEARCH UID 42:* UNSEEN"])
+    }
 }
 
 private final class ScriptedIMAPConnection: IMAPClientTransport, @unchecked Sendable {

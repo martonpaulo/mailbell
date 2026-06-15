@@ -125,7 +125,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
                 try await client.authenticate(email: email, accessToken: accessToken)
                 let mailboxes = try await monitoredMailboxes(client: client)
                 try await reconcileCheckpoints(client: client, mailboxes: mailboxes)
-                try await syncUnreadStore(client: client, mailboxes: mailboxes)
+                try await reconcileUnreadState(client: client, mailboxes: mailboxes)
                 try await selectInbox(client: client)
 
                 backoff = 1
@@ -163,22 +163,30 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     }
 
     private func idleLoop(client: IMAPClient, mailboxes: [MonitoredMailbox]) async throws {
-        // Catch up on anything that arrived before this connection settled.
-        try await fetchAndNotify(client: client, mailboxes: mailboxes)
-        try await selectInbox(client: client)
-
         while !Task.isCancelled {
             let event = try await client.idle(timeout: idleTimeout)
-            switch event {
-            case .timedOut:
-                try await fetchAndNotify(client: client, mailboxes: mailboxes)
-                try await selectInbox(client: client)
+            try await handleIdleCycle(event: event, client: client, mailboxes: mailboxes)
+            if event == .timedOut {
                 continue // re-arm IDLE
-            case .newMessages:
-                try await fetchAndNotify(client: client, mailboxes: mailboxes)
-                try await selectInbox(client: client)
             }
         }
+    }
+
+    func handleIdleCycle(
+        event: IMAPClient.IdleEvent,
+        client: IMAPClient,
+        mailboxes: [MonitoredMailbox]
+    ) async throws {
+        switch event {
+        case .timedOut, .newMessages:
+            try await reconcileUnreadState(client: client, mailboxes: mailboxes)
+            try await selectInbox(client: client)
+        }
+    }
+
+    func reconcileUnreadState(client: IMAPClient, mailboxes: [MonitoredMailbox]) async throws {
+        try await fetchAndNotify(client: client, mailboxes: mailboxes)
+        try await syncUnreadStore(client: client, mailboxes: mailboxes)
     }
 
     private func fetchAndNotify(client: IMAPClient, mailboxes: [MonitoredMailbox]) async throws {
@@ -186,7 +194,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
             try await client.selectMailbox(mailbox.name)
             let lastSeenUID = lastSeenUID(for: mailbox.role)
             let from = max(lastSeenUID + 1, 1)
-            let uids = try await client.searchUIDs(fromUID: from)
+            let uids = try await client.searchUnreadUIDs(fromUID: from)
             let plan = Self.notificationPlan(uids: uids, lastSeenUID: lastSeenUID)
             let headers = try await client.fetchHeaders(uids: plan.uidsToFetch)
                 .map { $0.assigningMailbox(mailbox.role, name: mailbox.name) }
