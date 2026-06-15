@@ -14,6 +14,9 @@ final class AccountPresentationTests: XCTestCase {
     func testPendingCopyDoesNotClaimGmailUnreadState() {
         XCTAssertEqual(PendingCopy.menuSectionTitle, "Pending")
         XCTAssertEqual(PendingCopy.emptyMenuTitle, "No pending emails")
+        XCTAssertEqual(PendingCopy.openActionTitle, "Open")
+        XCTAssertEqual(PendingCopy.markAsReadActionTitle, "Mark as Read")
+        XCTAssertEqual(PendingCopy.dismissActionTitle, "Dismiss")
         XCTAssertEqual(PendingCopy.menuBarAccessibilityLabel(count: 2), "Mailbell, 2 pending emails")
         XCTAssertEqual(PendingCopy.menuBarAccessibilityLabel(count: 2, showsCount: false), "Mailbell")
     }

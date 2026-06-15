@@ -3,6 +3,9 @@ import Foundation
 enum PendingCopy {
     static let menuSectionTitle = "Pending"
     static let emptyMenuTitle = "No pending emails"
+    static let openActionTitle = "Open"
+    static let markAsReadActionTitle = "Mark as Read"
+    static let dismissActionTitle = "Dismiss"
 
     static func countText(_ count: Int) -> String {
         "\(count) pending"

@@ -8,21 +8,23 @@ protocol AccountSupervisorDelegate: AnyObject {
 }
 
 typealias AccountMonitorFactory = (MailAccount, OAuthConfig, Bool) -> any AccountMonitoring
+typealias EmailReadMarker = (MailAccount, OAuthConfig, IMAPMessageIdentity) async throws -> Void
 
 @MainActor
 final class AccountSupervisor {
     weak var delegate: AccountSupervisorDelegate?
 
-    private let configProvider: () throws -> OAuthConfig
+    let configProvider: () throws -> OAuthConfig
     let accountStore: AccountStore
     let emailStore: EmailStore
     private let monitorFactory: AccountMonitorFactory
+    let emailReadMarker: EmailReadMarker
     let webmailOpen: @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome
     var accounts: [MailAccount]
     private var includeSpam: Bool
     private var monitors: [UUID: any AccountMonitoring] = [:]
     var statuses: [UUID: MonitorStatus] = [:]
-    private var connectionErrors: [UUID: String] = [:]
+    var connectionErrors: [UUID: String] = [:]
     private var notificationErrors: [UUID: String] = [:]
     var webmailOpenErrors: [UUID: String] = [:]
     private var isAuthenticating = false
@@ -41,6 +43,7 @@ final class AccountSupervisor {
         monitorFactory: @escaping AccountMonitorFactory = { account, config, includeSpam in
             MailMonitor(account: account, config: config, includeSpam: includeSpam)
         },
+        emailReadMarker: @escaping EmailReadMarker = IMAPMessageReadMarker.markAsRead,
         webmailOpen: @escaping @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome = { url, account in
             await WebmailOpener.open(url: url, account: account)
         }
@@ -50,6 +53,7 @@ final class AccountSupervisor {
         self.emailStore = emailStore
         self.includeSpam = includeSpam
         self.monitorFactory = monitorFactory
+        self.emailReadMarker = emailReadMarker
         self.webmailOpen = webmailOpen
         accounts = accountStore.loadAccounts()
         setupNetworkMonitoring()

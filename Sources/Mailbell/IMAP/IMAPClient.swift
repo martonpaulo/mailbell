@@ -1,5 +1,14 @@
 import Foundation
 
+protocol IMAPClientTransport: Sendable {
+    func connect() async throws
+    func cancel()
+    func send(_ line: String) async throws
+    func sendRaw(_ text: String) async throws
+    func readLine() async throws -> String
+    func readBytes(_ count: Int) async throws -> Data
+}
+
 /// High-level Gmail IMAP client: XOAUTH2 auth, mailbox select, IDLE, and header
 /// fetch. Built on top of the line-oriented `IMAPConnection`.
 final class IMAPClient {
@@ -7,12 +16,14 @@ final class IMAPClient {
         case authFailed(String)
         case selectFailed(String)
         case unexpected(String)
+        case invalidUID(Int)
 
         var errorDescription: String? {
             switch self {
             case let .authFailed(detail): "IMAP authentication failed: \(detail)"
             case let .selectFailed(detail): "IMAP SELECT failed: \(detail)"
             case let .unexpected(detail): "Unexpected IMAP response: \(detail)"
+            case let .invalidUID(uid): "Invalid IMAP UID: \(uid)"
             }
         }
     }
@@ -44,12 +55,16 @@ final class IMAPClient {
         }
     }
 
-    private let connection: IMAPConnection
+    private let connection: any IMAPClientTransport
     private var tagCounter = 0
     private static let headerFields = "BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)]"
 
     init(host: String = "imap.gmail.com", port: UInt16 = 993) {
         connection = IMAPConnection(host: host, port: port)
+    }
+
+    init(connection: any IMAPClientTransport) {
+        self.connection = connection
     }
 
     private func nextTag() -> String {
@@ -236,6 +251,21 @@ final class IMAPClient {
             }
         }
         return headers
+    }
+
+    func markAsRead(uid: Int) async throws {
+        guard uid > 0 else { throw IMAPError.invalidUID(uid) }
+
+        let tag = nextTag()
+        try await connection.send("\(tag) UID STORE \(uid) +FLAGS.SILENT (\\Seen)")
+
+        while true {
+            let line = try await connection.readLine()
+            if line.hasPrefix("\(tag) OK") { return }
+            if line.hasPrefix("\(tag) NO") || line.hasPrefix("\(tag) BAD") {
+                throw IMAPError.unexpected(line)
+            }
+        }
     }
 
     static func uidSequenceSet(for uids: [Int]) -> String {

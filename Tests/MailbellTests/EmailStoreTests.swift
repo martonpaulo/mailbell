@@ -13,6 +13,8 @@ final class EmailStoreTests: XCTestCase {
         XCTAssertEqual(store.items.count, 1)
         XCTAssertEqual(store.items.first?.title, "Subject")
         XCTAssertEqual(store.items.first?.sender, "Sender <sender@example.com>")
+        XCTAssertEqual(store.items.first?.imapIdentity, IMAPMessageIdentity(uid: 1, mailboxName: "INBOX"))
+        XCTAssertTrue(store.items.first?.canMarkAsRead == true)
     }
 
     @MainActor
@@ -41,6 +43,22 @@ final class EmailStoreTests: XCTestCase {
         let store = makeStore(defaults: defaults)
         XCTAssertTrue(store.admit(header: header, account: account))
         store.markOpened(id: id)
+
+        let relaunchedStore = makeStore(defaults: defaults)
+        XCTAssertFalse(relaunchedStore.admit(header: header, account: account))
+        XCTAssertTrue(relaunchedStore.items.isEmpty)
+    }
+
+    @MainActor
+    func testMarkedReadEmailIsExcludedAfterRelaunch() {
+        let defaults = makeDefaults()
+        let account = makeAccount()
+        let header = makeHeader(gmMessageId: "1005")
+        let id = EmailStoreIdentity.id(accountID: account.id, header: header)
+
+        let store = makeStore(defaults: defaults)
+        XCTAssertTrue(store.admit(header: header, account: account))
+        store.markRead(id: id)
 
         let relaunchedStore = makeStore(defaults: defaults)
         XCTAssertFalse(relaunchedStore.admit(header: header, account: account))
@@ -121,6 +139,33 @@ final class EmailStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testPendingItemKeepsUIDAndSelectedMailboxNameTogether() throws {
+        let store = makeStore()
+        let account = makeAccount()
+        let header = makeHeader(uid: 42, mailbox: .spam, mailboxName: "[Gmail]/Spam", gmMessageId: "spam-uid")
+
+        XCTAssertTrue(store.admit(header: header, account: account))
+
+        let item = try XCTUnwrap(store.items.first)
+        XCTAssertEqual(item.mailbox, .spam)
+        XCTAssertEqual(item.imapIdentity, IMAPMessageIdentity(uid: 42, mailboxName: "[Gmail]/Spam"))
+        XCTAssertTrue(item.canMarkAsRead)
+    }
+
+    @MainActor
+    func testPendingItemWithoutPositiveUIDCannotBeMarkedAsRead() throws {
+        let store = makeStore()
+        let account = makeAccount()
+        let header = makeHeader(uid: 0, gmMessageId: "legacy")
+
+        XCTAssertTrue(store.admit(header: header, account: account))
+
+        let item = try XCTUnwrap(store.items.first)
+        XCTAssertNil(item.imapIdentity)
+        XCTAssertFalse(item.canMarkAsRead)
+    }
+
+    @MainActor
     func testRemoveSpamItemsKeepsInboxItems() {
         let store = makeStore()
         let account = makeAccount()
@@ -152,6 +197,8 @@ final class EmailStoreTests: XCTestCase {
         store.dismiss(id: id)
         store.markOpened(id: id)
         store.markOpened(id: id)
+        store.markRead(id: id)
+        store.markRead(id: id)
 
         XCTAssertTrue(store.items.isEmpty)
 
@@ -216,6 +263,7 @@ final class EmailStoreTests: XCTestCase {
     private func makeHeader(
         uid: Int = 1,
         mailbox: MessageMailbox = .inbox,
+        mailboxName: String? = nil,
         subject: String = "Subject",
         gmMessageId: String? = nil,
         gmThreadId: String? = nil,
@@ -224,6 +272,7 @@ final class EmailStoreTests: XCTestCase {
         MessageHeader(
             uid: uid,
             mailbox: mailbox,
+            mailboxName: mailboxName,
             from: "Sender <sender@example.com>",
             subject: subject,
             date: "Tue, 02 Jun 2026 12:00:00 +0000",

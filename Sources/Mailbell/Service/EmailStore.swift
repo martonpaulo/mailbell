@@ -5,11 +5,16 @@ struct EmailStoreItem: Identifiable, Equatable {
     let accountID: UUID
     let accountEmail: String
     let mailbox: MessageMailbox
+    let imapIdentity: IMAPMessageIdentity?
     let title: String
     let sender: String
     let time: String
     let webmailURL: URL
     let receivedAt: Date
+
+    var canMarkAsRead: Bool {
+        imapIdentity != nil
+    }
 }
 
 enum EmailStoreIdentity {
@@ -53,6 +58,7 @@ enum EmailStoreIdentity {
 
 enum EmailStoreDisposition: String, Codable, Equatable {
     case dismissed
+    case markedRead
     case opened
 }
 
@@ -201,6 +207,11 @@ final class EmailStore {
         itemsByID[id] = nil
     }
 
+    func markRead(id: String) {
+        persistence.mark(id, disposition: .markedRead)
+        itemsByID[id] = nil
+    }
+
     func removeAccount(accountID: UUID) {
         let prefix = EmailStoreIdentity.accountPrefix(accountID: accountID)
         itemsByID = itemsByID.filter { id, _ in
@@ -223,6 +234,7 @@ final class EmailStore {
             accountID: account.id,
             accountEmail: account.email,
             mailbox: header.mailbox,
+            imapIdentity: IMAPMessageIdentity(uid: header.uid, mailboxName: header.mailboxName),
             title: EmailHeaderFormatter.title(for: header),
             sender: EmailHeaderFormatter.senderDetail(from: header.from),
             time: EmailHeaderFormatter.timeText(for: header),

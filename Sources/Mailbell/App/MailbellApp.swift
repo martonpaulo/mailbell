@@ -78,7 +78,7 @@ struct MenuContent: View {
         Button {
             appState.refreshMailNow()
         } label: { Text("Refresh Gmail") }
-        .disabled(!appState.canRequestManualRefresh)
+            .disabled(!appState.canRequestManualRefresh)
 
         Divider()
 
@@ -159,13 +159,17 @@ struct MenuContent: View {
                         }
                         Label(email.time, systemImage: "clock")
                         Divider()
-                        Button("Open") {
+                        Button(PendingCopy.openActionTitle) {
                             appState.openEmail(id: email.id)
                         }
+                        Button(PendingCopy.markAsReadActionTitle) {
+                            appState.markEmailAsRead(id: email.id)
+                        }
+                        .disabled(!email.canMarkAsRead)
                         Button {
                             appState.dismissEmail(id: email.id)
                         } label: {
-                            Text("Dismiss")
+                            Text(PendingCopy.dismissActionTitle)
                         }
                     } label: {
                         Label(email.title, systemImage: "envelope")

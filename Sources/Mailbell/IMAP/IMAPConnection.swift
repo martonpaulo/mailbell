@@ -6,7 +6,7 @@ import Network
 /// Provides `readLine` for CRLF-terminated protocol lines and `readBytes` for
 /// IMAP literals (`{n}`). All reads are fed from a single buffer that is topped
 /// up from the network as needed.
-final class IMAPConnection: @unchecked Sendable {
+final class IMAPConnection: IMAPClientTransport, @unchecked Sendable {
     enum ConnectionError: Error {
         case notReady(String)
         case closed

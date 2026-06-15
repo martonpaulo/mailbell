@@ -35,10 +35,8 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
 
     private(set) var account: MailAccount
     private var includeSpam: Bool
-    private let config: OAuthConfig
-    private let store: TokenStore
     private var checkpoints: [MessageMailbox: CheckpointStore]
-    private let oauth: OAuthClient
+    private let tokenProvider: AccountTokenProvider
 
     private var client: IMAPClient?
     private var runTask: Task<Void, Never>?
@@ -49,14 +47,12 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     init(account: MailAccount, config: OAuthConfig, includeSpam: Bool = false) {
         self.account = account
         self.includeSpam = includeSpam
-        self.config = config
-        store = TokenStore(accountID: account.id, providerID: account.providerID)
         checkpoints = Self.checkpoints(accountID: account.id)
-        oauth = OAuthClient(config: config)
+        tokenProvider = AccountTokenProvider(accountID: account.id, providerID: account.providerID, config: config)
     }
 
     var hasSession: Bool {
-        store.hasSession
+        tokenProvider.hasSession
     }
 
     func updateAccount(_ account: MailAccount) {
@@ -82,7 +78,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
         client?.disconnect()
         client = nil
         if clearSession {
-            store.clear()
+            tokenProvider.clear()
             for checkpoint in checkpoints.values {
                 checkpoint.reset()
             }
@@ -99,7 +95,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     /// Requests an immediate gap-fill using the existing run loop. If a client is
     /// in IDLE, dropping it makes the retained run loop reconnect and fetch.
     func refreshNow() {
-        guard account.isEnabled, store.hasSession else { return }
+        guard account.isEnabled, tokenProvider.hasSession else { return }
         guard client != nil else {
             start()
             return
@@ -193,7 +189,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
             let uids = try await client.searchUIDs(fromUID: from)
             let plan = Self.notificationPlan(uids: uids, lastSeenUID: lastSeenUID)
             let headers = try await client.fetchHeaders(uids: plan.uidsToFetch)
-                .map { $0.assigningMailbox(mailbox.role) }
+                .map { $0.assigningMailbox(mailbox.role, name: mailbox.name) }
                 .sorted { $0.uid < $1.uid }
             for header in headers {
                 let shouldNotify = await delegate?.monitor(account.id, shouldNotify: header) ?? true
@@ -211,7 +207,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
             try await client.selectMailbox(mailbox.name)
             let uids = try await client.searchUnreadUIDs()
             let mailboxHeaders = try await client.fetchHeaders(uids: uids)
-                .map { $0.assigningMailbox(mailbox.role) }
+                .map { $0.assigningMailbox(mailbox.role, name: mailbox.name) }
             headers.append(contentsOf: mailboxHeaders)
         }
         await delegate?.monitor(account.id, didSyncUnread: headers)
@@ -245,20 +241,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     // MARK: - Tokens
 
     private func validAccessToken() async throws -> String {
-        guard let tokens = store.loadTokens(), let refresh = tokens.refreshToken else {
-            throw OAuthClient.OAuthError.noRefreshToken
-        }
-        if tokens.isAccessTokenValid, !tokens.accessToken.isEmpty {
-            return tokens.accessToken
-        }
-        let refreshed = try await oauth.refresh(refreshToken: refresh)
-        do {
-            try store.save(tokens: refreshed)
-        } catch {
-            Log.error("Failed to save refreshed token: \(error.localizedDescription)")
-            throw OAuthClient.OAuthError.refreshUnavailable("Could not save refreshed token.")
-        }
-        return refreshed.accessToken
+        try await tokenProvider.validAccessToken()
     }
 
     // MARK: - Checkpoint / gap fill

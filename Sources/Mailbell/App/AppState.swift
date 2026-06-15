@@ -137,6 +137,12 @@ final class AppState: ObservableObject {
         }
     }
 
+    func markEmailAsRead(id: String) {
+        Task {
+            await supervisor.markEmailAsRead(id: id)
+        }
+    }
+
     func dismissEmail(id: String) {
         supervisor.dismissEmail(id: id)
     }
