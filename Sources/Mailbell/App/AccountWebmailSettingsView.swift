@@ -13,7 +13,7 @@ struct AccountWebmailSettingsView: View {
 
     var body: some View {
         Group {
-            LabeledContent("Open with") {
+            LabeledContent {
                 Picker("Open with", selection: $selectedBrowserID) {
                     ForEach(browserOptions) { browser in
                         Text(browserLabel(for: browser)).tag(browser.id)
@@ -24,6 +24,10 @@ struct AccountWebmailSettingsView: View {
                 .onChange(of: selectedBrowserID) {
                     userChangedPreference()
                 }
+            } label: {
+                Text(AccountPresentation.webmailOpenLabel(email: accountState.account.email))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
             }
 
             if selectedBrowserSupportsChromeProfiles {

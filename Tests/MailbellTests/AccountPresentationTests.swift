@@ -31,6 +31,13 @@ final class AccountPresentationTests: XCTestCase {
         XCTAssertEqual(AccountPresentation.statusText(for: state(status: .reauthRequired)), "Sign in needed")
     }
 
+    func testWebmailOpenLabelIncludesAccountEmailInSingleLineCopy() {
+        XCTAssertEqual(
+            AccountPresentation.webmailOpenLabel(email: "user@example.com"),
+            "Open user@example.com with"
+        )
+    }
+
     private func state(
         email: String = "user@example.com",
         status: MonitorStatus,

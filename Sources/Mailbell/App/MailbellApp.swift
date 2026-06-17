@@ -549,13 +549,6 @@ struct SettingsView: View {
         } else {
             ForEach(appState.accounts) { state in
                 Section {
-                    LabeledContent("Account") {
-                        Text(state.account.email)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                            .textSelection(.enabled)
-                    }
-
                     AccountWebmailSettingsView(
                         appState: appState,
                         accountState: state
