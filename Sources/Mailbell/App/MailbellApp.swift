@@ -277,7 +277,6 @@ struct SettingsView: View {
                     Label(SettingsTab.about.title, systemImage: SettingsTab.about.systemImage)
                 }
         }
-        .tint(.mailbellAccent)
         .onAppear {
             refreshBehaviorState()
         }

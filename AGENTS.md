@@ -92,13 +92,6 @@ Preserve the IMAP IDLE reconnect model in `MailMonitor` or its direct successor:
 - Do not replace native controls with custom UI unless there is clear product value and accessibility is preserved.
 - Keep user-facing copy concise and consistent with nearby product language.
 
-## Design / Accent Color
-
-- Mailbell's app accent color is `#6D3EF2`.
-- Use the native `AccentColor` asset through `Color.mailbellAccent`, `NSColor.mailbellAccent`, or `.tint(.mailbellAccent)` for app identity, selected controls, links, and interactive emphasis.
-- Do not hardcode alternate app-accent colors or create duplicate purple color sources.
-- Do not use the accent color for semantic success, warning, error, destructive, disabled, or inactive states. Keep those on system semantic colors.
-
 ## Workflow Rules
 
 - Search first. Use `rg`/`rg --files` where available and read the smallest useful chunks.
