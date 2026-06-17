@@ -119,8 +119,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     nonisolated static func testNotificationContent(account: MailAccount?) -> UNMutableNotificationContent {
         let header = MessageHeader(
             uid: 0,
-            from: "Ana Silva <ana@example.com>",
-            subject: "Revisão do contrato hoje",
+            from: "Taylor Reed <taylor@example.com>",
+            subject: "Contract review today",
             date: "",
             gmThreadId: nil
         )
