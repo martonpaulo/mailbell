@@ -30,6 +30,7 @@ final class IMAPClient {
 
     enum IdleEvent: Equatable {
         case newMessages(exists: Int)
+        case mailboxChanged
         case timedOut
     }
 
@@ -178,17 +179,22 @@ final class IMAPClient {
         }
         defer { timeoutTask.cancel() }
 
-        var sawNewMessages = false
+        var event: IdleEvent?
         while true {
             let line = try await connection.readLine()
-            if IMAPParser.parseUntagged(line, suffix: "EXISTS") != nil {
-                sawNewMessages = true
+            if let exists = IMAPParser.parseUntagged(line, suffix: "EXISTS") {
+                event = .newMessages(exists: exists)
+                if await gate.claim() {
+                    try? await connection.sendRaw("DONE\r\n")
+                }
+            } else if Self.isFlagFetch(line) {
+                event = .mailboxChanged
                 if await gate.claim() {
                     try? await connection.sendRaw("DONE\r\n")
                 }
             }
             if line.hasPrefix("\(tag) OK") {
-                return sawNewMessages ? .newMessages(exists: 0) : .timedOut
+                return event ?? .timedOut
             }
             if line.hasPrefix("\(tag) NO") || line.hasPrefix("\(tag) BAD") {
                 throw IMAPError.unexpected(line)
@@ -301,6 +307,11 @@ final class IMAPClient {
 
     private static func quotedString(_ value: String) -> String {
         "\"\(value.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\""))\""
+    }
+
+    private static func isFlagFetch(_ line: String) -> Bool {
+        let uppercased = line.uppercased()
+        return line.hasPrefix("* ") && uppercased.contains("FETCH") && uppercased.contains("FLAGS")
     }
 
     private func parseFetch(_ firstLine: String) async throws -> MessageHeader? {

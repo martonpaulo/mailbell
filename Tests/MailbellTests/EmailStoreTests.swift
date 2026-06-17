@@ -66,25 +66,27 @@ final class EmailStoreTests: XCTestCase {
     }
 
     @MainActor
-    func testUnreadSyncAfterRelaunchExcludesHandledEmails() {
+    func testUnreadSyncAfterRelaunchExcludesDismissedAndRestoresProviderUnreadEmails() {
         let defaults = makeDefaults()
         let account = makeAccount()
         let dismissedHeader = makeHeader(uid: 1, gmMessageId: "dismissed")
-        let openedHeader = makeHeader(uid: 2, gmMessageId: "opened")
-        let unreadHeader = makeHeader(uid: 3, subject: "Unread", gmMessageId: "unread")
+        let openedHeader = makeHeader(uid: 2, subject: "Opened", gmMessageId: "opened")
+        let markedReadHeader = makeHeader(uid: 3, subject: "Marked Read", gmMessageId: "marked-read")
+        let unreadHeader = makeHeader(uid: 4, subject: "Unread", gmMessageId: "unread")
 
         let store = makeStore(defaults: defaults)
         store.dismiss(id: EmailStoreIdentity.id(accountID: account.id, header: dismissedHeader))
         store.markOpened(id: EmailStoreIdentity.id(accountID: account.id, header: openedHeader))
+        store.markRead(id: EmailStoreIdentity.id(accountID: account.id, header: markedReadHeader))
 
         let relaunchedStore = makeStore(defaults: defaults)
         let didChange = relaunchedStore.replaceUnread(
-            headers: [dismissedHeader, openedHeader, unreadHeader],
+            headers: [dismissedHeader, openedHeader, markedReadHeader, unreadHeader],
             account: account
         )
 
         XCTAssertTrue(didChange)
-        XCTAssertEqual(relaunchedStore.items.map(\.title), ["Unread"])
+        XCTAssertEqual(Set(relaunchedStore.items.map(\.title)), Set(["Opened", "Marked Read", "Unread"]))
     }
 
     @MainActor

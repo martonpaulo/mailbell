@@ -4,7 +4,7 @@ import XCTest
 
 final class MailMonitorReconciliationTests: XCTestCase {
     @MainActor
-    func testIdleTimeoutReconcilesProviderUnreadAndRemovesExternallyReadPending() async throws {
+    func testMailboxChangeReconcilesProviderUnreadAndRemovesExternallyReadPending() async throws {
         let account = MailAccount(providerID: .gmail, email: "account@example.com")
         let store = makeStore()
         let pendingHeader = makeHeader(uid: 1, gmMessageId: "externally-read")
@@ -24,7 +24,7 @@ final class MailMonitorReconciliationTests: XCTestCase {
         let client = IMAPClient(connection: connection)
 
         try await monitor.handleIdleCycle(
-            event: .timedOut,
+            event: .mailboxChanged,
             client: client,
             mailboxes: [MonitoredMailbox(role: .inbox, name: "INBOX")]
         )

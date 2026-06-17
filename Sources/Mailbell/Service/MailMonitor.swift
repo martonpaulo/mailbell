@@ -178,7 +178,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
         mailboxes: [MonitoredMailbox]
     ) async throws {
         switch event {
-        case .timedOut, .newMessages:
+        case .timedOut, .newMessages, .mailboxChanged:
             try await reconcileUnreadState(client: client, mailboxes: mailboxes)
             try await selectInbox(client: client)
         }

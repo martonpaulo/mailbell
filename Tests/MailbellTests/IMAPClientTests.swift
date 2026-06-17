@@ -3,6 +3,34 @@ import Foundation
 import XCTest
 
 final class IMAPClientTests: XCTestCase {
+    func testIdleReturnsMailboxChangedOnFlagUpdate() async throws {
+        let connection = ScriptedIMAPConnection(lines: [
+            "+ idling",
+            "* 23 FETCH (FLAGS (\\Seen))",
+            "A0001 OK IDLE completed"
+        ])
+        let client = IMAPClient(connection: connection)
+
+        let event = try await client.idle(timeout: 60)
+
+        XCTAssertEqual(event, .mailboxChanged)
+        XCTAssertEqual(connection.sentLines, ["A0001 IDLE", "DONE\r\n"])
+    }
+
+    func testIdleReturnsNewMessagesWithExistsCount() async throws {
+        let connection = ScriptedIMAPConnection(lines: [
+            "+ idling",
+            "* 7 EXISTS",
+            "A0001 OK IDLE completed"
+        ])
+        let client = IMAPClient(connection: connection)
+
+        let event = try await client.idle(timeout: 60)
+
+        XCTAssertEqual(event, .newMessages(exists: 7))
+        XCTAssertEqual(connection.sentLines, ["A0001 IDLE", "DONE\r\n"])
+    }
+
     func testMarkAsReadSendsSilentSeenStoreForUID() async throws {
         let connection = ScriptedIMAPConnection(lines: ["A0001 OK STORE completed"])
         let client = IMAPClient(connection: connection)

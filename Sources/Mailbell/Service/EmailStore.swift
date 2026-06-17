@@ -89,6 +89,10 @@ final class EmailStorePersistence {
         records()[id] != nil
     }
 
+    func suppressesUnreadSync(_ id: String) -> Bool {
+        records()[id]?.disposition == .dismissed
+    }
+
     func mark(_ id: String, disposition: EmailStoreDisposition) {
         var records = records()
         records[id] = EmailStoreRecord(id: id, disposition: disposition, updatedAt: now())
@@ -184,7 +188,7 @@ final class EmailStore {
 
         for header in headers {
             let id = EmailStoreIdentity.id(accountID: account.id, header: header)
-            guard !persistence.isHandled(id) else { continue }
+            guard !persistence.suppressesUnreadSync(id) else { continue }
             nextItems[id] = makeItem(
                 id: id,
                 header: header,
