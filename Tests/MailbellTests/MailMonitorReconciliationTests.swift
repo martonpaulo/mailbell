@@ -43,6 +43,47 @@ final class MailMonitorReconciliationTests: XCTestCase {
     }
 
     @MainActor
+    func testUnreadReconciliationFetchesOnlyUnknownUnreadUIDs() async throws {
+        let account = MailAccount(providerID: .gmail, email: "account@example.com")
+        let store = makeStore()
+        let pendingHeader = makeHeader(uid: 1, gmMessageId: "known-unread")
+        XCTAssertTrue(store.admit(header: pendingHeader, account: account))
+
+        let connection = ScriptedMonitorConnection(lines: [
+            "A0001 OK SELECT completed",
+            "* SEARCH",
+            "A0002 OK SEARCH completed",
+            "A0003 OK SELECT completed",
+            "* SEARCH 1 2 3",
+            "A0004 OK SEARCH completed",
+            "A0005 OK FETCH completed",
+            "A0006 OK SELECT completed"
+        ])
+        let (monitor, delegate) = makeMonitor(account: account, store: store)
+        _ = delegate
+        let client = IMAPClient(connection: connection)
+
+        try await monitor.handleIdleCycle(
+            event: .mailboxChanged,
+            client: client,
+            mailboxes: [MonitoredMailbox(role: .inbox, name: "INBOX")]
+        )
+
+        XCTAssertEqual(store.pendingUIDs(accountID: account.id, mailbox: .inbox), Set([1]))
+        XCTAssertEqual(
+            connection.sentLines,
+            [
+                #"A0001 SELECT "INBOX""#,
+                "A0002 UID SEARCH UID 1:* UNSEEN",
+                #"A0003 SELECT "INBOX""#,
+                "A0004 UID SEARCH UNSEEN",
+                "A0005 UID FETCH 2:3 (UID X-GM-MSGID X-GM-THRID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])",
+                #"A0006 SELECT "INBOX""#
+            ]
+        )
+    }
+
+    @MainActor
     func testIdleReconciliationFailureDoesNotClearPending() async throws {
         let account = MailAccount(providerID: .gmail, email: "account@example.com")
         let store = makeStore()
@@ -113,14 +154,30 @@ private final class ReconciliationDelegate: MailMonitorDelegate {
         self.store = store
     }
 
-    func monitor(_ accountID: UUID, didSyncUnread headers: [MessageHeader]) async {
-        guard accountID == account.id else { return }
-        _ = await store.replaceUnread(headers: headers, account: account)
+    func monitor(_ accountID: UUID, pendingUIDsFor mailbox: MessageMailbox) async -> Set<Int> {
+        guard accountID == account.id else { return [] }
+        return await store.pendingUIDs(accountID: account.id, mailbox: mailbox)
     }
 
-    func monitor(_ accountID: UUID, shouldNotify header: MessageHeader) async -> Bool {
-        guard accountID == account.id else { return false }
-        return await store.admit(header: header, account: account)
+    func monitor(
+        _ accountID: UUID,
+        didReconcileUnread snapshots: [MailboxUnreadSnapshot],
+        fetchedHeaders: [MessageHeader]
+    ) async {
+        guard accountID == account.id else { return }
+        _ = await store.reconcileUnread(snapshots: snapshots, fetchedHeaders: fetchedHeaders, account: account)
+    }
+
+    func monitor(_ accountID: UUID, shouldNotify headers: [MessageHeader]) async -> Set<IMAPMessageIdentity> {
+        guard accountID == account.id else { return [] }
+        var admittedIdentities = Set<IMAPMessageIdentity>()
+        for header in headers {
+            if await store.admit(header: header, account: account),
+               let identity = header.imapIdentity {
+                admittedIdentities.insert(identity)
+            }
+        }
+        return admittedIdentities
     }
 
     func monitor(_: UUID, didChangeStatus _: MonitorStatus, error _: String?) {}

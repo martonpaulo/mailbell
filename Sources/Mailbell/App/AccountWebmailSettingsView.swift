@@ -3,12 +3,11 @@ import SwiftUI
 struct AccountWebmailSettingsView: View {
     @ObservedObject var appState: AppState
     let accountState: AccountRuntimeState
+    let browsers: [BrowserCandidate]
+    let chromeProfiles: [ChromeProfileCandidate]
 
-    @State private var browsers: [BrowserCandidate] = []
-    @State private var chromeProfiles: [ChromeProfileCandidate] = []
     @State private var selectedBrowserID = BrowserCandidate.systemDefaultID
     @State private var selectedChromeProfileDirectory = ""
-    @State private var didLoadBrowsers = false
     @State private var isSyncingFromAccount = false
 
     var body: some View {
@@ -56,20 +55,18 @@ struct AccountWebmailSettingsView: View {
             }
 
         }
-        .task {
-            await loadBrowserDataIfNeeded()
+        .onAppear {
             syncFromAccount()
         }
         .onChange(of: accountState.account.webmailOpenPreference) {
             syncFromAccount()
         }
-    }
-
-    private var browserOptions: [BrowserCandidate] {
-        BrowserRegistry.browserOptions(
-            matching: accountState.account.webmailOpenPreference,
-            browsers: browsers
-        )
+        .onChange(of: browsers) {
+            syncFromAccount()
+        }
+        .onChange(of: chromeProfiles) {
+            syncFromAccount()
+        }
     }
 
     private var selectedBrowserCandidate: BrowserCandidate {
@@ -114,12 +111,11 @@ struct AccountWebmailSettingsView: View {
         return nil
     }
 
-    @MainActor
-    private func loadBrowserDataIfNeeded() async {
-        guard !didLoadBrowsers else { return }
-        didLoadBrowsers = true
-        browsers = BrowserRegistry.browsers()
-        chromeProfiles = await ChromeProfileStore.loadProfilesAsync()
+    private var browserOptions: [BrowserCandidate] {
+        BrowserRegistry.browserOptions(
+            matching: accountState.account.webmailOpenPreference,
+            browsers: browsers
+        )
     }
 
     private func syncFromAccount() {

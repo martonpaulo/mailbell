@@ -249,6 +249,9 @@ struct SettingsView: View {
     @ObservedObject var appState: AppState
     @State private var launchAtLogin = LoginItem.isEnabled
     @State private var loginItemStatus = LoginItem.status
+    @State private var webmailBrowsers: [BrowserCandidate] = []
+    @State private var chromeProfiles: [ChromeProfileCandidate] = []
+    @State private var didLoadWebmailOptions = false
 
     var body: some View {
         TabView {
@@ -313,6 +316,9 @@ struct SettingsView: View {
             oauthSetupSection
         }
         .formStyle(.grouped)
+        .task {
+            await loadWebmailOptionsIfNeeded()
+        }
     }
 
     private var aboutTab: some View {
@@ -551,7 +557,9 @@ struct SettingsView: View {
                 Section {
                     AccountWebmailSettingsView(
                         appState: appState,
-                        accountState: state
+                        accountState: state,
+                        browsers: webmailBrowsers,
+                        chromeProfiles: chromeProfiles
                     )
                 } header: {
                     Text("Gmail Opening")
@@ -804,6 +812,14 @@ struct SettingsView: View {
     private func refreshBehaviorState() {
         appState.refreshNotificationAuthorizationState()
         refreshLoginItemStatus()
+    }
+
+    @MainActor
+    private func loadWebmailOptionsIfNeeded() async {
+        guard !didLoadWebmailOptions else { return }
+        didLoadWebmailOptions = true
+        webmailBrowsers = BrowserRegistry.browsers()
+        chromeProfiles = await ChromeProfileStore.loadProfilesAsync()
     }
 
     private func refreshLoginItemStatus() {

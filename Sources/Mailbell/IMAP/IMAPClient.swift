@@ -59,6 +59,8 @@ final class IMAPClient {
     private let connection: any IMAPClientTransport
     private var tagCounter = 0
     private static let headerFields = "BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)]"
+    private static let maximumUIDsPerFetchCommand = 100
+    private static let maximumUIDFetchSequenceSetLength = 1_500
 
     init(host: String = "imap.gmail.com", port: UInt16 = 993) {
         connection = IMAPConnection(host: host, port: port)
@@ -239,6 +241,15 @@ final class IMAPClient {
 
     /// Fetches headers for a specific set of UIDs.
     func fetchHeaders(uids: [Int]) async throws -> [MessageHeader] {
+        var headers: [MessageHeader] = []
+        for batch in Self.uidFetchBatches(for: uids) {
+            let batchHeaders = try await fetchHeadersBatch(uids: batch)
+            headers.append(contentsOf: batchHeaders)
+        }
+        return headers
+    }
+
+    private func fetchHeadersBatch(uids: [Int]) async throws -> [MessageHeader] {
         let sequenceSet = Self.uidSequenceSet(for: uids)
         guard !sequenceSet.isEmpty else { return [] }
 
@@ -299,6 +310,29 @@ final class IMAPClient {
 
         ranges.append(sequenceRange(start: start, end: previous))
         return ranges.joined(separator: ",")
+    }
+
+    private static func uidFetchBatches(for uids: [Int]) -> [[Int]] {
+        let sortedUIDs = Array(Set(uids.filter { $0 > 0 })).sorted()
+        var batches: [[Int]] = []
+        var current: [Int] = []
+
+        for uid in sortedUIDs {
+            let candidate = current + [uid]
+            if !current.isEmpty,
+               (candidate.count > maximumUIDsPerFetchCommand
+                    || uidSequenceSet(for: candidate).count > maximumUIDFetchSequenceSetLength) {
+                batches.append(current)
+                current = [uid]
+            } else {
+                current = candidate
+            }
+        }
+
+        if !current.isEmpty {
+            batches.append(current)
+        }
+        return batches
     }
 
     private static func sequenceRange(start: Int, end: Int) -> String {

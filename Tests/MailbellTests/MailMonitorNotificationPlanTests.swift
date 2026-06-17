@@ -2,18 +2,23 @@
 import XCTest
 
 final class MailMonitorNotificationPlanTests: XCTestCase {
-    func testFetchPlanAdmitsAllFreshUIDsButNotifiesOnlyNewestUIDs() {
-        let uids = Array(101 ... 125)
+    func testFetchPlanLimitsHeaderFetchAndNotificationsToNewestUIDs() {
+        let uids = Array(101 ... 180)
 
-        let plan = MailMonitor.notificationPlan(uids: uids, lastSeenUID: 100, limit: 10)
+        let plan = MailMonitor.notificationPlan(
+            uids: uids,
+            lastSeenUID: 100,
+            notificationLimit: 10,
+            fetchLimit: 25
+        )
 
-        XCTAssertEqual(plan.uidsToFetch, Array(101 ... 125))
-        XCTAssertEqual(plan.uidsToNotify, Array(116 ... 125))
-        XCTAssertEqual(plan.lastSeenUID, 125)
+        XCTAssertEqual(plan.uidsToFetch, Array(156 ... 180))
+        XCTAssertEqual(plan.uidsToNotify, Array(171 ... 180))
+        XCTAssertEqual(plan.lastSeenUID, 180)
     }
 
     func testNotificationPlanIgnoresAlreadySeenUIDs() {
-        let plan = MailMonitor.notificationPlan(uids: [8, 10], lastSeenUID: 10, limit: 10)
+        let plan = MailMonitor.notificationPlan(uids: [8, 10], lastSeenUID: 10, notificationLimit: 10)
 
         XCTAssertTrue(plan.uidsToFetch.isEmpty)
         XCTAssertTrue(plan.uidsToNotify.isEmpty)
@@ -21,7 +26,11 @@ final class MailMonitorNotificationPlanTests: XCTestCase {
     }
 
     func testNotificationPlanDeduplicatesUIDsBeforeCapping() {
-        let plan = MailMonitor.notificationPlan(uids: [11, 12, 12, 13, 14], lastSeenUID: 10, limit: 3)
+        let plan = MailMonitor.notificationPlan(
+            uids: [11, 12, 12, 13, 14],
+            lastSeenUID: 10,
+            notificationLimit: 3
+        )
 
         XCTAssertEqual(plan.uidsToFetch, [11, 12, 13, 14])
         XCTAssertEqual(plan.uidsToNotify, [12, 13, 14])
@@ -29,7 +38,7 @@ final class MailMonitorNotificationPlanTests: XCTestCase {
     }
 
     func testNotificationPlanCanAdmitPendingWithoutPostingNotifications() {
-        let plan = MailMonitor.notificationPlan(uids: [11, 12], lastSeenUID: 10, limit: 0)
+        let plan = MailMonitor.notificationPlan(uids: [11, 12], lastSeenUID: 10, notificationLimit: 0)
 
         XCTAssertEqual(plan.uidsToFetch, [11, 12])
         XCTAssertTrue(plan.uidsToNotify.isEmpty)

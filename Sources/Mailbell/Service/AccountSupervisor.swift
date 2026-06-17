@@ -347,35 +347,63 @@ private extension AccountSupervisor {
 }
 
 extension AccountSupervisor: MailMonitorDelegate {
-    nonisolated func monitor(_ accountID: UUID, didSyncUnread headers: [MessageHeader]) async {
+    nonisolated func monitor(_ accountID: UUID, pendingUIDsFor mailbox: MessageMailbox) async -> Set<Int> {
+        await MainActor.run { [weak self] in
+            guard let self,
+                  let account = accounts.first(where: { $0.id == accountID })
+            else {
+                return []
+            }
+            return emailStore.pendingUIDs(accountID: account.id, mailbox: mailbox)
+        }
+    }
+
+    nonisolated func monitor(
+        _ accountID: UUID,
+        didReconcileUnread snapshots: [MailboxUnreadSnapshot],
+        fetchedHeaders: [MessageHeader]
+    ) async {
         await MainActor.run { [weak self] in
             guard let self,
                   let account = accounts.first(where: { $0.id == accountID })
             else {
                 return
             }
-            let filteredHeaders = includeSpam ? headers : headers.filter { $0.mailbox != .spam }
-            if emailStore.replaceUnread(headers: filteredHeaders, account: account) {
+            let visibleSnapshots = includeSpam ? snapshots : snapshots.filter { $0.mailbox != .spam }
+            let visibleHeaders = includeSpam ? fetchedHeaders : fetchedHeaders.filter { $0.mailbox != .spam }
+            if emailStore.reconcileUnread(
+                snapshots: visibleSnapshots,
+                fetchedHeaders: visibleHeaders,
+                account: account
+            ) {
                 publish()
             }
         }
     }
 
-    nonisolated func monitor(_ accountID: UUID, shouldNotify header: MessageHeader) async -> Bool {
+    nonisolated func monitor(_ accountID: UUID, shouldNotify headers: [MessageHeader]) async -> Set<IMAPMessageIdentity> {
         await MainActor.run { [weak self] in
             guard let self,
                   let account = accounts.first(where: { $0.id == accountID })
             else {
-                return false
+                return []
             }
-            guard includeSpam || header.mailbox != .spam else {
-                return false
+            let visibleHeaders = includeSpam ? headers : headers.filter { $0.mailbox != .spam }
+            var admittedIdentities = Set<IMAPMessageIdentity>()
+            var didChange = false
+
+            for header in visibleHeaders {
+                guard emailStore.admit(header: header, account: account) else { continue }
+                didChange = true
+                if let identity = header.imapIdentity {
+                    admittedIdentities.insert(identity)
+                }
             }
-            let didAdmit = emailStore.admit(header: header, account: account)
-            if didAdmit {
+
+            if didChange {
                 publish()
             }
-            return didAdmit
+            return admittedIdentities
         }
     }
 

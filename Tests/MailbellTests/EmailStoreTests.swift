@@ -80,8 +80,9 @@ final class EmailStoreTests: XCTestCase {
         store.markRead(id: EmailStoreIdentity.id(accountID: account.id, header: markedReadHeader))
 
         let relaunchedStore = makeStore(defaults: defaults)
-        let didChange = relaunchedStore.replaceUnread(
-            headers: [dismissedHeader, openedHeader, markedReadHeader, unreadHeader],
+        let didChange = relaunchedStore.reconcileUnread(
+            snapshots: [makeSnapshot(uids: [1, 2, 3, 4])],
+            fetchedHeaders: [dismissedHeader, openedHeader, markedReadHeader, unreadHeader],
             account: account
         )
 
@@ -96,10 +97,22 @@ final class EmailStoreTests: XCTestCase {
         let firstHeader = makeHeader(uid: 1, subject: "Read elsewhere", gmMessageId: "read-elsewhere")
         let secondHeader = makeHeader(uid: 2, subject: "Still unread", gmMessageId: "still-unread")
 
-        XCTAssertTrue(store.replaceUnread(headers: [firstHeader, secondHeader], account: account))
+        XCTAssertTrue(
+            store.reconcileUnread(
+                snapshots: [makeSnapshot(uids: [1, 2])],
+                fetchedHeaders: [firstHeader, secondHeader],
+                account: account
+            )
+        )
         XCTAssertEqual(store.items.map(\.title), ["Read elsewhere", "Still unread"])
 
-        XCTAssertTrue(store.replaceUnread(headers: [secondHeader], account: account))
+        XCTAssertTrue(
+            store.reconcileUnread(
+                snapshots: [makeSnapshot(uids: [2])],
+                fetchedHeaders: [],
+                account: account
+            )
+        )
         XCTAssertEqual(store.items.map(\.title), ["Still unread"])
     }
 
@@ -109,8 +122,20 @@ final class EmailStoreTests: XCTestCase {
         let account = makeAccount()
         let header = makeHeader(uid: 1, subject: "Still unread", gmMessageId: "still-unread")
 
-        XCTAssertTrue(store.replaceUnread(headers: [header], account: account))
-        XCTAssertFalse(store.replaceUnread(headers: [header], account: account))
+        XCTAssertTrue(
+            store.reconcileUnread(
+                snapshots: [makeSnapshot(uids: [1])],
+                fetchedHeaders: [header],
+                account: account
+            )
+        )
+        XCTAssertFalse(
+            store.reconcileUnread(
+                snapshots: [makeSnapshot(uids: [1])],
+                fetchedHeaders: [],
+                account: account
+            )
+        )
         XCTAssertEqual(store.items.map(\.title), ["Still unread"])
     }
 
@@ -127,10 +152,25 @@ final class EmailStoreTests: XCTestCase {
             gmMessageId: "same-message"
         )
 
-        XCTAssertTrue(store.replaceUnread(headers: [inboxHeader], account: account))
+        XCTAssertTrue(
+            store.reconcileUnread(
+                snapshots: [makeSnapshot(uids: [1])],
+                fetchedHeaders: [inboxHeader],
+                account: account
+            )
+        )
         let original = try XCTUnwrap(store.items.first)
 
-        XCTAssertTrue(store.replaceUnread(headers: [spamHeader], account: account))
+        XCTAssertTrue(
+            store.reconcileUnread(
+                snapshots: [
+                    makeSnapshot(uids: []),
+                    makeSnapshot(mailbox: .spam, mailboxName: "[Gmail]/Spam", uids: [42])
+                ],
+                fetchedHeaders: [spamHeader],
+                account: account
+            )
+        )
 
         let updated = try XCTUnwrap(store.items.first)
         XCTAssertEqual(updated.id, original.id)
@@ -189,6 +229,25 @@ final class EmailStoreTests: XCTestCase {
         XCTAssertEqual(item.mailbox, .spam)
         XCTAssertEqual(item.imapIdentity, IMAPMessageIdentity(uid: 42, mailboxName: "[Gmail]/Spam"))
         XCTAssertTrue(item.canMarkAsRead)
+    }
+
+    @MainActor
+    func testPendingUIDsAreScopedByAccountAndMailbox() {
+        let store = makeStore()
+        let account = makeAccount()
+        let otherAccount = MailAccount(providerID: .gmail, email: "other@example.com")
+
+        XCTAssertTrue(store.admit(header: makeHeader(uid: 1, gmMessageId: "inbox"), account: account))
+        XCTAssertTrue(
+            store.admit(
+                header: makeHeader(uid: 2, mailbox: .spam, mailboxName: "[Gmail]/Spam", gmMessageId: "spam"),
+                account: account
+            )
+        )
+        XCTAssertTrue(store.admit(header: makeHeader(uid: 3, gmMessageId: "other"), account: otherAccount))
+
+        XCTAssertEqual(store.pendingUIDs(accountID: account.id, mailbox: .inbox), Set([1]))
+        XCTAssertEqual(store.pendingUIDs(accountID: account.id, mailbox: .spam), Set([2]))
     }
 
     @MainActor
@@ -319,5 +378,13 @@ final class EmailStoreTests: XCTestCase {
             gmMessageId: gmMessageId,
             messageId: messageId
         )
+    }
+
+    private func makeSnapshot(
+        mailbox: MessageMailbox = .inbox,
+        mailboxName: String = "INBOX",
+        uids: [Int]
+    ) -> MailboxUnreadSnapshot {
+        MailboxUnreadSnapshot(mailbox: mailbox, mailboxName: mailboxName, unreadUIDs: Set(uids))
     }
 }

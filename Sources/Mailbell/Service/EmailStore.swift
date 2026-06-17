@@ -179,14 +179,45 @@ final class EmailStore {
         return true
     }
 
-    func replaceUnread(headers: [MessageHeader], account: MailAccount) -> Bool {
-        let accountPrefix = EmailStoreIdentity.accountPrefix(accountID: account.id)
+    func pendingUIDs(accountID: UUID, mailbox: MessageMailbox) -> Set<Int> {
+        itemsByID.values.reduce(into: Set<Int>()) { result, item in
+            guard item.accountID == accountID,
+                  item.mailbox == mailbox,
+                  let uid = item.imapIdentity?.uid
+            else {
+                return
+            }
+            result.insert(uid)
+        }
+    }
+
+    func reconcileUnread(
+        snapshots: [MailboxUnreadSnapshot],
+        fetchedHeaders: [MessageHeader],
+        account: MailAccount
+    ) -> Bool {
         let previousItems = itemsByID
-        var nextItems = itemsByID.filter { id, _ in
-            !id.hasPrefix(accountPrefix)
+        let snapshotsByMailbox = Dictionary(uniqueKeysWithValues: snapshots.map { ($0.mailbox, $0) })
+        let monitoredMailboxes = Set(snapshotsByMailbox.keys)
+
+        var nextItems = itemsByID.filter { _, item in
+            guard item.accountID == account.id,
+                  monitoredMailboxes.contains(item.mailbox)
+            else {
+                return true
+            }
+            guard let uid = item.imapIdentity?.uid else {
+                return true
+            }
+            return snapshotsByMailbox[item.mailbox]?.unreadUIDs.contains(uid) == true
         }
 
-        for header in headers {
+        for header in fetchedHeaders {
+            guard let snapshot = snapshotsByMailbox[header.mailbox],
+                  snapshot.unreadUIDs.contains(header.uid)
+            else {
+                continue
+            }
             let id = EmailStoreIdentity.id(accountID: account.id, header: header)
             guard !persistence.suppressesUnreadSync(id) else { continue }
             nextItems[id] = makeItem(
@@ -248,7 +279,7 @@ final class EmailStore {
             accountID: account.id,
             accountEmail: account.email,
             mailbox: header.mailbox,
-            imapIdentity: IMAPMessageIdentity(uid: header.uid, mailboxName: header.mailboxName),
+            imapIdentity: header.imapIdentity,
             title: EmailHeaderFormatter.title(for: header),
             sender: EmailHeaderFormatter.senderDetail(from: header.from),
             time: EmailHeaderFormatter.timeText(for: header),

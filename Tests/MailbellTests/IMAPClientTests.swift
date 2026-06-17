@@ -71,6 +71,25 @@ final class IMAPClientTests: XCTestCase {
         XCTAssertTrue(sequenceSet.isEmpty)
     }
 
+    func testFetchHeadersChunksLargeUIDSets() async throws {
+        let connection = ScriptedIMAPConnection(lines: [
+            "A0001 OK FETCH completed",
+            "A0002 OK FETCH completed"
+        ])
+        let client = IMAPClient(connection: connection)
+
+        let headers = try await client.fetchHeaders(uids: Array(1 ... 101))
+
+        XCTAssertTrue(headers.isEmpty)
+        XCTAssertEqual(
+            connection.sentLines,
+            [
+                "A0001 UID FETCH 1:100 (UID X-GM-MSGID X-GM-THRID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])",
+                "A0002 UID FETCH 101 (UID X-GM-MSGID X-GM-THRID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])"
+            ]
+        )
+    }
+
     func testSearchUnreadUIDsFromUIDScopesUnreadSearch() async throws {
         let connection = ScriptedIMAPConnection(lines: ["* SEARCH 42 43", "A0001 OK SEARCH completed"])
         let client = IMAPClient(connection: connection)

@@ -14,7 +14,7 @@ enum MessageMailbox: String, Equatable {
     }
 }
 
-struct IMAPMessageIdentity: Equatable {
+struct IMAPMessageIdentity: Equatable, Hashable {
     let uid: Int
     let mailboxName: String
 
@@ -62,6 +62,10 @@ struct MessageHeader: Identifiable, Equatable {
 
     var id: Int {
         uid
+    }
+
+    var imapIdentity: IMAPMessageIdentity? {
+        IMAPMessageIdentity(uid: uid, mailboxName: mailboxName)
     }
 
     func assigningMailbox(_ mailbox: MessageMailbox, name: String? = nil) -> MessageHeader {

@@ -1,8 +1,13 @@
 import Foundation
 
 protocol MailMonitorDelegate: AnyObject {
-    func monitor(_ accountID: UUID, didSyncUnread headers: [MessageHeader]) async
-    func monitor(_ accountID: UUID, shouldNotify header: MessageHeader) async -> Bool
+    func monitor(_ accountID: UUID, pendingUIDsFor mailbox: MessageMailbox) async -> Set<Int>
+    func monitor(
+        _ accountID: UUID,
+        didReconcileUnread snapshots: [MailboxUnreadSnapshot],
+        fetchedHeaders: [MessageHeader]
+    ) async
+    func monitor(_ accountID: UUID, shouldNotify headers: [MessageHeader]) async -> Set<IMAPMessageIdentity>
     func monitor(_ accountID: UUID, didChangeStatus status: MonitorStatus, error: String?)
     func monitor(_ accountID: UUID, didNotify header: MessageHeader, result: NotificationPostResult)
 }
@@ -32,6 +37,8 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     weak var delegate: MailMonitorDelegate?
 
     static let maximumNotificationsPerFetch = 10
+    static let maximumFreshHeadersPerFetch = 50
+    static let maximumReconciliationHeadersPerMailbox = 100
 
     private(set) var account: MailAccount
     private var includeSpam: Bool
@@ -122,7 +129,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
                 let client = IMAPClient()
                 self.client = client
                 try await client.connect()
-                try await client.authenticate(email: email, accessToken: accessToken)
+                try await authenticate(client: client, email: email, accessToken: accessToken)
                 let mailboxes = try await monitoredMailboxes(client: client)
                 try await reconcileCheckpoints(client: client, mailboxes: mailboxes)
                 try await reconcileUnreadState(client: client, mailboxes: mailboxes)
@@ -150,6 +157,21 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
                     notifyStatus(.reauthRequired, error: error.localizedDescription)
                     return
                 }
+            } catch let error as IMAPClient.IMAPError {
+                if case .authFailed = error {
+                    Log.error("IMAP authentication rejected: \(error.localizedDescription)")
+                    notifyStatus(.reauthRequired, error: error.localizedDescription)
+                    client?.disconnect()
+                    client = nil
+                    return
+                }
+                if Task.isCancelled { break }
+                Log.error("Connection dropped: \(error.localizedDescription)")
+                notifyStatus(.reconnecting, error: error.localizedDescription)
+                client?.disconnect()
+                client = nil
+                try? await Task.sleep(nanoseconds: UInt64(backoff * 1_000_000_000))
+                backoff = min(backoff * 2, 60)
             } catch {
                 if Task.isCancelled { break }
                 Log.error("Connection dropped: \(error.localizedDescription)")
@@ -190,6 +212,9 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     }
 
     private func fetchAndNotify(client: IMAPClient, mailboxes: [MonitoredMailbox]) async throws {
+        var fetchedHeaders: [MessageHeader] = []
+        var notificationIdentities = Set<IMAPMessageIdentity>()
+
         for mailbox in mailboxes {
             try await client.selectMailbox(mailbox.name)
             let lastSeenUID = lastSeenUID(for: mailbox.role)
@@ -199,39 +224,65 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
             let headers = try await client.fetchHeaders(uids: plan.uidsToFetch)
                 .map { $0.assigningMailbox(mailbox.role, name: mailbox.name) }
                 .sorted { $0.uid < $1.uid }
-            for header in headers {
-                let shouldNotify = await delegate?.monitor(account.id, shouldNotify: header) ?? true
-                guard shouldNotify, plan.uidsToNotify.contains(header.uid) else { continue }
-                let result = await NotificationManager.shared.notify(header, account: account)
-                delegate?.monitor(account.id, didNotify: header, result: result)
-            }
+
+            let uidsToNotify = Set(plan.uidsToNotify)
+            notificationIdentities.formUnion(
+                headers.compactMap { uidsToNotify.contains($0.uid) ? $0.imapIdentity : nil }
+            )
+            fetchedHeaders.append(contentsOf: headers)
             setLastSeenUID(max(lastSeenUID, plan.lastSeenUID), for: mailbox.role)
+        }
+
+        guard !fetchedHeaders.isEmpty else { return }
+        let admittedIdentities = await delegate?.monitor(account.id, shouldNotify: fetchedHeaders)
+            ?? Set(fetchedHeaders.compactMap(\.imapIdentity))
+
+        for header in fetchedHeaders {
+            guard let identity = header.imapIdentity,
+                  admittedIdentities.contains(identity),
+                  notificationIdentities.contains(identity)
+            else {
+                continue
+            }
+            let result = await NotificationManager.shared.notify(header, account: account)
+            delegate?.monitor(account.id, didNotify: header, result: result)
         }
     }
 
     private func syncUnreadStore(client: IMAPClient, mailboxes: [MonitoredMailbox]) async throws {
-        var headers: [MessageHeader] = []
+        var snapshots: [MailboxUnreadSnapshot] = []
+        var fetchedHeaders: [MessageHeader] = []
         for mailbox in mailboxes {
             try await client.selectMailbox(mailbox.name)
-            let uids = try await client.searchUnreadUIDs()
-            let mailboxHeaders = try await client.fetchHeaders(uids: uids)
+            let searchedUIDs = try await client.searchUnreadUIDs()
+            let unreadUIDs = Set(searchedUIDs.filter { $0 > 0 })
+            snapshots.append(
+                MailboxUnreadSnapshot(mailbox: mailbox.role, mailboxName: mailbox.name, unreadUIDs: unreadUIDs)
+            )
+
+            let pendingUIDs = await delegate?.monitor(account.id, pendingUIDsFor: mailbox.role) ?? []
+            let unknownUIDs = Array(unreadUIDs.subtracting(pendingUIDs)).sorted()
+            let uidsToFetch = Array(unknownUIDs.suffix(Self.maximumReconciliationHeadersPerMailbox))
+            let mailboxHeaders = try await client.fetchHeaders(uids: uidsToFetch)
                 .map { $0.assigningMailbox(mailbox.role, name: mailbox.name) }
-            headers.append(contentsOf: mailboxHeaders)
+            fetchedHeaders.append(contentsOf: mailboxHeaders)
         }
-        await delegate?.monitor(account.id, didSyncUnread: headers)
+        await delegate?.monitor(account.id, didReconcileUnread: snapshots, fetchedHeaders: fetchedHeaders)
     }
 
     static func notificationPlan(
         uids: [Int],
         lastSeenUID: Int,
-        limit: Int = maximumNotificationsPerFetch
+        notificationLimit: Int = maximumNotificationsPerFetch,
+        fetchLimit: Int = maximumFreshHeadersPerFetch
     ) -> NotificationPlan {
         let fresh = Array(Set(uids.filter { $0 > lastSeenUID })).sorted()
         guard let newestUID = fresh.last else {
             return NotificationPlan(uidsToFetch: [], uidsToNotify: [], lastSeenUID: lastSeenUID)
         }
-        let capped = limit > 0 ? Array(fresh.suffix(limit)) : []
-        return NotificationPlan(uidsToFetch: fresh, uidsToNotify: capped, lastSeenUID: newestUID)
+        let uidsToFetch = fetchLimit > 0 ? Array(fresh.suffix(fetchLimit)) : []
+        let uidsToNotify = notificationLimit > 0 ? Array(uidsToFetch.suffix(notificationLimit)) : []
+        return NotificationPlan(uidsToFetch: uidsToFetch, uidsToNotify: uidsToNotify, lastSeenUID: newestUID)
     }
 
     static func monitoredMailboxes(includeSpam: Bool, spamMailboxName: String?) -> [MonitoredMailbox] {
@@ -250,6 +301,20 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
 
     private func validAccessToken() async throws -> String {
         try await tokenProvider.validAccessToken()
+    }
+
+    private func refreshAccessToken() async throws -> String {
+        try await tokenProvider.refreshAccessToken()
+    }
+
+    private func authenticate(client: IMAPClient, email: String, accessToken: String) async throws {
+        do {
+            try await client.authenticate(email: email, accessToken: accessToken)
+        } catch let error as IMAPClient.IMAPError {
+            guard case .authFailed = error else { throw error }
+            let refreshedAccessToken = try await refreshAccessToken()
+            try await client.authenticate(email: email, accessToken: refreshedAccessToken)
+        }
     }
 
     // MARK: - Checkpoint / gap fill
@@ -333,4 +398,10 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
 struct MonitoredMailbox: Equatable {
     let role: MessageMailbox
     let name: String
+}
+
+struct MailboxUnreadSnapshot: Equatable {
+    let mailbox: MessageMailbox
+    let mailboxName: String
+    let unreadUIDs: Set<Int>
 }

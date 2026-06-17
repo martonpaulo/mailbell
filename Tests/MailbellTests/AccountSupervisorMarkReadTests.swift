@@ -12,7 +12,7 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
         })
         let header = makeHeader(uid: 42, mailboxName: "INBOX", gmMessageId: "mark-read")
 
-        let didAdmit = await supervisor.monitor(account.id, shouldNotify: header)
+        let didAdmit = await admit(header, into: supervisor, account: account)
         XCTAssertTrue(didAdmit)
         let item = try XCTUnwrap(supervisor.emailStoreItems.first)
 
@@ -21,8 +21,8 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
         XCTAssertEqual(markedAccounts, [account.id])
         XCTAssertEqual(markedIdentities, [IMAPMessageIdentity(uid: 42, mailboxName: "INBOX")])
         XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
-        let didReadmit = await supervisor.monitor(account.id, shouldNotify: header)
-        XCTAssertFalse(didReadmit)
+        let didReadmit = await supervisor.monitor(account.id, shouldNotify: [header])
+        XCTAssertTrue(didReadmit.isEmpty)
     }
 
     @MainActor
@@ -32,7 +32,7 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
         })
         let header = makeHeader(uid: 43, gmMessageId: "mark-read-failure")
 
-        let didAdmit = await supervisor.monitor(account.id, shouldNotify: header)
+        let didAdmit = await admit(header, into: supervisor, account: account)
         XCTAssertTrue(didAdmit)
         let item = try XCTUnwrap(supervisor.emailStoreItems.first)
 
@@ -49,7 +49,10 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
         })
         let header = makeHeader(uid: 0, gmMessageId: "legacy-without-uid")
 
-        let didAdmit = await supervisor.monitor(account.id, shouldNotify: header)
+        _ = await supervisor.monitor(account.id, shouldNotify: [header])
+        let didAdmit = supervisor.emailStoreItems.contains {
+            $0.id == EmailStoreIdentity.id(accountID: account.id, header: header)
+        }
         XCTAssertTrue(didAdmit)
         let item = try XCTUnwrap(supervisor.emailStoreItems.first)
         XCTAssertFalse(item.canMarkAsRead)
@@ -102,6 +105,21 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
             gmThreadId: nil,
             gmMessageId: gmMessageId
         )
+    }
+
+    @MainActor
+    private func admit(
+        _ header: MessageHeader,
+        into supervisor: AccountSupervisor,
+        account: MailAccount
+    ) async -> Bool {
+        guard let identity = header.imapIdentity else {
+            _ = await supervisor.monitor(account.id, shouldNotify: [header])
+            let id = EmailStoreIdentity.id(accountID: account.id, header: header)
+            return supervisor.emailStoreItems.contains { $0.id == id }
+        }
+        let admittedIdentities = await supervisor.monitor(account.id, shouldNotify: [header])
+        return admittedIdentities.contains(identity)
     }
 }
 

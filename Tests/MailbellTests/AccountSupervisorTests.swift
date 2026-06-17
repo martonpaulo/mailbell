@@ -152,7 +152,7 @@ final class AccountSupervisorTests: XCTestCase {
 
         XCTAssertEqual(supervisor.menuBarIconSystemImage, "bell")
 
-        let didAdmit = await supervisor.monitor(account.id, shouldNotify: makeHeader(gmMessageId: "icon"))
+        let didAdmit = await admit(makeHeader(gmMessageId: "icon"), into: supervisor, account: account)
         XCTAssertTrue(didAdmit)
         XCTAssertEqual(supervisor.menuBarIconSystemImage, "bell.fill")
 
@@ -168,7 +168,8 @@ final class AccountSupervisorTests: XCTestCase {
 
         await supervisor.monitor(
             account.id,
-            didSyncUnread: [
+            didReconcileUnread: [makeSnapshot(uids: [1, 2])],
+            fetchedHeaders: [
                 makeHeader(uid: 1, subject: "First unread", gmMessageId: "first-unread"),
                 makeHeader(uid: 2, subject: "Second unread", gmMessageId: "second-unread")
             ]
@@ -183,12 +184,12 @@ final class AccountSupervisorTests: XCTestCase {
         let (supervisor, account) = makeSupervisor()
         let header = makeHeader(uid: 1, subject: "Read in Gmail", gmMessageId: "read-in-gmail")
 
-        let didAdmit = await supervisor.monitor(account.id, shouldNotify: header)
+        let didAdmit = await admit(header, into: supervisor, account: account)
         XCTAssertTrue(didAdmit)
         XCTAssertEqual(supervisor.emailStoreItems.count, 1)
         XCTAssertEqual(supervisor.menuBarIconSystemImage, "bell.fill")
 
-        await supervisor.monitor(account.id, didSyncUnread: [])
+        await supervisor.monitor(account.id, didReconcileUnread: [makeSnapshot(uids: [])], fetchedHeaders: [])
 
         XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
         XCTAssertEqual(supervisor.menuBarIconSystemImage, "bell")
@@ -205,7 +206,7 @@ final class AccountSupervisorTests: XCTestCase {
         })
 
         let header = makeHeader(gmMessageId: "notification-open", gmThreadId: "123456789")
-        let didAdmit = await supervisor.monitor(account.id, shouldNotify: header)
+        let didAdmit = await admit(header, into: supervisor, account: account)
         XCTAssertTrue(didAdmit)
 
         let item = try XCTUnwrap(supervisor.emailStoreItems.first)
@@ -214,7 +215,7 @@ final class AccountSupervisorTests: XCTestCase {
         XCTAssertEqual(openedURLs, [item.webmailURL])
         XCTAssertEqual(openedAccountIDs, [account.id])
         XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
-        let didReadmit = await supervisor.monitor(account.id, shouldNotify: header)
+        let didReadmit = await admit(header, into: supervisor, account: account)
         XCTAssertFalse(didReadmit)
     }
 
@@ -241,7 +242,7 @@ final class AccountSupervisorTests: XCTestCase {
         let (supervisor, account) = makeSupervisor()
         let header = makeHeader(gmMessageId: "notification-dismiss")
 
-        let didAdmit = await supervisor.monitor(account.id, shouldNotify: header)
+        let didAdmit = await admit(header, into: supervisor, account: account)
         XCTAssertTrue(didAdmit)
         let item = try XCTUnwrap(supervisor.emailStoreItems.first)
 
@@ -249,7 +250,7 @@ final class AccountSupervisorTests: XCTestCase {
         supervisor.dismissEmail(id: item.id)
 
         XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
-        let didReadmit = await supervisor.monitor(account.id, shouldNotify: header)
+        let didReadmit = await admit(header, into: supervisor, account: account)
         XCTAssertFalse(didReadmit)
     }
 
@@ -257,9 +258,10 @@ final class AccountSupervisorTests: XCTestCase {
     func testSpamHeaderIsIgnoredWhenIncludeSpamIsDisabled() async {
         let (supervisor, account) = makeSupervisor(includeSpam: false)
 
-        let didAdmit = await supervisor.monitor(
-            account.id,
-            shouldNotify: makeHeader(mailbox: .spam, gmMessageId: "spam-disabled")
+        let didAdmit = await admit(
+            makeHeader(mailbox: .spam, gmMessageId: "spam-disabled"),
+            into: supervisor,
+            account: account
         )
 
         XCTAssertFalse(didAdmit)
@@ -270,9 +272,10 @@ final class AccountSupervisorTests: XCTestCase {
     func testSpamHeaderIsAdmittedWhenIncludeSpamIsEnabled() async throws {
         let (supervisor, account) = makeSupervisor(includeSpam: true)
 
-        let didAdmit = await supervisor.monitor(
-            account.id,
-            shouldNotify: makeHeader(mailbox: .spam, gmMessageId: "spam-enabled")
+        let didAdmit = await admit(
+            makeHeader(mailbox: .spam, gmMessageId: "spam-enabled"),
+            into: supervisor,
+            account: account
         )
 
         XCTAssertTrue(didAdmit)
@@ -289,7 +292,7 @@ final class AccountSupervisorTests: XCTestCase {
             return monitor
         })
 
-        _ = await supervisor.monitor(account.id, shouldNotify: makeHeader(mailbox: .spam, gmMessageId: "spam"))
+        _ = await admit(makeHeader(mailbox: .spam, gmMessageId: "spam"), into: supervisor, account: account)
 
         supervisor.setIncludeSpam(false)
 
@@ -371,6 +374,28 @@ final class AccountSupervisorTests: XCTestCase {
             gmThreadId: gmThreadId,
             gmMessageId: gmMessageId
         )
+    }
+
+    @MainActor
+    private func admit(
+        _ header: MessageHeader,
+        into supervisor: AccountSupervisor,
+        account: MailAccount
+    ) async -> Bool {
+        let admittedIdentities = await supervisor.monitor(account.id, shouldNotify: [header])
+        guard let identity = header.imapIdentity else {
+            let id = EmailStoreIdentity.id(accountID: account.id, header: header)
+            return supervisor.emailStoreItems.contains { $0.id == id }
+        }
+        return admittedIdentities.contains(identity)
+    }
+
+    private func makeSnapshot(
+        mailbox: MessageMailbox = .inbox,
+        mailboxName: String = "INBOX",
+        uids: [Int]
+    ) -> MailboxUnreadSnapshot {
+        MailboxUnreadSnapshot(mailbox: mailbox, mailboxName: mailboxName, unreadUIDs: Set(uids))
     }
 }
 
