@@ -31,10 +31,10 @@ final class AccountPresentationTests: XCTestCase {
         XCTAssertEqual(AccountPresentation.statusText(for: state(status: .reauthRequired)), "Sign in needed")
     }
 
-    func testWebmailOpenLabelIncludesAccountEmailInSingleLineCopy() {
+    func testWebmailOpenLabelUsesOnlyAccountEmail() {
         XCTAssertEqual(
             AccountPresentation.webmailOpenLabel(email: "user@example.com"),
-            "Open user@example.com with"
+            "user@example.com"
         )
     }
 

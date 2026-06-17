@@ -64,7 +64,7 @@ enum AccountRecoveryAction: Equatable {
 
 enum AccountPresentation {
     static func webmailOpenLabel(email: String) -> String {
-        "Open \(email) with"
+        email
     }
 
     static func canRefresh(_ states: [AccountRuntimeState]) -> Bool {
