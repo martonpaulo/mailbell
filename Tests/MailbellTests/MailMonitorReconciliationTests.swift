@@ -97,6 +97,48 @@ final class MailMonitorReconciliationTests: XCTestCase {
     }
 
     @MainActor
+    func testBurstFetchFailureAdvancesCheckpointOnlyThroughCompletedAdmissionBatch() async throws {
+        let account = MailAccount(providerID: .gmail, email: "account@example.com")
+        let checkpoint = CheckpointStore(accountID: account.id)
+        checkpoint.reset()
+        defer { CheckpointStore(accountID: account.id).reset() }
+        let searchedUIDs = (1 ... 250).map(String.init).joined(separator: " ")
+        let connection = ScriptedMonitorConnection(lines: [
+            "A0001 OK SELECT completed",
+            "* SEARCH \(searchedUIDs)",
+            "A0002 OK SEARCH completed",
+            "A0003 OK FETCH completed",
+            "A0004 OK FETCH completed",
+            "A0005 BAD temporary failure"
+        ])
+        let (monitor, delegate) = makeMonitor(account: account, store: makeStore())
+        _ = delegate
+        let client = IMAPClient(connection: connection)
+
+        do {
+            try await monitor.handleIdleCycle(
+                event: .newMessages(exists: 250),
+                client: client,
+                mailboxes: [MonitoredMailbox(role: .inbox, name: "INBOX")]
+            )
+            XCTFail("Expected second admission batch to fail.")
+        } catch {
+            XCTAssertEqual(CheckpointStore(accountID: account.id).lastSeenUID, 100)
+        }
+
+        XCTAssertEqual(
+            connection.sentLines,
+            [
+                #"A0001 SELECT "INBOX""#,
+                "A0002 UID SEARCH UID 1:* UNSEEN",
+                "A0003 UID FETCH 1:100 (UID X-GM-MSGID X-GM-THRID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])",
+                "A0004 UID FETCH 241:250 (UID X-GM-MSGID X-GM-THRID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])",
+                "A0005 UID FETCH 101:200 (UID X-GM-MSGID X-GM-THRID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])"
+            ]
+        )
+    }
+
+    @MainActor
     func testIdleReconciliationFailureDoesNotClearPending() async throws {
         let account = MailAccount(providerID: .gmail, email: "account@example.com")
         let store = makeStore()

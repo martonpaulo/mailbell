@@ -12,8 +12,44 @@ final class MailMonitorNotificationPlanTests: XCTestCase {
         )
 
         XCTAssertEqual(plan.uidsToAdmit, Array(101 ... 180))
+        XCTAssertEqual(plan.admissionBatches, [Array(101 ... 180)])
         XCTAssertEqual(plan.uidsToNotify, Array(171 ... 180))
         XCTAssertEqual(plan.lastSeenUID, 180)
+    }
+
+    func testFetchPlanChunksLargeBurstsWithoutChangingNotificationCap() {
+        let uids = Array(101 ... 260)
+
+        let plan = MailMonitor.notificationPlan(
+            uids: uids,
+            lastSeenUID: 100,
+            notificationLimit: 10,
+            admissionBatchSize: 50
+        )
+
+        XCTAssertEqual(plan.admissionBatches, [
+            Array(101 ... 150),
+            Array(151 ... 200),
+            Array(201 ... 250),
+            Array(251 ... 260)
+        ])
+        XCTAssertEqual(plan.uidsToAdmit, uids)
+        XCTAssertEqual(plan.uidsToNotify, Array(251 ... 260))
+        XCTAssertEqual(plan.lastSeenUID, 260)
+    }
+
+    func testFetchPlanDoesNotAdvanceCheckpointWithoutAdmissionBatches() {
+        let plan = MailMonitor.notificationPlan(
+            uids: [101, 102],
+            lastSeenUID: 100,
+            notificationLimit: 10,
+            admissionBatchSize: 0
+        )
+
+        XCTAssertTrue(plan.admissionBatches.isEmpty)
+        XCTAssertTrue(plan.uidsToAdmit.isEmpty)
+        XCTAssertEqual(plan.uidsToNotify, [101, 102])
+        XCTAssertEqual(plan.lastSeenUID, 100)
     }
 
     func testNotificationPlanIgnoresAlreadySeenUIDs() {

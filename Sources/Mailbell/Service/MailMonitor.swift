@@ -30,14 +30,19 @@ protocol AccountMonitoring: AnyObject {
 /// token refresh, IMAP connect/select/IDLE, gap-fill on reconnect, and token revocation.
 final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     struct NotificationPlan: Equatable {
-        let uidsToAdmit: [Int]
+        let admissionBatches: [[Int]]
         let uidsToNotify: [Int]
         let lastSeenUID: Int
+
+        var uidsToAdmit: [Int] {
+            admissionBatches.flatMap(\.self)
+        }
     }
 
     weak var delegate: MailMonitorDelegate?
 
     static let maximumNotificationsPerFetch = 10
+    static let maximumFreshHeadersPerAdmissionBatch = 100
     static let maximumReconciliationHeadersPerMailbox = 100
 
     private(set) var account: MailAccount
@@ -221,35 +226,58 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     }
 
     private func fetchAndNotify(client: IMAPClient, mailboxes: [MonitoredMailbox]) async throws {
-        var fetchedHeaders: [MessageHeader] = []
-        var notificationIdentities = Set<IMAPMessageIdentity>()
-
         for mailbox in mailboxes {
             try await client.selectMailbox(mailbox.name)
-            let lastSeenUID = lastSeenUID(for: mailbox.role)
-            let from = max(lastSeenUID + 1, 1)
+            let checkpointUID = lastSeenUID(for: mailbox.role)
+            let from = max(checkpointUID + 1, 1)
             let uids = try await client.searchUnreadUIDs(fromUID: from)
-            let plan = Self.notificationPlan(uids: uids, lastSeenUID: lastSeenUID)
-            let headers = try await client.fetchHeaders(uids: plan.uidsToAdmit)
-                .map { $0.assigningMailbox(mailbox.role, name: mailbox.name) }
-                .sorted { $0.uid < $1.uid }
+            let plan = Self.notificationPlan(uids: uids, lastSeenUID: checkpointUID)
 
             let uidsToNotify = Set(plan.uidsToNotify)
-            notificationIdentities.formUnion(
-                headers.compactMap { uidsToNotify.contains($0.uid) ? $0.imapIdentity : nil }
-            )
-            fetchedHeaders.append(contentsOf: headers)
-            setLastSeenUID(max(lastSeenUID, plan.lastSeenUID), for: mailbox.role)
+            var notificationUIDsToFetch = uidsToNotify
+            for admissionBatch in plan.admissionBatches {
+                let headers = try await client.fetchHeaders(uids: admissionBatch)
+                    .map { $0.assigningMailbox(mailbox.role, name: mailbox.name) }
+                    .sorted { $0.uid < $1.uid }
+
+                let admittedIdentities = await delegate?.monitor(account.id, shouldNotify: headers)
+                    ?? Set(headers.compactMap(\.imapIdentity))
+                await notify(headers: headers, admittedIdentities: admittedIdentities, uidsToNotify: uidsToNotify)
+                notificationUIDsToFetch.subtract(admissionBatch)
+
+                if let admittedThroughUID = admissionBatch.last {
+                    setLastSeenUID(Swift.max(lastSeenUID(for: mailbox.role), admittedThroughUID), for: mailbox.role)
+                }
+
+                if !notificationUIDsToFetch.isEmpty {
+                    let notificationHeaders = try await client.fetchHeaders(uids: Array(notificationUIDsToFetch).sorted())
+                        .map { $0.assigningMailbox(mailbox.role, name: mailbox.name) }
+                        .sorted { $0.uid < $1.uid }
+                    notificationUIDsToFetch.removeAll()
+                    let admittedNotificationIdentities = await delegate?.monitor(
+                        account.id,
+                        shouldNotify: notificationHeaders
+                    ) ?? Set(notificationHeaders.compactMap(\.imapIdentity))
+                    await notify(
+                        headers: notificationHeaders,
+                        admittedIdentities: admittedNotificationIdentities,
+                        uidsToNotify: uidsToNotify
+                    )
+                }
+                await Task.yield()
+            }
         }
+    }
 
-        guard !fetchedHeaders.isEmpty else { return }
-        let admittedIdentities = await delegate?.monitor(account.id, shouldNotify: fetchedHeaders)
-            ?? Set(fetchedHeaders.compactMap(\.imapIdentity))
-
-        for header in fetchedHeaders {
+    private func notify(
+        headers: [MessageHeader],
+        admittedIdentities: Set<IMAPMessageIdentity>,
+        uidsToNotify: Set<Int>
+    ) async {
+        for header in headers {
             guard let identity = header.imapIdentity,
                   admittedIdentities.contains(identity),
-                  notificationIdentities.contains(identity)
+                  uidsToNotify.contains(header.uid)
             else {
                 continue
             }
@@ -282,14 +310,29 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     static func notificationPlan(
         uids: [Int],
         lastSeenUID: Int,
-        notificationLimit: Int = maximumNotificationsPerFetch
+        notificationLimit: Int = maximumNotificationsPerFetch,
+        admissionBatchSize: Int = maximumFreshHeadersPerAdmissionBatch
     ) -> NotificationPlan {
         let fresh = Array(Set(uids.filter { $0 > lastSeenUID })).sorted()
-        guard let newestUID = fresh.last else {
-            return NotificationPlan(uidsToAdmit: [], uidsToNotify: [], lastSeenUID: lastSeenUID)
+        guard !fresh.isEmpty else {
+            return NotificationPlan(admissionBatches: [], uidsToNotify: [], lastSeenUID: lastSeenUID)
         }
+        let admissionBatches = Self.admissionBatches(uids: fresh, batchSize: admissionBatchSize)
+        let checkpointUID = admissionBatches.last?.last ?? lastSeenUID
         let uidsToNotify = notificationLimit > 0 ? Array(fresh.suffix(notificationLimit)) : []
-        return NotificationPlan(uidsToAdmit: fresh, uidsToNotify: uidsToNotify, lastSeenUID: newestUID)
+        return NotificationPlan(admissionBatches: admissionBatches, uidsToNotify: uidsToNotify, lastSeenUID: checkpointUID)
+    }
+
+    private static func admissionBatches(uids: [Int], batchSize: Int) -> [[Int]] {
+        guard batchSize > 0 else { return [] }
+        var batches: [[Int]] = []
+        var start = uids.startIndex
+        while start < uids.endIndex {
+            let end = uids.index(start, offsetBy: batchSize, limitedBy: uids.endIndex) ?? uids.endIndex
+            batches.append(Array(uids[start ..< end]))
+            start = end
+        }
+        return batches
     }
 
     static func monitoredMailboxes(includeSpam: Bool, spamMailboxName: String?) -> [MonitoredMailbox] {
