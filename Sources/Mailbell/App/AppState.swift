@@ -16,6 +16,7 @@ final class AppState: ObservableObject {
     @Published private(set) var notificationTestMessage: String?
     @Published private(set) var manualRefreshMessage: String?
     @Published private(set) var emailStoreItems: [EmailStoreItem] = []
+    @Published private(set) var pendingCountsByAccountID: [UUID: Int] = [:]
     @Published private(set) var menuBarIconSystemImage = "bell"
     @Published private(set) var showPendingCount: Bool
     @Published private(set) var includeSpam: Bool
@@ -33,8 +34,10 @@ final class AppState: ObservableObject {
         accounts = supervisor.accountStates
         status = supervisor.aggregateStatus
         emailStoreItems = supervisor.emailStoreItems
+        pendingCountsByAccountID = supervisor.emailStore.pendingCountsByAccountID
         menuBarIconSystemImage = supervisor.menuBarIconSystemImage
         oauthSetupMessage = supervisor.oauthSetupMessage
+        lastError = supervisor.accountStoreError
 
         NotificationManager.shared.emailOpenHandler = { [weak self] emailID, accountID, url in
             await self?.supervisor.openEmail(id: emailID, accountID: accountID, url: url)
@@ -112,7 +115,12 @@ final class AppState: ObservableObject {
         settingsStore.includeSpam = isIncluded
         supervisor.setIncludeSpam(isIncluded)
         emailStoreItems = supervisor.emailStoreItems
+        pendingCountsByAccountID = supervisor.emailStore.pendingCountsByAccountID
         menuBarIconSystemImage = supervisor.menuBarIconSystemImage
+    }
+
+    func pendingCount(accountID: UUID) -> Int {
+        pendingCountsByAccountID[accountID, default: 0]
     }
 
     func reconnect(accountID: UUID) {
@@ -211,7 +219,11 @@ extension AppState: AccountSupervisorDelegate {
         accounts = states
         status = aggregateStatus
         emailStoreItems = supervisor.emailStoreItems
+        pendingCountsByAccountID = supervisor.emailStore.pendingCountsByAccountID
         menuBarIconSystemImage = supervisor.menuBarIconSystemImage
         oauthSetupMessage = supervisor.oauthSetupMessage
+        if let accountStoreError = supervisor.accountStoreError {
+            lastError = accountStoreError
+        }
     }
 }

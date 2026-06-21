@@ -99,7 +99,7 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
         let defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
         let store = AccountStore(userDefaults: defaults)
-        store.saveAccounts([account])
+        try! store.saveAccounts([account])
         let emailStore = EmailStore(persistence: EmailStorePersistence(userDefaults: defaults))
         let supervisor = AccountSupervisor(
             configProvider: {
@@ -164,6 +164,10 @@ private final class MarkReadSpyMonitor: AccountMonitoring {
 
     func updateAccount(_ account: MailAccount) {
         self.account = account
+    }
+
+    func hasStoredSession() throws -> Bool {
+        hasSession
     }
 
     func start() {}

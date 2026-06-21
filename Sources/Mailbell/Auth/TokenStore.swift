@@ -2,12 +2,12 @@ import Foundation
 
 struct KeychainClient {
     let set: @Sendable (_ value: String, _ account: String) throws -> Void
-    let get: @Sendable (_ account: String) -> String?
+    let get: @Sendable (_ account: String) throws -> String?
     let delete: @Sendable (_ account: String) -> Void
 
     static let live = KeychainClient(
         set: { value, account in try Keychain.set(value, account: account) },
-        get: { account in Keychain.get(account: account) },
+        get: { account in try Keychain.get(account: account) },
         delete: { account in Keychain.delete(account: account) }
     )
 }
@@ -19,10 +19,13 @@ struct KeychainClient {
 ///   relaunch can reuse a still-valid access token without extra Keychain prompts.
 final class TokenStore {
     enum TokenStoreError: Error, LocalizedError {
+        case decodingFailed
         case encodingFailed
 
         var errorDescription: String? {
             switch self {
+            case .decodingFailed:
+                "Could not decode OAuth tokens from Keychain storage."
             case .encodingFailed:
                 "Could not encode OAuth tokens for Keychain storage."
             }
@@ -43,11 +46,15 @@ final class TokenStore {
     }
 
     var hasSession: Bool {
-        keychain.get(sessionAccount) != nil
+        (try? hasStoredSession()) == true
+    }
+
+    func hasStoredSession() throws -> Bool {
+        try keychain.get(sessionAccount) != nil
     }
 
     func save(tokens: GoogleTokens) throws {
-        let previousSession = keychain.get(sessionAccount)
+        let previousSession = try keychain.get(sessionAccount)
 
         do {
             let data = try JSONEncoder().encode(tokens)
@@ -61,14 +68,18 @@ final class TokenStore {
         }
     }
 
-    func loadTokens() -> GoogleTokens? {
-        guard let json = keychain.get(sessionAccount),
-              let data = json.data(using: .utf8),
-              let tokens = try? JSONDecoder().decode(GoogleTokens.self, from: data)
-        else {
+    func loadTokens() throws -> GoogleTokens? {
+        guard let json = try keychain.get(sessionAccount) else {
             return nil
         }
-        return tokens
+        guard let data = json.data(using: .utf8) else {
+            throw TokenStoreError.decodingFailed
+        }
+        do {
+            return try JSONDecoder().decode(GoogleTokens.self, from: data)
+        } catch {
+            throw TokenStoreError.decodingFailed
+        }
     }
 
     func clear() {

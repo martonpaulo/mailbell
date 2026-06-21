@@ -250,6 +250,7 @@ final class EmailStoreTests: XCTestCase {
             store.pendingUIDs(accountID: account.id, mailbox: .inbox),
             Set([1, 2])
         )
+        XCTAssertEqual(store.pendingCountsByAccountID[account.id], 1)
     }
 
     @MainActor

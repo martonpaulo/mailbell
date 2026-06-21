@@ -13,12 +13,16 @@ final class AccountTokenProvider {
         store.hasSession
     }
 
+    func hasStoredSession() throws -> Bool {
+        try store.hasStoredSession()
+    }
+
     func clear() {
         store.clear()
     }
 
     func validAccessToken() async throws -> String {
-        guard let tokens = store.loadTokens(), let refreshToken = tokens.refreshToken else {
+        guard let tokens = try store.loadTokens(), let refreshToken = tokens.refreshToken else {
             throw OAuthClient.OAuthError.noRefreshToken
         }
         if tokens.isAccessTokenValid, !tokens.accessToken.isEmpty {
@@ -28,7 +32,7 @@ final class AccountTokenProvider {
     }
 
     func refreshAccessToken() async throws -> String {
-        guard let tokens = store.loadTokens(), let refreshToken = tokens.refreshToken else {
+        guard let tokens = try store.loadTokens(), let refreshToken = tokens.refreshToken else {
             throw OAuthClient.OAuthError.noRefreshToken
         }
         return try await refreshAccessToken(refreshToken: refreshToken)

@@ -181,7 +181,7 @@ struct MenuContent: View {
     }
 
     private func pendingCount(accountID: UUID) -> Int {
-        appState.emailStoreItems.filter { $0.accountID == accountID }.count
+        appState.pendingCount(accountID: accountID)
     }
 
     private func reviewMenuCount(accountID: UUID) -> Int? {
@@ -870,7 +870,7 @@ struct SettingsView: View {
     }
 
     private func pendingCount(accountID: UUID) -> Int {
-        appState.emailStoreItems.filter { $0.accountID == accountID }.count
+        appState.pendingCount(accountID: accountID)
     }
 
     private var appVersionText: String {

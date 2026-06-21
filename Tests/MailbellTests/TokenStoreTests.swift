@@ -71,6 +71,32 @@ final class TokenStoreTests: XCTestCase {
         XCTAssertEqual(fixture.deletedAccounts, [Self.sessionAccount(accountID)])
     }
 
+    func testLoadTokensPropagatesKeychainReadFailure() {
+        let fixture = KeychainFixture(getError: Keychain.KeychainError.unexpectedStatus(errSecAuthFailed))
+        let store = TokenStore(accountID: UUID(), keychain: fixture.client)
+
+        XCTAssertThrowsError(try store.loadTokens()) { error in
+            XCTAssertEqual(
+                error.localizedDescription,
+                Keychain.KeychainError.unexpectedStatus(errSecAuthFailed).localizedDescription
+            )
+        }
+    }
+
+    func testLoadTokensPropagatesStoredTokenDecodeFailure() throws {
+        let accountID = UUID()
+        let fixture = KeychainFixture()
+        try fixture.client.set("not-json", Self.sessionAccount(accountID))
+        let store = TokenStore(accountID: accountID, keychain: fixture.client)
+
+        XCTAssertThrowsError(try store.loadTokens()) { error in
+            XCTAssertEqual(
+                error.localizedDescription,
+                TokenStore.TokenStoreError.decodingFailed.localizedDescription
+            )
+        }
+    }
+
     private static func sessionAccount(_ accountID: UUID) -> String {
         "mailbell.account.\(accountID.uuidString).gmail.session"
     }
@@ -81,11 +107,13 @@ private final class KeychainFixture: @unchecked Sendable {
     var deletedAccounts: [String] = []
 
     private let setError: Error?
+    private let getError: Error?
     private let failsAllAccounts: Bool
     private var failingAccounts: Set<String>
 
-    init(setError: Error? = nil, failingAccounts: Set<String> = []) {
+    init(setError: Error? = nil, getError: Error? = nil, failingAccounts: Set<String> = []) {
         self.setError = setError
+        self.getError = getError
         failsAllAccounts = setError != nil && failingAccounts.isEmpty
         self.failingAccounts = failingAccounts
     }
@@ -105,7 +133,10 @@ private final class KeychainFixture: @unchecked Sendable {
                 values[account] = value
             },
             get: { [self] account in
-                values[account]
+                if let getError {
+                    throw getError
+                }
+                return values[account]
             },
             delete: { [self] account in
                 deletedAccounts.append(account)

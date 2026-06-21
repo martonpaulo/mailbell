@@ -5,8 +5,14 @@ extension AccountSupervisor {
         guard var account = accounts.first(where: { $0.id == accountID }) else { return }
         guard account.webmailOpenPreference != preference else { return }
         account.webmailOpenPreference = preference
-        accounts = accountStore.upsert(account)
-        webmailOpenErrors[accountID] = nil
+        do {
+            accounts = try accountStore.upsert(account)
+            accountStoreError = nil
+            webmailOpenErrors[accountID] = nil
+        } catch {
+            accountStoreError = error.localizedDescription
+            webmailOpenErrors[accountID] = error.localizedDescription
+        }
         publish()
     }
 

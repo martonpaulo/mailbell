@@ -2,28 +2,40 @@
 import XCTest
 
 final class AccountStoreTests: XCTestCase {
-    func testLoadsSavedAccounts() {
+    func testLoadsSavedAccounts() throws {
         let defaults = makeDefaults()
         let store = AccountStore(userDefaults: defaults)
         let createdAt = Date(timeIntervalSince1970: 1)
         let account = MailAccount(providerID: .gmail, email: "first@example.com", createdAt: createdAt)
 
-        store.saveAccounts([account])
+        try store.saveAccounts([account])
 
-        XCTAssertEqual(store.loadAccounts(), [account])
+        XCTAssertEqual(try store.loadAccounts(), [account])
     }
 
-    func testUpsertReplacesByID() {
+    func testUpsertReplacesByID() throws {
         let defaults = makeDefaults()
         let store = AccountStore(userDefaults: defaults)
         let account = MailAccount(providerID: .gmail, email: "old@example.com")
         let updated = MailAccount(id: account.id, providerID: .gmail, email: "new@example.com")
 
-        _ = store.upsert(account)
-        let accounts = store.upsert(updated)
+        _ = try store.upsert(account)
+        let accounts = try store.upsert(updated)
 
         XCTAssertEqual(accounts.count, 1)
         XCTAssertEqual(accounts.first?.email, "new@example.com")
+    }
+
+    func testSaveFailureIsPropagated() {
+        let store = AccountStore(
+            userDefaults: makeDefaults(),
+            saveData: { _, _ in throw AccountStore.AccountStoreError.saveFailed("disk full") }
+        )
+        let account = MailAccount(providerID: .gmail, email: "first@example.com")
+
+        XCTAssertThrowsError(try store.saveAccounts([account])) { error in
+            XCTAssertEqual(error.localizedDescription, "Could not save accounts: disk full")
+        }
     }
 
     private func makeDefaults() -> UserDefaults {

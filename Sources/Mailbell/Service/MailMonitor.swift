@@ -17,6 +17,7 @@ protocol AccountMonitoring: AnyObject {
     var account: MailAccount { get }
     var hasSession: Bool { get }
 
+    func hasStoredSession() throws -> Bool
     func updateAccount(_ account: MailAccount)
     func start()
     func stop(clearSession: Bool)
@@ -29,7 +30,7 @@ protocol AccountMonitoring: AnyObject {
 /// token refresh, IMAP connect/select/IDLE, gap-fill on reconnect, and token revocation.
 final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     struct NotificationPlan: Equatable {
-        let uidsToFetch: [Int]
+        let uidsToAdmit: [Int]
         let uidsToNotify: [Int]
         let lastSeenUID: Int
     }
@@ -37,7 +38,6 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     weak var delegate: MailMonitorDelegate?
 
     static let maximumNotificationsPerFetch = 10
-    static let maximumFreshHeadersPerFetch = 50
     static let maximumReconciliationHeadersPerMailbox = 100
 
     private(set) var account: MailAccount
@@ -60,6 +60,10 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
 
     var hasSession: Bool {
         tokenProvider.hasSession
+    }
+
+    func hasStoredSession() throws -> Bool {
+        try tokenProvider.hasStoredSession()
     }
 
     func updateAccount(_ account: MailAccount) {
@@ -102,7 +106,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     /// Requests an immediate gap-fill using the existing run loop. If a client is
     /// in IDLE, dropping it makes the retained run loop reconnect and fetch.
     func refreshNow() {
-        guard account.isEnabled, tokenProvider.hasSession else { return }
+        guard account.isEnabled, (try? tokenProvider.hasStoredSession()) == true else { return }
         guard client != nil else {
             start()
             return
@@ -226,7 +230,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
             let from = max(lastSeenUID + 1, 1)
             let uids = try await client.searchUnreadUIDs(fromUID: from)
             let plan = Self.notificationPlan(uids: uids, lastSeenUID: lastSeenUID)
-            let headers = try await client.fetchHeaders(uids: plan.uidsToFetch)
+            let headers = try await client.fetchHeaders(uids: plan.uidsToAdmit)
                 .map { $0.assigningMailbox(mailbox.role, name: mailbox.name) }
                 .sorted { $0.uid < $1.uid }
 
@@ -278,16 +282,14 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     static func notificationPlan(
         uids: [Int],
         lastSeenUID: Int,
-        notificationLimit: Int = maximumNotificationsPerFetch,
-        fetchLimit: Int = maximumFreshHeadersPerFetch
+        notificationLimit: Int = maximumNotificationsPerFetch
     ) -> NotificationPlan {
         let fresh = Array(Set(uids.filter { $0 > lastSeenUID })).sorted()
         guard let newestUID = fresh.last else {
-            return NotificationPlan(uidsToFetch: [], uidsToNotify: [], lastSeenUID: lastSeenUID)
+            return NotificationPlan(uidsToAdmit: [], uidsToNotify: [], lastSeenUID: lastSeenUID)
         }
-        let uidsToFetch = fetchLimit > 0 ? Array(fresh.suffix(fetchLimit)) : []
-        let uidsToNotify = notificationLimit > 0 ? Array(uidsToFetch.suffix(notificationLimit)) : []
-        return NotificationPlan(uidsToFetch: uidsToFetch, uidsToNotify: uidsToNotify, lastSeenUID: newestUID)
+        let uidsToNotify = notificationLimit > 0 ? Array(fresh.suffix(notificationLimit)) : []
+        return NotificationPlan(uidsToAdmit: fresh, uidsToNotify: uidsToNotify, lastSeenUID: newestUID)
     }
 
     static func monitoredMailboxes(includeSpam: Bool, spamMailboxName: String?) -> [MonitoredMailbox] {

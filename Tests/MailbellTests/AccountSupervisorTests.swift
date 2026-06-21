@@ -147,6 +147,32 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
+    func testAccountSaveFailureDoesNotApplyEnabledStateChange() throws {
+        let account = MailAccount(providerID: .gmail, email: "test@example.com")
+        let suiteName = "mailbell.AccountSupervisorTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        try AccountStore(userDefaults: defaults).saveAccounts([account])
+        let failingStore = AccountStore(
+            userDefaults: defaults,
+            saveData: { _, _ in throw AccountStore.AccountStoreError.saveFailed("disk full") }
+        )
+        let supervisor = AccountSupervisor(
+            accountStore: failingStore,
+            emailStore: EmailStore(persistence: EmailStorePersistence(userDefaults: defaults)),
+            monitorFactory: { account, _, includeSpam in
+                SpyMonitor(account: account, hasSession: false, includeSpam: includeSpam)
+            }
+        )
+
+        supervisor.setEnabled(false, accountID: account.id)
+
+        let state = try XCTUnwrap(supervisor.accountStates.first)
+        XCTAssertTrue(state.account.isEnabled)
+        XCTAssertEqual(state.lastError, "Could not save accounts: disk full")
+    }
+
+    @MainActor
     func testMenuIconIsFilledOnlyWhenEmailStoreHasItems() async throws {
         let (supervisor, account) = makeSupervisor()
 
@@ -346,7 +372,7 @@ final class AccountSupervisorTests: XCTestCase {
         let defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
         let store = AccountStore(userDefaults: defaults)
-        store.saveAccounts(accounts)
+        try! store.saveAccounts(accounts)
         let emailStore = EmailStore(persistence: EmailStorePersistence(userDefaults: defaults))
         return AccountSupervisor(
             configProvider: configProvider,
@@ -417,6 +443,10 @@ private final class SpyMonitor: AccountMonitoring {
 
     func updateAccount(_ account: MailAccount) {
         self.account = account
+    }
+
+    func hasStoredSession() throws -> Bool {
+        hasSession
     }
 
     func start() {

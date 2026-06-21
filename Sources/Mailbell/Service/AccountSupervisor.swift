@@ -27,6 +27,7 @@ final class AccountSupervisor {
     var connectionErrors: [UUID: String] = [:]
     private var notificationErrors: [UUID: String] = [:]
     var webmailOpenErrors: [UUID: String] = [:]
+    var accountStoreError: String?
     private var isAuthenticating = false
 
     private let pathMonitor = NWPathMonitor()
@@ -55,7 +56,13 @@ final class AccountSupervisor {
         self.monitorFactory = monitorFactory
         self.emailReadMarker = emailReadMarker
         self.webmailOpen = webmailOpen
-        accounts = accountStore.loadAccounts()
+        do {
+            accounts = try accountStore.loadAccounts()
+        } catch {
+            accounts = []
+            accountStoreError = error.localizedDescription
+            Log.error("Failed to load accounts: \(error.localizedDescription)")
+        }
         setupNetworkMonitoring()
         setupSleepWakeObservers()
         startEnabledAccounts()
@@ -126,7 +133,8 @@ final class AccountSupervisor {
         let result = try await signIn(config: config)
         let account = signedInAccount(email: result.email, providerID: .gmail)
         try saveSession(result.tokens, account: account)
-        accounts = accountStore.upsert(account)
+        accounts = try accountStore.upsert(account)
+        accountStoreError = nil
         statuses[account.id] = .signedOut
         connectionErrors[account.id] = nil
         start(account)
@@ -147,7 +155,8 @@ final class AccountSupervisor {
             throw SupervisorError.accountMismatch(expected: account.email, actual: result.email)
         }
         try saveSession(result.tokens, account: account)
-        accounts = accountStore.upsert(account)
+        accounts = try accountStore.upsert(account)
+        accountStoreError = nil
         statuses[account.id] = .signedOut
         connectionErrors[account.id] = nil
         start(account)
@@ -157,7 +166,16 @@ final class AccountSupervisor {
     func setEnabled(_ isEnabled: Bool, accountID: UUID) {
         guard var account = accounts.first(where: { $0.id == accountID }) else { return }
         account.isEnabled = isEnabled
-        accounts = accountStore.upsert(account)
+        do {
+            accounts = try accountStore.upsert(account)
+            accountStoreError = nil
+            connectionErrors[accountID] = nil
+        } catch {
+            accountStoreError = error.localizedDescription
+            connectionErrors[accountID] = error.localizedDescription
+            publish()
+            return
+        }
 
         if isEnabled {
             start(account)
@@ -190,7 +208,11 @@ final class AccountSupervisor {
             publish()
             return
         }
-        if monitor.hasSession {
+        guard let hasSession = hasStoredSession(monitor, accountID: accountID) else {
+            publish()
+            return
+        }
+        if hasSession {
             monitor.forceReconnect()
             monitor.start()
         } else {
@@ -200,6 +222,18 @@ final class AccountSupervisor {
     }
 
     func remove(accountID: UUID) {
+        guard accounts.contains(where: { $0.id == accountID }) else { return }
+        let remainingAccounts: [MailAccount]
+        do {
+            remainingAccounts = try accountStore.remove(accountID: accountID)
+            accountStoreError = nil
+        } catch {
+            accountStoreError = error.localizedDescription
+            connectionErrors[accountID] = error.localizedDescription
+            publish()
+            return
+        }
+
         monitors[accountID]?.stop(clearSession: true)
         monitors[accountID] = nil
         statuses[accountID] = nil
@@ -210,7 +244,7 @@ final class AccountSupervisor {
         CheckpointStore(accountID: accountID, mailbox: "SPAM").reset()
         TokenStore(accountID: accountID).clear()
         emailStore.removeAccount(accountID: accountID)
-        accounts = accountStore.remove(accountID: accountID)
+        accounts = remainingAccounts
         publish()
     }
 
@@ -276,7 +310,7 @@ final class AccountSupervisor {
     private func reconnectIfSessionExists(accountID: UUID) {
         guard let account = accounts.first(where: { $0.id == accountID && $0.isEnabled }) else { return }
         guard let monitor = ensureMonitor(for: account) else { return }
-        guard monitor.hasSession else { return }
+        guard hasStoredSession(monitor, accountID: accountID) == true else { return }
         monitor.forceReconnect()
         monitor.start()
     }
@@ -308,6 +342,16 @@ final class AccountSupervisor {
 
     func publish() {
         delegate?.accountSupervisorDidUpdate(states: accountStates, aggregateStatus: aggregateStatus)
+    }
+
+    func hasStoredSession(_ monitor: any AccountMonitoring, accountID: UUID) -> Bool? {
+        do {
+            return try monitor.hasStoredSession()
+        } catch {
+            statuses[accountID] = .error
+            connectionErrors[accountID] = error.localizedDescription
+            return nil
+        }
     }
 }
 

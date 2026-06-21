@@ -176,6 +176,12 @@ final class EmailStore {
         }
     }
 
+    var pendingCountsByAccountID: [UUID: Int] {
+        items.reduce(into: [:]) { counts, item in
+            counts[item.accountID, default: 0] += 1
+        }
+    }
+
     var hasItems: Bool {
         !itemsByID.isEmpty
     }

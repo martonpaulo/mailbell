@@ -49,7 +49,7 @@ enum Keychain {
         }
     }
 
-    static func get(account: String) -> String? {
+    static func get(account: String) throws -> String? {
         let context = LAContext()
         context.interactionNotAllowed = true
 
@@ -64,10 +64,16 @@ enum Keychain {
 
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess, let data = item as? Data else {
+        if status == errSecItemNotFound {
             return nil
         }
-        return String(data: data, encoding: .utf8)
+        guard status == errSecSuccess, let data = item as? Data else {
+            throw KeychainError.unexpectedStatus(status)
+        }
+        guard let value = String(data: data, encoding: .utf8) else {
+            throw KeychainError.unexpectedStatus(errSecDecode)
+        }
+        return value
     }
 
     static func delete(account: String) {

@@ -42,7 +42,12 @@ extension AccountSupervisor {
                 continue
             }
 
-            guard monitor.hasSession else {
+            guard let hasSession = hasStoredSession(monitor, accountID: account.id) else {
+                setupFailed = true
+                continue
+            }
+
+            guard hasSession else {
                 statuses[account.id] = .reauthRequired
                 needsSignIn = true
                 continue
