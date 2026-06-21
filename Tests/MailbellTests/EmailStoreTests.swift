@@ -254,6 +254,38 @@ final class EmailStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testThreadGroupUsesFirstAdmittedEmailWhenUIDsTieOnReceivedAt() throws {
+        let store = makeStore()
+        let account = makeAccount()
+        let firstAdmittedHeader = makeHeader(
+            uid: 2,
+            subject: "First notified",
+            gmMessageId: "message-2",
+            gmThreadId: "thread-1",
+            bodyPreview: "First notified preview"
+        )
+        let laterAdmittedHeader = makeHeader(
+            uid: 1,
+            subject: "Earlier thread UID",
+            gmMessageId: "message-1",
+            gmThreadId: "thread-1",
+            bodyPreview: "Earlier thread UID preview"
+        )
+
+        XCTAssertTrue(store.admit(header: firstAdmittedHeader, account: account))
+        XCTAssertTrue(store.admit(header: laterAdmittedHeader, account: account))
+
+        let item = try XCTUnwrap(store.items.first)
+        XCTAssertEqual(store.items.count, 1)
+        XCTAssertEqual(item.title, "First notified")
+        XCTAssertEqual(item.bodyPreview, "First notified preview")
+
+        let laterAdmittedID = EmailStoreIdentity.id(accountID: account.id, header: laterAdmittedHeader)
+        let firstItem = try XCTUnwrap(store.firstItemInGroup(containing: laterAdmittedID))
+        XCTAssertEqual(firstItem.title, "First notified")
+    }
+
+    @MainActor
     func testOpeningThreadGroupRemovesCurrentMessagesButAllowsFutureThreadMessages() {
         let defaults = makeDefaults()
         let store = makeStore(defaults: defaults)

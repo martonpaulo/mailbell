@@ -46,11 +46,23 @@ enum EmailHeaderFormatter {
         return sender.isEmpty ? "Unknown sender" : sender
     }
 
-    static func timeText(for header: MessageHeader) -> String {
+    static func timeText(
+        for header: MessageHeader,
+        now: Date = Date(),
+        locale: Locale = .autoupdatingCurrent,
+        calendar: Calendar = .autoupdatingCurrent,
+        timeZone: TimeZone = .autoupdatingCurrent
+    ) -> String {
         let rawDate = header.date.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !rawDate.isEmpty else { return "Time unknown" }
         guard let date = parseMailDate(rawDate) else { return rawDate }
-        return DateFormatter.localizedString(from: date, dateStyle: .none, timeStyle: .short)
+        return sentDateText(
+            for: date,
+            relativeTo: now,
+            locale: locale,
+            calendar: calendar,
+            timeZone: timeZone
+        )
     }
 
     private static func parseMailDate(_ rawDate: String) -> Date? {
@@ -65,6 +77,65 @@ enum EmailHeaderFormatter {
             }
         }
         return nil
+    }
+
+    private static func sentDateText(
+        for date: Date,
+        relativeTo now: Date,
+        locale: Locale,
+        calendar: Calendar,
+        timeZone: TimeZone
+    ) -> String {
+        "\(relativeDateText(for: date, relativeTo: now, locale: locale, calendar: calendar, timeZone: timeZone)), \(fullDateTimeText(for: date, locale: locale, calendar: calendar, timeZone: timeZone))"
+    }
+
+    private static func relativeDateText(
+        for date: Date,
+        relativeTo now: Date,
+        locale: Locale,
+        calendar: Calendar,
+        timeZone: TimeZone
+    ) -> String {
+        var calendar = calendar
+        calendar.timeZone = timeZone
+        let dayDelta = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: now),
+            to: calendar.startOfDay(for: date)
+        ).day ?? 0
+
+        var components = DateComponents()
+        if abs(dayDelta) >= 7, dayDelta.isMultiple(of: 7) {
+            components.weekOfYear = dayDelta / 7
+        } else {
+            components.day = dayDelta
+        }
+
+        let formatter = RelativeDateTimeFormatter()
+        formatter.locale = locale
+        formatter.calendar = calendar
+        formatter.unitsStyle = .full
+        formatter.dateTimeStyle = .named
+        return formatter.localizedString(from: components)
+            .uppercasingFirstCharacter(locale: locale)
+    }
+
+    private static func fullDateTimeText(
+        for date: Date,
+        locale: Locale,
+        calendar: Calendar,
+        timeZone: TimeZone
+    ) -> String {
+        var calendar = calendar
+        calendar.timeZone = timeZone
+
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.calendar = calendar
+        formatter.timeZone = timeZone
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 }
 
@@ -91,5 +162,10 @@ private extension String {
 
     var looksLikeEmailAddress: Bool {
         contains("@") && !contains(" ")
+    }
+
+    func uppercasingFirstCharacter(locale: Locale) -> String {
+        guard let first else { return self }
+        return String(first).uppercased(with: locale) + dropFirst()
     }
 }

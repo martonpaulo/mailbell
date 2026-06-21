@@ -81,6 +81,38 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
         )
     }
 
+    func testThreadNotificationUsesSpecificMessagePreview() {
+        let account = MailAccount(providerID: .gmail, email: "account@example.com")
+        let firstHeader = MessageHeader(
+            uid: 10,
+            from: "Ana Silva <ana@example.com>",
+            subject: "First thread message",
+            date: "",
+            gmThreadId: "thread-1",
+            gmMessageId: "message-1",
+            bodyPreview: "First preview"
+        )
+        let secondHeader = MessageHeader(
+            uid: 11,
+            from: "Ana Silva <ana@example.com>",
+            subject: "Second thread message",
+            date: "",
+            gmThreadId: firstHeader.gmThreadId,
+            gmMessageId: "message-2",
+            bodyPreview: "Second preview"
+        )
+
+        let content = NotificationManager.notificationContent(for: secondHeader, account: account)
+
+        XCTAssertEqual(content.title, "Ana Silva")
+        XCTAssertEqual(content.subtitle, "Second thread message")
+        XCTAssertEqual(content.body, "Second preview")
+        XCTAssertEqual(
+            content.userInfo[notificationEmailIDKey] as? String,
+            EmailStoreIdentity.id(accountID: account.id, header: secondHeader)
+        )
+    }
+
     func testTestNotificationUsesSharedEmailFormatterShape() {
         let account = MailAccount(providerID: .gmail, email: "account@example.com")
         let content = NotificationManager.testNotificationContent(account: account)

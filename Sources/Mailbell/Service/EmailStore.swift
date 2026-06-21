@@ -13,6 +13,7 @@ struct EmailStoreItem: Identifiable, Equatable {
     let bodyPreview: String?
     let webmailURL: URL
     let receivedAt: Date
+    let admissionOrder: Int
 
     var canMarkAsRead: Bool {
         imapIdentity != nil
@@ -158,6 +159,7 @@ final class EmailStore {
     private var itemsByID: [String: EmailStoreItem] = [:]
     private let persistence: EmailStorePersistence
     private let now: () -> Date
+    private var nextAdmissionOrder = 0
 
     init(
         persistence: EmailStorePersistence = EmailStorePersistence(),
@@ -245,7 +247,8 @@ final class EmailStore {
                 id: id,
                 header: header,
                 account: account,
-                receivedAt: previousItems[id]?.receivedAt ?? now()
+                receivedAt: previousItems[id]?.receivedAt ?? now(),
+                admissionOrder: previousItems[id]?.admissionOrder
             )
         }
 
@@ -324,6 +327,9 @@ final class EmailStore {
         if left.receivedAt != right.receivedAt {
             return left.receivedAt < right.receivedAt
         }
+        if left.admissionOrder != right.admissionOrder {
+            return left.admissionOrder < right.admissionOrder
+        }
         if let leftUID = left.imapIdentity?.uid,
            let rightUID = right.imapIdentity?.uid,
            leftUID != rightUID {
@@ -352,9 +358,18 @@ final class EmailStore {
         id: String,
         header: MessageHeader,
         account: MailAccount,
-        receivedAt: Date? = nil
+        receivedAt: Date? = nil,
+        admissionOrder: Int? = nil
     ) -> EmailStoreItem {
-        EmailStoreItem(
+        let resolvedAdmissionOrder: Int
+        if let admissionOrder {
+            resolvedAdmissionOrder = admissionOrder
+        } else {
+            resolvedAdmissionOrder = nextAdmissionOrder
+            nextAdmissionOrder += 1
+        }
+
+        return EmailStoreItem(
             id: id,
             groupID: EmailStoreIdentity.groupID(accountID: account.id, header: header),
             accountID: account.id,
@@ -367,7 +382,8 @@ final class EmailStore {
             bodyPreview: header.bodyPreview,
             webmailURL: MailProviderRegistry.provider(for: account.providerID)
                 .webmailURL(for: header, account: account),
-            receivedAt: receivedAt ?? now()
+            receivedAt: receivedAt ?? now(),
+            admissionOrder: resolvedAdmissionOrder
         )
     }
 }
