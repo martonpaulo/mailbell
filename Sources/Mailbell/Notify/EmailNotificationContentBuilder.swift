@@ -10,7 +10,13 @@ enum EmailNotificationContentBuilder {
     ) -> UNMutableNotificationContent {
         let content = UNMutableNotificationContent()
         content.title = EmailHeaderFormatter.senderTitle(from: header.from)
-        content.body = EmailHeaderFormatter.title(for: header)
+        let subject = EmailHeaderFormatter.title(for: header)
+        if let bodyPreview = header.bodyPreview {
+            content.subtitle = subject
+            content.body = bodyPreview
+        } else {
+            content.body = subject
+        }
         content.sound = .default
         if emailID != nil {
             content.categoryIdentifier = notificationEmailCategoryIdentifier

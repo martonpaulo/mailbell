@@ -54,3 +54,16 @@ enum SystemSettings {
         NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
     }
 }
+
+@MainActor
+enum SettingsWindowPresenter {
+    static func bringToFront() {
+        NSApp.activate(ignoringOtherApps: true)
+        DispatchQueue.main.async {
+            NSApp.activate(ignoringOtherApps: true)
+            for window in NSApp.windows where window.isVisible {
+                window.makeKeyAndOrderFront(nil)
+            }
+        }
+    }
+}

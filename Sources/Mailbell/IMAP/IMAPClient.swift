@@ -59,6 +59,7 @@ final class IMAPClient {
     private let connection: any IMAPClientTransport
     private var tagCounter = 0
     private static let headerFields = "BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)]"
+    private static let bodyPreviewBytes = 8_192
     private static let maximumUIDsPerFetchCommand = 100
     private static let maximumUIDFetchSequenceSetLength = 1_500
 
@@ -272,7 +273,38 @@ final class IMAPClient {
                 throw IMAPError.unexpected(line)
             }
         }
-        return headers
+        guard !headers.isEmpty else { return [] }
+
+        let previews = try await fetchBodyPreviewsBatch(uids: headers.map(\.uid))
+        return headers.map { header in
+            header.assigningBodyPreview(previews[header.uid])
+        }
+    }
+
+    private func fetchBodyPreviewsBatch(uids: [Int]) async throws -> [Int: String] {
+        let sequenceSet = Self.uidSequenceSet(for: uids)
+        guard !sequenceSet.isEmpty else { return [:] }
+
+        let tag = nextTag()
+        try await connection.send(
+            "\(tag) UID FETCH \(sequenceSet) (UID BODY.PEEK[TEXT]<0.\(Self.bodyPreviewBytes)>)"
+        )
+
+        var previews: [Int: String] = [:]
+        while true {
+            let line = try await connection.readLine()
+            if line.hasPrefix("* "), line.uppercased().contains("FETCH") {
+                if let (uid, preview) = try await parseBodyPreviewFetch(line) {
+                    previews[uid] = preview
+                }
+                continue
+            }
+            if line.hasPrefix("\(tag) OK") { break }
+            if line.hasPrefix("\(tag) NO") || line.hasPrefix("\(tag) BAD") {
+                throw IMAPError.unexpected(line)
+            }
+        }
+        return previews
     }
 
     func markAsRead(uid: Int) async throws {
@@ -355,5 +387,16 @@ final class IMAPClient {
         let block = try await connection.readBytes(literalSize)
         _ = try await connection.readLine()
         return IMAPParser.parseFetch(firstLine: firstLine, headerBlock: block)
+    }
+
+    private func parseBodyPreviewFetch(_ firstLine: String) async throws -> (uid: Int, preview: String?)? {
+        guard let uid = IMAPParser.parseNumber(in: firstLine, key: "UID"),
+              let literalSize = IMAPParser.parseLiteralSize(firstLine)
+        else {
+            return nil
+        }
+        let block = try await connection.readBytes(literalSize)
+        _ = try await connection.readLine()
+        return (uid, EmailBodyPreviewSanitizer.preview(from: block))
     }
 }

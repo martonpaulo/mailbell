@@ -31,6 +31,21 @@ final class AccountPresentationTests: XCTestCase {
         XCTAssertEqual(AccountPresentation.statusText(for: state(status: .reauthRequired)), "Sign in needed")
     }
 
+    func testAccountDetailPresentationOmitsProviderPrefix() {
+        XCTAssertEqual(
+            AccountPresentation.detailText(for: state(status: .connected)),
+            "Monitoring Inbox."
+        )
+        XCTAssertEqual(
+            AccountPresentation.detailText(for: state(status: .connected), includeSpam: true),
+            "Monitoring Inbox and Spam."
+        )
+        XCTAssertEqual(
+            AccountPresentation.detailText(for: state(status: .reconnecting)),
+            "Reconnecting."
+        )
+    }
+
     func testWebmailOpenLabelUsesOnlyAccountEmail() {
         XCTAssertEqual(
             AccountPresentation.webmailOpenLabel(email: "user@example.com"),

@@ -2,6 +2,7 @@ import Foundation
 
 struct EmailStoreItem: Identifiable, Equatable {
     let id: String
+    let groupID: String
     let accountID: UUID
     let accountEmail: String
     let mailbox: MessageMailbox
@@ -9,6 +10,7 @@ struct EmailStoreItem: Identifiable, Equatable {
     let title: String
     let sender: String
     let time: String
+    let bodyPreview: String?
     let webmailURL: URL
     let receivedAt: Date
 
@@ -21,6 +23,13 @@ enum EmailStoreIdentity {
     static func id(accountID: UUID, header: MessageHeader) -> String {
         let source = source(for: header)
         return "\(accountPrefix(accountID: accountID))\(source.kind).\(source.value)"
+    }
+
+    static func groupID(accountID: UUID, header: MessageHeader) -> String {
+        if let value = normalized(header.gmThreadId) {
+            return "\(accountPrefix(accountID: accountID))gmailThread.\(value)"
+        }
+        return id(accountID: accountID, header: header)
     }
 
     static func accountPrefix(accountID: UUID) -> String {
@@ -153,7 +162,7 @@ final class EmailStore {
     }
 
     var items: [EmailStoreItem] {
-        itemsByID.values.sorted { left, right in
+        groupedItems().sorted { left, right in
             if left.receivedAt != right.receivedAt {
                 return left.receivedAt > right.receivedAt
             }
@@ -237,19 +246,28 @@ final class EmailStore {
         itemsByID[id]
     }
 
+    func firstItemInGroup(containing id: String) -> EmailStoreItem? {
+        guard let item = itemsByID[id] else { return nil }
+        return firstItem(groupID: item.groupID)
+    }
+
+    func imapIdentitiesInGroup(containing id: String) -> [IMAPMessageIdentity] {
+        guard let item = itemsByID[id] else { return [] }
+        return itemsByID.values
+            .filter { $0.groupID == item.groupID }
+            .compactMap(\.imapIdentity)
+    }
+
     func dismiss(id: String) {
-        persistence.mark(id, disposition: .dismissed)
-        itemsByID[id] = nil
+        removeGroup(containing: id, disposition: .dismissed)
     }
 
     func markOpened(id: String) {
-        persistence.mark(id, disposition: .opened)
-        itemsByID[id] = nil
+        removeGroup(containing: id, disposition: .opened)
     }
 
     func markRead(id: String) {
-        persistence.mark(id, disposition: .markedRead)
-        itemsByID[id] = nil
+        removeGroup(containing: id, disposition: .markedRead)
     }
 
     func removeAccount(accountID: UUID) {
@@ -268,6 +286,56 @@ final class EmailStore {
         return previousItems != itemsByID
     }
 
+    private func groupedItems() -> [EmailStoreItem] {
+        var firstItemsByGroupID: [String: EmailStoreItem] = [:]
+        for item in itemsByID.values {
+            guard let existing = firstItemsByGroupID[item.groupID] else {
+                firstItemsByGroupID[item.groupID] = item
+                continue
+            }
+            if isEarlierInGroup(item, than: existing) {
+                firstItemsByGroupID[item.groupID] = item
+            }
+        }
+        return Array(firstItemsByGroupID.values)
+    }
+
+    private func firstItem(groupID: String) -> EmailStoreItem? {
+        itemsByID.values
+            .filter { $0.groupID == groupID }
+            .min { left, right in
+                isEarlierInGroup(left, than: right)
+            }
+    }
+
+    private func isEarlierInGroup(_ left: EmailStoreItem, than right: EmailStoreItem) -> Bool {
+        if left.receivedAt != right.receivedAt {
+            return left.receivedAt < right.receivedAt
+        }
+        if let leftUID = left.imapIdentity?.uid,
+           let rightUID = right.imapIdentity?.uid,
+           leftUID != rightUID {
+            return leftUID < rightUID
+        }
+        return left.title.localizedCaseInsensitiveCompare(right.title) == .orderedAscending
+    }
+
+    private func removeGroup(containing id: String, disposition: EmailStoreDisposition) {
+        guard let item = itemsByID[id] else {
+            persistence.mark(id, disposition: disposition)
+            itemsByID[id] = nil
+            return
+        }
+
+        let groupID = item.groupID
+        for groupedItem in itemsByID.values where groupedItem.groupID == groupID {
+            persistence.mark(groupedItem.id, disposition: disposition)
+        }
+        itemsByID = itemsByID.filter { _, item in
+            item.groupID != groupID
+        }
+    }
+
     private func makeItem(
         id: String,
         header: MessageHeader,
@@ -276,6 +344,7 @@ final class EmailStore {
     ) -> EmailStoreItem {
         EmailStoreItem(
             id: id,
+            groupID: EmailStoreIdentity.groupID(accountID: account.id, header: header),
             accountID: account.id,
             accountEmail: account.email,
             mailbox: header.mailbox,
@@ -283,6 +352,7 @@ final class EmailStore {
             title: EmailHeaderFormatter.title(for: header),
             sender: EmailHeaderFormatter.senderDetail(from: header.from),
             time: EmailHeaderFormatter.timeText(for: header),
+            bodyPreview: header.bodyPreview,
             webmailURL: MailProviderRegistry.provider(for: account.providerID)
                 .webmailURL(for: header, account: account),
             receivedAt: receivedAt ?? now()

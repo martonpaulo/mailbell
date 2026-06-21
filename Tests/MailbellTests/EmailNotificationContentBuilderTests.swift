@@ -38,6 +38,25 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
         XCTAssertEqual(content.body, "Status update")
     }
 
+    func testBodyPreviewBecomesNotificationBodyWithSubjectSubtitle() throws {
+        let content = try EmailNotificationContentBuilder.build(
+            header: MessageHeader(
+                uid: 4,
+                from: "Ana Silva <ana@example.com>",
+                subject: "Status update",
+                date: "",
+                gmThreadId: nil,
+                bodyPreview: "The contract is ready for review."
+            ),
+            webmailURL: XCTUnwrap(URL(string: "https://mail.google.com/")),
+            accountID: UUID()
+        )
+
+        XCTAssertEqual(content.title, "Ana Silva")
+        XCTAssertEqual(content.subtitle, "Status update")
+        XCTAssertEqual(content.body, "The contract is ready for review.")
+    }
+
     func testRealNotificationContentUsesSharedEmailFormatter() {
         let account = MailAccount(providerID: .gmail, email: "account@example.com")
         let header = MessageHeader(

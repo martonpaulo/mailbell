@@ -90,6 +90,42 @@ final class IMAPClientTests: XCTestCase {
         )
     }
 
+    func testFetchHeadersAddsSanitizedBodyPreview() async throws {
+        let headerBlock = Data(
+            """
+            From: Ana <ana@example.com>\r
+            Subject: Status\r
+            Date: Tue, 02 Jun 2026 12:00:00 +0000\r
+            Message-ID: <message@example.com>\r
+            \r
+            """.utf8
+        )
+        let bodyBlock = Data("<p>Hello&nbsp;<b>there</b>.</p>".utf8)
+        let connection = ScriptedIMAPConnection(
+            lines: [
+                "* 1 FETCH (UID 42 X-GM-MSGID 100 X-GM-THRID 200 BODY[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)] {\(headerBlock.count)}",
+                ")",
+                "A0001 OK FETCH completed",
+                "* 1 FETCH (UID 42 BODY[TEXT]<0> {\(bodyBlock.count)}",
+                ")",
+                "A0002 OK FETCH completed"
+            ],
+            byteChunks: [headerBlock, bodyBlock]
+        )
+        let client = IMAPClient(connection: connection)
+
+        let headers = try await client.fetchHeaders(uids: [42])
+
+        XCTAssertEqual(headers.first?.bodyPreview, "Hello there.")
+        XCTAssertEqual(
+            connection.sentLines,
+            [
+                "A0001 UID FETCH 42 (UID X-GM-MSGID X-GM-THRID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])",
+                "A0002 UID FETCH 42 (UID BODY.PEEK[TEXT]<0.8192>)"
+            ]
+        )
+    }
+
     func testSearchUnreadUIDsFromUIDScopesUnreadSearch() async throws {
         let connection = ScriptedIMAPConnection(lines: ["* SEARCH 42 43", "A0001 OK SEARCH completed"])
         let client = IMAPClient(connection: connection)
@@ -103,10 +139,12 @@ final class IMAPClientTests: XCTestCase {
 
 private final class ScriptedIMAPConnection: IMAPClientTransport, @unchecked Sendable {
     private var lines: [String]
+    private var byteChunks: [Data]
     private(set) var sentLines: [String] = []
 
-    init(lines: [String]) {
+    init(lines: [String], byteChunks: [Data] = []) {
         self.lines = lines
+        self.byteChunks = byteChunks
     }
 
     func connect() async throws {}
@@ -126,6 +164,7 @@ private final class ScriptedIMAPConnection: IMAPClientTransport, @unchecked Send
     }
 
     func readBytes(_: Int) async throws -> Data {
-        Data()
+        guard !byteChunks.isEmpty else { return Data() }
+        return byteChunks.removeFirst()
     }
 }

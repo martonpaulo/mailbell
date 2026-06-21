@@ -22,8 +22,14 @@ extension AccountSupervisor {
     }
 
     func openEmail(id: String?, accountID: UUID?, url: URL) async {
-        let account = accountID.flatMap { id in accounts.first(where: { $0.id == id }) }
-        let outcome = await applyWebmailOpen(url: url, account: account, accountID: account?.id ?? accountID)
+        let storedItem = id.flatMap { emailStore.firstItemInGroup(containing: $0) }
+        let resolvedAccountID = storedItem?.accountID ?? accountID
+        let account = resolvedAccountID.flatMap { id in accounts.first(where: { $0.id == id }) }
+        let outcome = await applyWebmailOpen(
+            url: storedItem?.webmailURL ?? url,
+            account: account,
+            accountID: account?.id ?? resolvedAccountID
+        )
         if outcome.didOpen, let id {
             emailStore.markOpened(id: id)
             publish()
@@ -31,7 +37,7 @@ extension AccountSupervisor {
     }
 
     func openEmail(id: String) async {
-        guard let item = emailStore.item(id: id) else { return }
+        guard let item = emailStore.firstItemInGroup(containing: id) else { return }
         await openEmail(id: id, accountID: item.accountID, url: item.webmailURL)
     }
 

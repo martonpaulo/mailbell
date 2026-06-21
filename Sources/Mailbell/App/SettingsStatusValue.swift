@@ -55,3 +55,24 @@ struct SettingsStatusValue: View {
         .accessibilityLabel(accessibilityLabel)
     }
 }
+
+struct SettingsProgressValue: View {
+    let title: String
+    let accessibilityLabel: String
+
+    init(_ title: String, context: String) {
+        self.title = title
+        accessibilityLabel = "\(context): \(title)"
+    }
+
+    var body: some View {
+        Label {
+            Text(title)
+        } icon: {
+            ProgressView()
+                .controlSize(.small)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+    }
+}

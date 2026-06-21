@@ -26,6 +26,33 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
     }
 
     @MainActor
+    func testMarkAsReadMarksEveryKnownMessageInThreadGroup() async throws {
+        var markedIdentities: [IMAPMessageIdentity] = []
+        let (supervisor, account) = makeSupervisor(emailReadMarker: { _, _, identity in
+            markedIdentities.append(identity)
+        })
+        let firstHeader = makeHeader(uid: 41, mailboxName: "INBOX", gmMessageId: "message-1", gmThreadId: "thread-1")
+        let secondHeader = makeHeader(uid: 42, mailboxName: "INBOX", gmMessageId: "message-2", gmThreadId: "thread-1")
+
+        let didAdmitFirst = await admit(firstHeader, into: supervisor, account: account)
+        let didAdmitSecond = await admit(secondHeader, into: supervisor, account: account)
+        XCTAssertTrue(didAdmitFirst)
+        XCTAssertTrue(didAdmitSecond)
+        let item = try XCTUnwrap(supervisor.emailStoreItems.first)
+
+        await supervisor.markEmailAsRead(id: item.id)
+
+        XCTAssertEqual(
+            Set(markedIdentities),
+            Set([
+                IMAPMessageIdentity(uid: 41, mailboxName: "INBOX"),
+                IMAPMessageIdentity(uid: 42, mailboxName: "INBOX")
+            ])
+        )
+        XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
+    }
+
+    @MainActor
     func testMarkAsReadFailureKeepsEmailInStore() async throws {
         let (supervisor, account) = makeSupervisor(emailReadMarker: { _, _, _ in
             throw MarkReadTestError.failed
@@ -94,7 +121,8 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
     private func makeHeader(
         uid: Int,
         mailboxName: String? = nil,
-        gmMessageId: String
+        gmMessageId: String,
+        gmThreadId: String? = nil
     ) -> MessageHeader {
         MessageHeader(
             uid: uid,
@@ -102,7 +130,7 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
             from: "sender@example.com",
             subject: "Subject",
             date: "",
-            gmThreadId: nil,
+            gmThreadId: gmThreadId,
             gmMessageId: gmMessageId
         )
     }

@@ -37,6 +37,7 @@ struct MessageHeader: Identifiable, Equatable {
     let gmThreadId: String?
     let gmMessageId: String?
     let messageId: String?
+    let bodyPreview: String?
 
     init(
         uid: Int,
@@ -47,7 +48,8 @@ struct MessageHeader: Identifiable, Equatable {
         date: String,
         gmThreadId: String?,
         gmMessageId: String? = nil,
-        messageId: String? = nil
+        messageId: String? = nil,
+        bodyPreview: String? = nil
     ) {
         self.uid = uid
         self.mailbox = mailbox
@@ -58,6 +60,7 @@ struct MessageHeader: Identifiable, Equatable {
         self.gmThreadId = gmThreadId
         self.gmMessageId = gmMessageId
         self.messageId = messageId
+        self.bodyPreview = bodyPreview
     }
 
     var id: Int {
@@ -78,7 +81,23 @@ struct MessageHeader: Identifiable, Equatable {
             date: date,
             gmThreadId: gmThreadId,
             gmMessageId: gmMessageId,
-            messageId: messageId
+            messageId: messageId,
+            bodyPreview: bodyPreview
+        )
+    }
+
+    func assigningBodyPreview(_ bodyPreview: String?) -> MessageHeader {
+        MessageHeader(
+            uid: uid,
+            mailbox: mailbox,
+            mailboxName: mailboxName,
+            from: from,
+            subject: subject,
+            date: date,
+            gmThreadId: gmThreadId,
+            gmMessageId: gmMessageId,
+            messageId: messageId,
+            bodyPreview: bodyPreview
         )
     }
 

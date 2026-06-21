@@ -58,6 +58,7 @@ private struct MenuBarLabel: View {
 }
 
 struct MenuContent: View {
+    @Environment(\.openSettings) private var openSettings
     @ObservedObject var appState: AppState
 
     var body: some View {
@@ -82,7 +83,11 @@ struct MenuContent: View {
 
         Divider()
 
-        SettingsLink {
+        Button {
+            SettingsWindowPresenter.bringToFront()
+            openSettings()
+            SettingsWindowPresenter.bringToFront()
+        } label: {
             Text("Settings…")
         }
 
@@ -160,6 +165,9 @@ struct MenuContent: View {
                             Label(address, systemImage: "at")
                         }
                         Label(email.time, systemImage: "clock")
+                        if let bodyPreview = email.bodyPreview {
+                            Label(bodyPreview, systemImage: "text.quote")
+                        }
                         Divider()
                         Button(PendingCopy.openActionTitle) {
                             appState.openEmail(id: email.id)
@@ -252,6 +260,7 @@ struct SettingsView: View {
     @State private var webmailBrowsers: [BrowserCandidate] = []
     @State private var chromeProfiles: [ChromeProfileCandidate] = []
     @State private var didLoadWebmailOptions = false
+    @State private var accountPendingRemoval: MailAccount?
 
     var body: some View {
         TabView {
@@ -282,6 +291,26 @@ struct SettingsView: View {
         }
         .onAppear {
             refreshBehaviorState()
+        }
+        .confirmationDialog(
+            accountRemovalTitle,
+            isPresented: accountRemovalBinding,
+            titleVisibility: .visible
+        ) {
+            Button("Remove Account", role: .destructive) {
+                if let account = accountPendingRemoval {
+                    appState.removeAccount(accountID: account.id)
+                    accountPendingRemoval = nil
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                accountPendingRemoval = nil
+            }
+        } message: {
+            Text(
+                "Mailbell will delete local tokens and stop notifications for this account. "
+                    + "Gmail mail will not be changed."
+            )
         }
     }
 
@@ -363,8 +392,7 @@ struct SettingsView: View {
 
             LabeledContent("Test Notification") {
                 if appState.isSendingTestNotification {
-                    ProgressView()
-                        .accessibilityLabel("Test notification: Sending")
+                    SettingsProgressValue("Sending", context: "Test notification")
                 } else {
                     Button("Send") {
                         appState.sendTestNotification()
@@ -489,7 +517,19 @@ struct SettingsView: View {
 
     private func accountSection(for state: AccountRuntimeState) -> some View {
         Section {
-            accountIdentityRows(for: state)
+            accountIdentityRows
+
+            Toggle(
+                accountEnabledTitle(for: state),
+                isOn: Binding(
+                    get: { state.account.isEnabled },
+                    set: { appState.setAccountEnabled($0, accountID: state.account.id) }
+                )
+            )
+
+            LabeledContent("Status") {
+                accountStatusValue(for: state)
+            }
 
             if appState.showPendingCount {
                 LabeledContent(PendingCopy.reviewSectionTitle) {
@@ -497,25 +537,20 @@ struct SettingsView: View {
                 }
             }
 
-            Toggle(
-                "Enable account",
-                isOn: Binding(
-                    get: { state.account.isEnabled },
-                    set: { appState.setAccountEnabled($0, accountID: state.account.id) }
-                )
-            )
-
             LabeledContent("Open in Browser") {
                 Button("Open") {
                     appState.openGmail(accountID: state.account.id)
                 }
             }
 
-            LabeledContent("Manage Account") {
-                AccountActionsMenu(appState: appState, accountState: state)
+            accountActionButton(for: state)
+
+            Button("Remove Account", role: .destructive) {
+                accountPendingRemoval = state.account
             }
+            .foregroundStyle(.red)
         } header: {
-            Text("Gmail Account")
+            Text(state.account.email)
         } footer: {
             settingsFooter(accountFooterText(for: state))
         }
@@ -620,18 +655,46 @@ struct SettingsView: View {
         }
     }
 
-    private func accountIdentityRows(for state: AccountRuntimeState) -> some View {
+    private var accountIdentityRows: some View {
         Group {
-            LabeledContent("Email") {
-                Text(state.account.email)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .textSelection(.enabled)
+            LabeledContent("Type") {
+                Text("Gmail Account")
             }
+        }
+    }
 
-            LabeledContent("Status") {
-                accountStatusValue(for: state)
+    private var accountRemovalTitle: String {
+        guard let accountPendingRemoval else { return "Remove Account?" }
+        return "Remove \(accountPendingRemoval.email)?"
+    }
+
+    private var accountRemovalBinding: Binding<Bool> {
+        Binding(
+            get: { accountPendingRemoval != nil },
+            set: { isPresented in
+                if !isPresented {
+                    accountPendingRemoval = nil
+                }
             }
+        )
+    }
+
+    private func accountEnabledTitle(for state: AccountRuntimeState) -> String {
+        state.account.isEnabled ? "Disable Account" : "Enable Account"
+    }
+
+    @ViewBuilder
+    private func accountActionButton(for state: AccountRuntimeState) -> some View {
+        if let action = AccountRecoveryAction.needed(for: state), action == .signInAgain {
+            Button(appState.isAuthorizing ? "Authorizing…" : action.title) {
+                appState.reauthenticate(accountID: state.account.id)
+            }
+            .disabled(appState.isAuthorizing)
+        } else {
+            Button("Reconnect") {
+                appState.reconnect(accountID: state.account.id)
+            }
+            .disabled(!state.account.isEnabled || appState.isAuthorizing)
         }
     }
 
@@ -705,8 +768,7 @@ struct SettingsView: View {
             case .connected:
                 SettingsStatusValue(title, tone: .success, context: "Account status")
             case .connecting, .reconnecting:
-                ProgressView(title)
-                    .accessibilityLabel("Account status: \(title)")
+                SettingsProgressValue(title, context: "Account status")
             case .signedOut:
                 SettingsStatusValue(title, tone: .inactive, context: "Account status")
             case .reauthRequired, .error:
@@ -718,7 +780,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var notificationActionsFooter: some View {
         if appState.isSendingTestNotification {
-            ProgressView("Sending test notification…")
+            settingsFooter("Sending test notification…")
         } else {
             settingsFooter(notificationActionsFooterText)
         }
@@ -778,24 +840,7 @@ struct SettingsView: View {
     }
 
     private func accountDetailText(for state: AccountRuntimeState) -> String {
-        guard state.account.isEnabled else {
-            return "Gmail monitoring is paused for this account."
-        }
-
-        switch state.status {
-        case .connected:
-            return appState.includeSpam ? "Gmail · Monitoring Inbox and Spam" : "Gmail · Monitoring Inbox"
-        case .connecting:
-            return "Gmail · Connecting"
-        case .reconnecting:
-            return "Gmail · Reconnecting"
-        case .signedOut:
-            return "Gmail · Not connected"
-        case .reauthRequired:
-            return "Gmail · Sign in again to resume monitoring"
-        case .error:
-            return "Gmail · Check the error and reconnect"
-        }
+        AccountPresentation.detailText(for: state, includeSpam: appState.includeSpam)
     }
 
     private var notificationFooterText: String {

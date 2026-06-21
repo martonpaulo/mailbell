@@ -13,6 +13,7 @@ final class EmailStoreTests: XCTestCase {
         XCTAssertEqual(store.items.count, 1)
         XCTAssertEqual(store.items.first?.title, "Subject")
         XCTAssertEqual(store.items.first?.sender, "Sender <sender@example.com>")
+        XCTAssertNil(store.items.first?.bodyPreview)
         XCTAssertEqual(store.items.first?.imapIdentity, IMAPMessageIdentity(uid: 1, mailboxName: "INBOX"))
         XCTAssertTrue(store.items.first?.canMarkAsRead == true)
     }
@@ -117,6 +118,28 @@ final class EmailStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testUnreadSyncRemovesExternallyReadMessageInsideThreadGroup() {
+        let store = makeStore()
+        let account = makeAccount()
+        let firstHeader = makeHeader(uid: 1, subject: "Read elsewhere", gmMessageId: "message-1", gmThreadId: "thread-1")
+        let secondHeader = makeHeader(uid: 2, subject: "Still unread", gmMessageId: "message-2", gmThreadId: "thread-1")
+
+        XCTAssertTrue(store.admit(header: firstHeader, account: account))
+        XCTAssertTrue(store.admit(header: secondHeader, account: account))
+
+        XCTAssertTrue(
+            store.reconcileUnread(
+                snapshots: [makeSnapshot(uids: [2])],
+                fetchedHeaders: [],
+                account: account
+            )
+        )
+
+        XCTAssertEqual(store.items.map(\.title), ["Still unread"])
+        XCTAssertEqual(store.pendingUIDs(accountID: account.id, mailbox: .inbox), Set([2]))
+    }
+
+    @MainActor
     func testUnreadSyncIsIdempotentForSameProviderState() {
         let store = makeStore()
         let account = makeAccount()
@@ -193,6 +216,73 @@ final class EmailStoreTests: XCTestCase {
 
         XCTAssertEqual(store.items.count, 1)
         XCTAssertEqual(store.items.first?.title, "First")
+    }
+
+    @MainActor
+    func testThreadGroupExposesOnlyFirstPendingEmailButKeepsAllUIDs() throws {
+        let store = makeStore()
+        let account = makeAccount()
+
+        let firstHeader = makeHeader(
+            uid: 1,
+            subject: "First",
+            gmMessageId: "message-1",
+            gmThreadId: "thread-1",
+            bodyPreview: "First preview"
+        )
+        let secondHeader = makeHeader(
+            uid: 2,
+            subject: "Second",
+            gmMessageId: "message-2",
+            gmThreadId: "thread-1",
+            bodyPreview: "Second preview"
+        )
+
+        XCTAssertTrue(store.admit(header: firstHeader, account: account))
+        XCTAssertTrue(store.admit(header: secondHeader, account: account))
+
+        let item = try XCTUnwrap(store.items.first)
+        XCTAssertEqual(store.items.count, 1)
+        XCTAssertEqual(item.title, "First")
+        XCTAssertEqual(item.bodyPreview, "First preview")
+        XCTAssertEqual(
+            store.pendingUIDs(accountID: account.id, mailbox: .inbox),
+            Set([1, 2])
+        )
+    }
+
+    @MainActor
+    func testOpeningThreadGroupRemovesCurrentMessagesButAllowsFutureThreadMessages() {
+        let defaults = makeDefaults()
+        let store = makeStore(defaults: defaults)
+        let account = makeAccount()
+        let firstHeader = makeHeader(uid: 1, gmMessageId: "message-1", gmThreadId: "thread-1")
+        let secondHeader = makeHeader(uid: 2, gmMessageId: "message-2", gmThreadId: "thread-1")
+        let futureHeader = makeHeader(uid: 3, gmMessageId: "message-3", gmThreadId: "thread-1")
+
+        XCTAssertTrue(store.admit(header: firstHeader, account: account))
+        XCTAssertTrue(store.admit(header: secondHeader, account: account))
+        store.markOpened(id: EmailStoreIdentity.id(accountID: account.id, header: firstHeader))
+
+        XCTAssertTrue(store.items.isEmpty)
+        XCTAssertFalse(store.admit(header: secondHeader, account: account))
+        XCTAssertTrue(store.admit(header: futureHeader, account: account))
+        XCTAssertEqual(store.items.map(\.title), ["Subject"])
+    }
+
+    @MainActor
+    func testFirstItemInGroupResolvesNotificationForLaterThreadMessage() throws {
+        let store = makeStore()
+        let account = makeAccount()
+        let firstHeader = makeHeader(uid: 1, subject: "First", gmMessageId: "message-1", gmThreadId: "thread-1")
+        let secondHeader = makeHeader(uid: 2, subject: "Second", gmMessageId: "message-2", gmThreadId: "thread-1")
+
+        XCTAssertTrue(store.admit(header: firstHeader, account: account))
+        XCTAssertTrue(store.admit(header: secondHeader, account: account))
+
+        let secondID = EmailStoreIdentity.id(accountID: account.id, header: secondHeader)
+        let firstItem = try XCTUnwrap(store.firstItemInGroup(containing: secondID))
+        XCTAssertEqual(firstItem.title, "First")
     }
 
     func testStableIdentityPrefersProviderIDsOverSubject() {
@@ -365,7 +455,8 @@ final class EmailStoreTests: XCTestCase {
         subject: String = "Subject",
         gmMessageId: String? = nil,
         gmThreadId: String? = nil,
-        messageId: String? = nil
+        messageId: String? = nil,
+        bodyPreview: String? = nil
     ) -> MessageHeader {
         MessageHeader(
             uid: uid,
@@ -376,7 +467,8 @@ final class EmailStoreTests: XCTestCase {
             date: "Tue, 02 Jun 2026 12:00:00 +0000",
             gmThreadId: gmThreadId,
             gmMessageId: gmMessageId,
-            messageId: messageId
+            messageId: messageId,
+            bodyPreview: bodyPreview
         )
     }
 

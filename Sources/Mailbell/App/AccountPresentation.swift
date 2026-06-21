@@ -89,17 +89,17 @@ enum AccountPresentation {
         }
     }
 
-    static func detailText(for state: AccountRuntimeState) -> String {
+    static func detailText(for state: AccountRuntimeState, includeSpam: Bool = false) -> String {
         guard state.account.isEnabled else { return "Gmail monitoring is paused for this account." }
         switch state.status {
         case .signedOut:
             return "Not connected."
         case .connecting:
-            return "Connecting to Gmail."
+            return "Connecting."
         case .connected:
-            return "Monitoring Inbox."
+            return includeSpam ? "Monitoring Inbox and Spam." : "Monitoring Inbox."
         case .reconnecting:
-            return "Reconnecting to Gmail."
+            return "Reconnecting."
         case .reauthRequired:
             return "Sign in again to resume monitoring."
         case .error:
