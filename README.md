@@ -4,16 +4,17 @@
   <img src="Resources/logo.png" alt="Mailbell logo" width="128">
 </p>
 
-Mailbell is a personal macOS menu bar Gmail notifier. It is a local bridge from your Google account to native macOS notifications: Google OAuth, Keychain tokens, Gmail IMAP XOAUTH2, `INBOX` `SELECT`, IMAP `IDLE`, header-only fetches, native notifications, and Gmail Web for reading or managing mail.
+Mailbell is a personal macOS menu bar Gmail notifier. It is a local bridge from your Google account to native macOS notifications: Google OAuth, Keychain tokens, Gmail IMAP XOAUTH2, `INBOX` `SELECT`, IMAP `IDLE`, minimal header fetches, bounded sanitized text previews, native notifications, and Gmail Web for reading or managing mail.
 
 ## Personal-Use Scope
 
 This fork is for private local use on your own Mac.
 
 - It is a menu bar notifier, not a full email client.
-- It does not provide mailbox browsing, body reading, attachment reading, reply, archive, delete, label, or compose flows.
+- It does not provide mailbox browsing, full body reading, attachment reading, reply, archive, delete, move, label, or compose flows.
+- Its only message-management action is `Mark as Read` for pending items, implemented against Gmail IMAP with `UID STORE +FLAGS.SILENT (\\Seen)`.
 - It watches Gmail `INBOX` with IMAP `IDLE`; it does not use content polling as the primary notification mechanism.
-- It opens Gmail Web when you click a notification or choose `Open Gmail`.
+- It opens Gmail Web when you click a notification, open a pending item, or choose `Open Gmail`.
 - It has no cloud relay, hosted backend, analytics relay, public website, gh-pages flow, or public release pipeline.
 
 ## Privacy And Security Model
@@ -23,19 +24,35 @@ You must create and use your own Google OAuth Desktop credentials. This fork doe
 - Real OAuth credentials live only in your shell, local `.env`, or a locally injected app bundle.
 - `.env` is ignored by git. `.env.example` contains variable names only.
 - Access and refresh tokens are stored in the macOS Keychain under the app bundle identifier configured for your local build.
-- Non-secret account metadata, UI state, webmail preferences, and IMAP checkpoints are stored in `UserDefaults`.
-- Notification content is built from headers only: account, sender, subject, date, UID, and Gmail thread/message identifiers when available.
-- IMAP fetches use `BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE)]`; message bodies and attachments are not fetched.
+- Non-secret account metadata, UI state, webmail preferences, IMAP checkpoints, and bounded pending-item dispositions are stored in `UserDefaults`.
+- Notification and menu content use account, sender, subject, sent date, mailbox UID, Gmail thread/message identifiers when available, and a sanitized text preview.
+- IMAP metadata fetches use `BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)]` with Gmail `X-GM-MSGID` and `X-GM-THRID` when available.
+- Body preview fetches use `BODY.PEEK[TEXT]<0.8192>` only for a bounded text preview. Mailbell does not fetch attachments or full message bodies.
+- Preview text is decoded and sanitized locally: HTML, MIME artifacts, URLs, and noisy transport markers are stripped or replaced before rendering in notifications and the menu.
+- Because previews are email content, they can appear in macOS Notification Center and in the local menu while Mailbell is running.
 
 Requested OAuth scopes:
 
 | Scope | Why Mailbell requests it |
 | --- | --- |
-| `https://mail.google.com/` | Required by Gmail IMAP XOAUTH2. This is a broad restricted Gmail scope even though Mailbell only fetches headers. Do not replace it with narrower Gmail API scopes unless the transport changes away from IMAP. |
+| `https://mail.google.com/` | Required by Gmail IMAP XOAUTH2 and the IMAP mark-as-read action. This is a broad restricted Gmail scope even though Mailbell limits itself to metadata, bounded sanitized text previews, and pending-item read marking. Do not replace it with narrower Gmail API scopes unless the transport changes away from IMAP. |
 | `openid` | Required for the OpenID Connect user info call after sign-in. |
 | `email` | Lets the app read the signed-in Gmail address, label the account, and authenticate IMAP as that user. |
 
 The broad Gmail scope is the main privacy tradeoff of this design. Gmail's narrower API scopes, such as `gmail.metadata`, do not authenticate this IMAP implementation.
+
+## Runtime Contracts
+
+These are the user-visible contracts the code is expected to preserve:
+
+- **Transport:** Gmail IMAP `IDLE` is the primary new-mail mechanism. Re-arm timers and manual `Check Now` reconnect the IDLE loop; they are not content polling loops.
+- **Checkpointing:** each monitored mailbox uses `(UIDVALIDITY, lastSeenUID)`. If `UIDVALIDITY` changes, Mailbell rebaselines without notifying old backlog. If it is unchanged, Mailbell gap-fills unread UIDs above the checkpoint.
+- **Burst handling:** fresh unread UIDs are admitted to the pending store in bounded batches of 100. Notification Center is capped to the newest 10 messages per fetch, but the checkpoint advances only after each admission batch is fetched and admitted, so older fresh messages in a burst are not skipped.
+- **Pending store:** the menu shows one pending item per Gmail thread when `X-GM-THRID` is available. The counter follows the grouped menu item count, not the number of raw messages in the thread.
+- **Thread previews:** notifications use the preview for the specific message being notified. The menu item for a thread uses the first message that entered Mailbell's pending store for that thread, and opening any item in that group opens that first pending message's Gmail URL.
+- **External reads:** when a message is read directly in Gmail Web, unread reconciliation removes it from Mailbell's pending store.
+- **Dismiss/open/read:** dismissing, opening, or marking a pending group as read suppresses that group locally. `Mark as Read` also marks every known IMAP identity in the group as read on the server.
+- **Sanitized preview shape:** previews are plain text, at most three lines in the menu, with URLs replaced and MIME/HTML noise removed as best effort.
 
 ## Requirements
 
@@ -178,7 +195,8 @@ After changing `.env`, rerun `make install` or `make dmg`; installed bundles con
 5. In `Accounts`, choose `Add Google Account`.
 6. Complete the Google browser sign-in. If Google shows an app warning, continue only if the Cloud project and OAuth client are yours.
 7. After sign-in, Mailbell stores the account session in Keychain and starts watching Gmail `INBOX`.
-8. Choose `Open Gmail` or click a notification to open Gmail Web in the configured browser.
+8. Choose `Open Gmail`, open a pending item, or click a notification to open Gmail Web in the configured browser.
+9. Pending review items can be opened, dismissed, or marked as read from the menu.
 
 To verify local token storage without printing secrets, open Keychain Access and search for the bundle id you configured with `MAILBELL_BUNDLE_ID`.
 
@@ -228,8 +246,8 @@ Symptoms:
 
 Fix:
 
-- Use the account actions menu and choose `Sign in again`.
-- If the account is stale or wrong, choose `Remove` and add it again.
+- In `Settings > Accounts > <email>`, choose `Sign in again`.
+- If the account is stale or wrong, choose `Remove Account` and add it again.
 - If your OAuth consent screen is still in `Testing`, move it to `In production` for day-to-day personal use or expect periodic reauth depending on Google policy.
 
 ### Gmail IMAP Disabled Or Blocked
@@ -259,9 +277,9 @@ Fix:
 - Toggle `Start at login` in `Settings > Behavior`.
 - If macOS asks for approval, check `System Settings > General > Login Items`.
 
-### Remove Local Tokens
+### Remove An Account
 
-Use `Settings > Accounts > Account actions > Remove`. This stops the monitor, deletes the account's Keychain tokens, resets its IMAP checkpoint, and removes the account metadata from UserDefaults.
+Use `Settings > Accounts > <email> > Remove Account`. This stops the monitor, deletes the account's Keychain tokens, resets its IMAP checkpoints, removes pending records for that account, and removes the account metadata from UserDefaults.
 
 Manual Keychain cleanup should be a last resort. If needed, use Keychain Access and search for the bundle id you configured with `MAILBELL_BUNDLE_ID`.
 
@@ -295,13 +313,20 @@ Important paths:
 - `Package.swift`: SwiftPM package and macOS 26 minimum.
 - `Sources/Mailbell/App/`: menu bar app, Settings, login item, app state.
 - `Sources/Mailbell/Auth/`: OAuth config/client, loopback redirect, Keychain token storage.
-- `Sources/Mailbell/IMAP/`: Gmail IMAP XOAUTH2, `INBOX` selection, IDLE, header fetch, parser.
-- `Sources/Mailbell/Service/`: account supervision, monitor state machine, UID checkpoints.
+- `Sources/Mailbell/IMAP/`: Gmail IMAP XOAUTH2, mailbox selection, IDLE, metadata/body-preview fetches, parser, preview sanitizer, and read marker command.
+- `Sources/Mailbell/Service/`: account supervision, monitor state machine, UID checkpoints, pending store, unread reconciliation, and server-backed mark-as-read orchestration.
 - `Sources/Mailbell/Notify/`: native notification authorization and posting.
 - `Sources/Mailbell/Webmail/`: browser/profile routing for Gmail Web.
 - `Resources/`: app icon and base `Info.plist`.
 - `Scripts/` and `Makefile`: local build, install, DMG, icon, and OAuth injection paths.
 - `Tests/MailbellTests/`: focused tests for stores, OAuth config, IMAP parsing, notifications, providers, and webmail routing.
+
+Project structure contract:
+
+- Keep the standard SwiftPM shape: `Package.swift` at the root, app sources under `Sources/Mailbell`, and tests under `Tests/MailbellTests`.
+- Keep one executable target and one test target until a module boundary reduces real coupling or enables reuse. For this personal menu bar app, splitting local packages now would add manifest and visibility overhead without shrinking the core surface.
+- Organize source files by ownership domain (`App`, `Account`, `Auth`, `IMAP`, `Notify`, `Provider`, `Service`, `Util`, `Webmail`) before adding new top-level folders.
+- Prefer narrow extension files for large owner types when the feature boundary is real, as with account webmail actions and mark-as-read behavior.
 
 Test strategy:
 

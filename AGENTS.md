@@ -10,7 +10,9 @@ Keep the product boundary tight:
 
 - Notify on new Gmail inbox mail.
 - Open Gmail Web for reading and mail management.
-- Do not add mailbox UI, message body reading, attachment reading, reply, archive, delete, move, label, compose, or message-management flows.
+- Do not add mailbox UI, full message body reading, attachment reading, reply, archive, delete, move, label, or compose flows.
+- The only message-management action in scope is server-backed `Mark as Read` for pending items already surfaced by Mailbell.
+- Bounded sanitized body previews are in scope for notification/menu context only; they must not grow into an in-app reader.
 - Do not add cloud relay services, hosted backends, analytics relays, public mail processing, or third-party notification services.
 - Do not introduce content polling as the primary new-mail mechanism. Gmail IMAP IDLE is the product transport; the liveness re-arm timer is not a content polling loop.
 
@@ -23,7 +25,8 @@ MenuBarExtra
 -> Gmail IMAP XOAUTH2 against imap.gmail.com:993
 -> SELECT INBOX
 -> IMAP IDLE
--> fetch headers only
+-> fetch minimal headers plus bounded sanitized text preview
+-> admit/group pending items
 -> UNUserNotificationCenter notification
 -> Gmail Web through the account webmail opener
 ```
@@ -35,8 +38,8 @@ This is a SwiftPM macOS 26+ executable app:
 - Package definition: `Package.swift`
 - App entry, menu, Settings UI, login item: `Sources/Mailbell/App/`
 - OAuth config/client, loopback redirect, token persistence, Keychain wrapper: `Sources/Mailbell/Auth/`
-- IMAP models, client, connection, parser, MIME header decoding: `Sources/Mailbell/IMAP/`
-- Runtime/state machine and checkpoints: `Sources/Mailbell/Service/`
+- IMAP models, client, connection, parser, MIME header decoding, body-preview sanitizer, and read command: `Sources/Mailbell/IMAP/`
+- Runtime/state machine, checkpoints, pending store, unread reconciliation, and mark-as-read orchestration: `Sources/Mailbell/Service/`
 - Provider URL/routing model: `Sources/Mailbell/Provider/`
 - Native notifications: `Sources/Mailbell/Notify/`
 - Browser/profile webmail opening: `Sources/Mailbell/Webmail/`
@@ -44,7 +47,7 @@ This is a SwiftPM macOS 26+ executable app:
 - Package/install/DMG scripts: `Makefile` and `Scripts/`
 - Tests: `Tests/MailbellTests/`
 
-Prefer the existing ownership boundaries above before adding new files or abstractions.
+Prefer the existing ownership boundaries above before adding new files or abstractions. Keep the SwiftPM structure standard unless a refactor reduces real coupling or unlocks reuse: `Package.swift` at the root, the executable target under `Sources/Mailbell`, tests under `Tests/MailbellTests`, and domain folders below `Sources/Mailbell`. Do not add local packages, extra targets, or top-level folders for visual symmetry alone.
 
 ## OAuth Privacy Rules
 
@@ -62,9 +65,10 @@ This personal fork must use only the user's own Google OAuth credentials.
 
 - Do not commit `.env`, real OAuth credentials, refresh tokens, access tokens, logs containing secrets, build artifacts, or generated release artifacts unless explicitly requested and safe.
 - Do not log tokens, OAuth codes, client secrets, IMAP auth payloads, raw message bodies, attachments, or full provider responses that may contain secrets.
-- Fetch message headers only for notifications: sender/from, subject, date, account, UID, and Gmail thread/message identifiers when available.
-- Do not fetch message bodies or attachments unless the user explicitly changes the product scope.
-- UserDefaults may hold non-secret UI state, account metadata, webmail preferences, and IMAP checkpoint data only.
+- Fetch only the smallest useful notification/menu data: sender/from, subject, sent date, account, UID, RFC message ID, Gmail thread/message identifiers when available, and bounded sanitized text preview.
+- Body preview fetches must stay bounded and non-mutating, currently `BODY.PEEK[TEXT]<0.8192>`. Do not fetch attachments or full message bodies unless the user explicitly changes the product scope.
+- Sanitize previews before UI/notification use: strip HTML, MIME artifacts, transport boilerplate, noisy URLs, and whitespace noise as best effort.
+- UserDefaults may hold non-secret UI state, account metadata, webmail preferences, IMAP checkpoint data, and pruned pending-item handled dispositions only.
 - Keep Keychain and UserDefaults ownership DRY; do not introduce parallel persistence paths for the same state.
 - Treat the broad `https://mail.google.com/` scope honestly. Do not claim a narrower Gmail API scope works for the current IMAP XOAUTH2 implementation.
 
@@ -74,7 +78,12 @@ Preserve the IMAP IDLE reconnect model in `MailMonitor` or its direct successor:
 
 - `UIDVALIDITY` plus `lastSeenUID` is the gap-fill checkpoint.
 - If `UIDVALIDITY` changes, rebaseline silently without notifying the backlog.
-- On reconnect with the same `UIDVALIDITY`, fetch headers for UIDs above the checkpoint and notify the gap.
+- On reconnect with the same `UIDVALIDITY`, fetch fresh unread UIDs above the checkpoint, admit all fresh items to the pending store in bounded batches, and notify only the newest capped set.
+- Never advance `lastSeenUID` past a fresh UID until its admission batch has been fetched and offered to the pending store.
+- Threaded pending items should count once in the menu when Gmail thread IDs are available. Notifications remain per message.
+- Notification body previews should describe the specific message being notified. Menu previews for a thread should come from the first message that entered Mailbell's pending store for that thread.
+- Unread reconciliation must remove pending items read directly in Gmail Web and may admit bounded unknown unread items missed while offline.
+- `Mark as Read` must operate on the server with IMAP `UID STORE +FLAGS.SILENT (\\Seen)` for known pending IMAP identities, then update local pending state.
 - Refresh-token failure or token revocation must surface as `reauthRequired`; do not hide it behind silent retry loops.
 - Transient network failures may retry with bounded backoff, but must not mask credential failure.
 - Network recovery and sleep/wake should force reconnects without broad polling.
