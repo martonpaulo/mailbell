@@ -3,6 +3,19 @@ import Foundation
 import XCTest
 
 final class MailMonitorReconciliationTests: XCTestCase {
+    func testClosedConnectionIsNotUserVisibleReconnectError() {
+        XCTAssertNil(MailMonitor.userVisibleReconnectError(for: IMAPConnection.ConnectionError.closed))
+    }
+
+    func testUnexpectedReconnectErrorRemainsUserVisible() {
+        let error = IMAPConnection.ConnectionError.notReady("waiting")
+
+        XCTAssertEqual(
+            MailMonitor.userVisibleReconnectError(for: error),
+            error.localizedDescription
+        )
+    }
+
     @MainActor
     func testMailboxChangeReconcilesProviderUnreadAndRemovesExternallyReadPending() async throws {
         let account = MailAccount(providerID: .gmail, email: "account@example.com")

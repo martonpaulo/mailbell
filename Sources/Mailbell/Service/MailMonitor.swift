@@ -174,8 +174,13 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
                 backoff = min(backoff * 2, 60)
             } catch {
                 if Task.isCancelled { break }
-                Log.error("Connection dropped: \(error.localizedDescription)")
-                notifyStatus(.reconnecting, error: error.localizedDescription)
+                let userVisibleError = Self.userVisibleReconnectError(for: error)
+                if let userVisibleError {
+                    Log.error("Connection dropped: \(userVisibleError)")
+                } else {
+                    Log.info("Connection closed; reconnecting.")
+                }
+                notifyStatus(.reconnecting, error: userVisibleError)
                 client?.disconnect()
                 client = nil
                 try? await Task.sleep(nanoseconds: UInt64(backoff * 1_000_000_000))
@@ -295,6 +300,14 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
         }
         mailboxes.append(MonitoredMailbox(role: .spam, name: spamMailboxName))
         return mailboxes
+    }
+
+    static func userVisibleReconnectError(for error: Error) -> String? {
+        if let connectionError = error as? IMAPConnection.ConnectionError,
+           case .closed = connectionError {
+            return nil
+        }
+        return error.localizedDescription
     }
 
     // MARK: - Tokens

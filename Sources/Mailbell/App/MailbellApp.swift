@@ -114,7 +114,6 @@ struct MenuContent: View {
         Section("Accounts") {
             ForEach(appState.accounts) { accountState in
                 Menu {
-                    Text(AccountPresentation.statusText(for: accountState))
                     if let reviewCount = reviewMenuCount(accountID: accountState.account.id) {
                         Text(PendingCopy.reviewCountText(reviewCount))
                     }
@@ -128,7 +127,10 @@ struct MenuContent: View {
                         .disabled(actionDisabled(action))
                     }
                 } label: {
-                    Text(AccountPresentation.menuTitle(for: accountState))
+                    Label(
+                        AccountPresentation.menuTitle(for: accountState),
+                        systemImage: AccountPresentation.menuIconSystemName(for: accountState)
+                    )
                 }
             }
         }

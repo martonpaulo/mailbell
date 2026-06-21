@@ -38,6 +38,29 @@ final class AccountPresentationTests: XCTestCase {
         )
     }
 
+    func testAccountMenuIconReflectsStatus() {
+        XCTAssertEqual(
+            AccountPresentation.menuIconSystemName(for: state(status: .connected)),
+            "checkmark.circle.fill"
+        )
+        XCTAssertEqual(
+            AccountPresentation.menuIconSystemName(for: state(status: .connecting)),
+            "arrow.clockwise.circle"
+        )
+        XCTAssertEqual(
+            AccountPresentation.menuIconSystemName(for: state(status: .reconnecting)),
+            "arrow.clockwise.circle"
+        )
+        XCTAssertEqual(
+            AccountPresentation.menuIconSystemName(for: state(status: .reauthRequired)),
+            "exclamationmark.triangle.fill"
+        )
+        XCTAssertEqual(
+            AccountPresentation.menuIconSystemName(for: state(status: .signedOut, isEnabled: false)),
+            "pause.circle"
+        )
+    }
+
     func testAccountDetailPresentationOmitsProviderPrefix() {
         XCTAssertEqual(
             AccountPresentation.detailText(for: state(status: .connected)),

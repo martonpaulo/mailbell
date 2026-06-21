@@ -71,6 +71,20 @@ enum AccountPresentation {
         "\(statusText(for: state)) • \(state.account.email)"
     }
 
+    static func menuIconSystemName(for state: AccountRuntimeState) -> String {
+        guard state.account.isEnabled else { return "pause.circle" }
+        switch state.status {
+        case .signedOut:
+            return "circle"
+        case .connecting, .reconnecting:
+            return "arrow.clockwise.circle"
+        case .connected:
+            return "checkmark.circle.fill"
+        case .reauthRequired, .error:
+            return "exclamationmark.triangle.fill"
+        }
+    }
+
     static func canRefresh(_ states: [AccountRuntimeState]) -> Bool {
         states.contains { $0.account.isEnabled }
     }
