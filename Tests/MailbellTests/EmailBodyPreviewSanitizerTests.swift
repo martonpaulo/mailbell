@@ -39,6 +39,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
     func testPreviewRemovesURLsAndLooseMIMEArtifacts() {
         let raw = """
         This is a multi-part message in MIME format.
+        This message is in MIME format.
         MIME part ignored
         multipart/alternative; boundary=abc
         Open https://example.com/really/long/link?token=secret for details.
@@ -47,6 +48,18 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         XCTAssertEqual(
             EmailBodyPreviewSanitizer.preview(from: raw),
             "Open URL for details."
+        )
+    }
+
+    func testPreviewRemovesInlineMultipartBoilerplateWithoutDroppingUsefulText() {
+        let raw = """
+        This is a multipart message in MIME format. Saluton, kara Marton! Kiel vi fartas?
+        Kiel iras viaj aferoj?
+        """
+
+        XCTAssertEqual(
+            EmailBodyPreviewSanitizer.preview(from: raw),
+            "Saluton, kara Marton! Kiel vi fartas? Kiel iras viaj aferoj?"
         )
     }
 
