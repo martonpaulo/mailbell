@@ -4,20 +4,19 @@
 
 `mailbell`
 
-The name describes the product boundary: a small bell for mail events. It avoids framing the app as a full Gmail client.
+The name describes the current product boundary: a small bell for mail events. It frames the app as a local, notification-first Gmail companion for macOS.
 
 ## Product Goal
 
 Build a minimal macOS menu bar app that notifies the user when Gmail receives new mail, even when the browser is closed and the iPhone is unavailable.
 
-The app should let the user keep reading and managing mail in Gmail Web. It should not become another mailbox UI.
+The app should let the user keep reading and managing mail in Gmail Web. Current boundaries should stay clean enough that future work can extend services deliberately rather than placing business logic in SwiftUI.
 
 ## Non-Goals
 
-- No full email client.
-- No mailbox browsing UI.
-- No full message body reader or attachment reader.
-- No reply, archive, delete, move, label, or compose flow.
+- Full body viewing, reply, archive, delete, move, labels, compose, and attachments are not implemented in the current app.
+- Those capabilities are allowed only as explicit future product changes. Each must define data minimization, on-demand fetch rules, storage lifetime, permissions/scopes, UI/accessibility behavior, failure semantics, and tests before implementation.
+- No unused models, generic repositories, attachment caches, compose systems, or Gmail API abstractions merely to look future-ready.
 - No cloud relay service in the default architecture.
 - No content polling loop for new mail. The IMAP IDLE keepalive re-arm is a liveness timer, not content polling.
 - No browser tab requirement.
@@ -88,7 +87,9 @@ https://mail.google.com/
 
 This is a restricted full-mail scope. IMAP offers no narrower option even though Mailbell limits itself to metadata, bounded sanitized text previews, and read marking for pending items. The consent surface covers broader mail access than the app intentionally uses.
 
-The OAuth client must be a user-owned Google Desktop/installed-app client and must use PKCE. Local development reads the client ID and desktop client secret from environment variables or `.env`; local packaging injects those values into the app bundle. Mailbell must not ship, document as usable, or fall back to an upstream/shared OAuth client.
+The OAuth client must be a user-owned Google Desktop/installed-app client and must use PKCE. Local development reads the required client ID and optional desktop client secret from environment variables or `.env`; local packaging injects the client ID and only injects a nonblank secret into the app bundle. Mailbell must not ship, document as usable, or fall back to an upstream/shared OAuth client.
+
+The loopback callback server binds only to `127.0.0.1`, uses an OS-assigned dynamic port, and serves the exact `/oauth/callback` path through FlyingFox rather than hand-written HTTP request parsing.
 
 Token storage must use Keychain. Refresh tokens must not be stored in `UserDefaults`, plaintext files, or logs.
 
@@ -140,7 +141,7 @@ Body preview is a convenience layer, not a mail reader. The sanitizer should kee
 - decode UTF-8 or ISO Latin-1 data
 - remove MIME part headers and multipart boilerplate
 - decode quoted-printable text
-- strip scripts, styles, HTML tags, and basic entities
+- use SwiftSoup to parse malformed HTML, remove non-visible markup such as scripts/styles/hidden elements, extract human text, and decode named/numeric entities
 - replace URLs with a generic placeholder
 - collapse whitespace and punctuation spacing
 - return at most the configured preview length

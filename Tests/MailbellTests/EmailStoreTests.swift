@@ -1,14 +1,15 @@
 @testable import mailbell
 import XCTest
 
+// swiftlint:disable:next type_body_length
 final class EmailStoreTests: XCTestCase {
     @MainActor
-    func testAdmitsUnreadEmailWhenNotHandled() {
+    func testAdmitsUnreadEmailWhenNotHandled() throws {
         let store = makeStore()
         let account = makeAccount()
         let header = makeHeader(gmMessageId: "1001")
 
-        XCTAssertTrue(store.admit(header: header, account: account))
+        XCTAssertTrue(try store.admit(header: header, account: account))
 
         XCTAssertEqual(store.items.count, 1)
         XCTAssertEqual(store.items.first?.title, "Subject")
@@ -19,55 +20,55 @@ final class EmailStoreTests: XCTestCase {
     }
 
     @MainActor
-    func testDismissedEmailIsExcludedAfterRelaunch() {
+    func testDismissedEmailIsExcludedAfterRelaunch() throws {
         let defaults = makeDefaults()
         let account = makeAccount()
         let header = makeHeader(gmMessageId: "1002")
         let id = EmailStoreIdentity.id(accountID: account.id, header: header)
 
         let store = makeStore(defaults: defaults)
-        XCTAssertTrue(store.admit(header: header, account: account))
-        store.dismiss(id: id)
+        XCTAssertTrue(try store.admit(header: header, account: account))
+        try store.dismiss(id: id)
 
         let relaunchedStore = makeStore(defaults: defaults)
-        XCTAssertFalse(relaunchedStore.admit(header: header, account: account))
+        XCTAssertFalse(try relaunchedStore.admit(header: header, account: account))
         XCTAssertTrue(relaunchedStore.items.isEmpty)
     }
 
     @MainActor
-    func testOpenedEmailIsExcludedAfterRelaunch() {
+    func testOpenedEmailIsExcludedAfterRelaunch() throws {
         let defaults = makeDefaults()
         let account = makeAccount()
         let header = makeHeader(gmMessageId: "1003")
         let id = EmailStoreIdentity.id(accountID: account.id, header: header)
 
         let store = makeStore(defaults: defaults)
-        XCTAssertTrue(store.admit(header: header, account: account))
-        store.markOpened(id: id)
+        XCTAssertTrue(try store.admit(header: header, account: account))
+        try store.markOpened(id: id)
 
         let relaunchedStore = makeStore(defaults: defaults)
-        XCTAssertFalse(relaunchedStore.admit(header: header, account: account))
+        XCTAssertFalse(try relaunchedStore.admit(header: header, account: account))
         XCTAssertTrue(relaunchedStore.items.isEmpty)
     }
 
     @MainActor
-    func testMarkedReadEmailIsExcludedAfterRelaunch() {
+    func testMarkedReadEmailIsExcludedAfterRelaunch() throws {
         let defaults = makeDefaults()
         let account = makeAccount()
         let header = makeHeader(gmMessageId: "1005")
         let id = EmailStoreIdentity.id(accountID: account.id, header: header)
 
         let store = makeStore(defaults: defaults)
-        XCTAssertTrue(store.admit(header: header, account: account))
-        store.markRead(id: id)
+        XCTAssertTrue(try store.admit(header: header, account: account))
+        try store.markRead(id: id)
 
         let relaunchedStore = makeStore(defaults: defaults)
-        XCTAssertFalse(relaunchedStore.admit(header: header, account: account))
+        XCTAssertFalse(try relaunchedStore.admit(header: header, account: account))
         XCTAssertTrue(relaunchedStore.items.isEmpty)
     }
 
     @MainActor
-    func testUnreadSyncAfterRelaunchExcludesDismissedAndRestoresProviderUnreadEmails() {
+    func testUnreadSyncAfterRelaunchExcludesDismissedAndRestoresProviderUnreadEmails() throws {
         let defaults = makeDefaults()
         let account = makeAccount()
         let dismissedHeader = makeHeader(uid: 1, gmMessageId: "dismissed")
@@ -76,12 +77,12 @@ final class EmailStoreTests: XCTestCase {
         let unreadHeader = makeHeader(uid: 4, subject: "Unread", gmMessageId: "unread")
 
         let store = makeStore(defaults: defaults)
-        store.dismiss(id: EmailStoreIdentity.id(accountID: account.id, header: dismissedHeader))
-        store.markOpened(id: EmailStoreIdentity.id(accountID: account.id, header: openedHeader))
-        store.markRead(id: EmailStoreIdentity.id(accountID: account.id, header: markedReadHeader))
+        try store.dismiss(id: EmailStoreIdentity.id(accountID: account.id, header: dismissedHeader))
+        try store.markOpened(id: EmailStoreIdentity.id(accountID: account.id, header: openedHeader))
+        try store.markRead(id: EmailStoreIdentity.id(accountID: account.id, header: markedReadHeader))
 
         let relaunchedStore = makeStore(defaults: defaults)
-        let didChange = relaunchedStore.reconcileUnread(
+        let didChange = try relaunchedStore.reconcileUnread(
             snapshots: [makeSnapshot(uids: [1, 2, 3, 4])],
             fetchedHeaders: [dismissedHeader, openedHeader, markedReadHeader, unreadHeader],
             account: account
@@ -92,14 +93,14 @@ final class EmailStoreTests: XCTestCase {
     }
 
     @MainActor
-    func testUnreadSyncReplacesAccountItemsWithCurrentUnreadHeaders() {
+    func testUnreadSyncReplacesAccountItemsWithCurrentUnreadHeaders() throws {
         let store = makeStore()
         let account = makeAccount()
         let firstHeader = makeHeader(uid: 1, subject: "Read elsewhere", gmMessageId: "read-elsewhere")
         let secondHeader = makeHeader(uid: 2, subject: "Still unread", gmMessageId: "still-unread")
 
         XCTAssertTrue(
-            store.reconcileUnread(
+            try store.reconcileUnread(
                 snapshots: [makeSnapshot(uids: [1, 2])],
                 fetchedHeaders: [firstHeader, secondHeader],
                 account: account
@@ -108,7 +109,7 @@ final class EmailStoreTests: XCTestCase {
         XCTAssertEqual(store.items.map(\.title), ["Read elsewhere", "Still unread"])
 
         XCTAssertTrue(
-            store.reconcileUnread(
+            try store.reconcileUnread(
                 snapshots: [makeSnapshot(uids: [2])],
                 fetchedHeaders: [],
                 account: account
@@ -118,17 +119,17 @@ final class EmailStoreTests: XCTestCase {
     }
 
     @MainActor
-    func testUnreadSyncRemovesExternallyReadMessageInsideThreadGroup() {
+    func testUnreadSyncRemovesExternallyReadMessageInsideThreadGroup() throws {
         let store = makeStore()
         let account = makeAccount()
         let firstHeader = makeHeader(uid: 1, subject: "Read elsewhere", gmMessageId: "message-1", gmThreadId: "thread-1")
         let secondHeader = makeHeader(uid: 2, subject: "Still unread", gmMessageId: "message-2", gmThreadId: "thread-1")
 
-        XCTAssertTrue(store.admit(header: firstHeader, account: account))
-        XCTAssertTrue(store.admit(header: secondHeader, account: account))
+        XCTAssertTrue(try store.admit(header: firstHeader, account: account))
+        XCTAssertTrue(try store.admit(header: secondHeader, account: account))
 
         XCTAssertTrue(
-            store.reconcileUnread(
+            try store.reconcileUnread(
                 snapshots: [makeSnapshot(uids: [2])],
                 fetchedHeaders: [],
                 account: account
@@ -140,20 +141,20 @@ final class EmailStoreTests: XCTestCase {
     }
 
     @MainActor
-    func testUnreadSyncIsIdempotentForSameProviderState() {
+    func testUnreadSyncIsIdempotentForSameProviderState() throws {
         let store = makeStore()
         let account = makeAccount()
         let header = makeHeader(uid: 1, subject: "Still unread", gmMessageId: "still-unread")
 
         XCTAssertTrue(
-            store.reconcileUnread(
+            try store.reconcileUnread(
                 snapshots: [makeSnapshot(uids: [1])],
                 fetchedHeaders: [header],
                 account: account
             )
         )
         XCTAssertFalse(
-            store.reconcileUnread(
+            try store.reconcileUnread(
                 snapshots: [makeSnapshot(uids: [1])],
                 fetchedHeaders: [],
                 account: account
@@ -176,7 +177,7 @@ final class EmailStoreTests: XCTestCase {
         )
 
         XCTAssertTrue(
-            store.reconcileUnread(
+            try store.reconcileUnread(
                 snapshots: [makeSnapshot(uids: [1])],
                 fetchedHeaders: [inboxHeader],
                 account: account
@@ -185,7 +186,7 @@ final class EmailStoreTests: XCTestCase {
         let original = try XCTUnwrap(store.items.first)
 
         XCTAssertTrue(
-            store.reconcileUnread(
+            try store.reconcileUnread(
                 snapshots: [
                     makeSnapshot(uids: []),
                     makeSnapshot(mailbox: .spam, mailboxName: "[Gmail]/Spam", uids: [42])
@@ -204,15 +205,15 @@ final class EmailStoreTests: XCTestCase {
     }
 
     @MainActor
-    func testDuplicateEmailsAreDeduplicatedByStableID() {
+    func testDuplicateEmailsAreDeduplicatedByStableID() throws {
         let store = makeStore()
         let account = makeAccount()
 
         let firstHeader = makeHeader(uid: 1, subject: "First", gmMessageId: "same")
         let duplicateHeader = makeHeader(uid: 2, subject: "Second", gmMessageId: "same")
 
-        XCTAssertTrue(store.admit(header: firstHeader, account: account))
-        XCTAssertFalse(store.admit(header: duplicateHeader, account: account))
+        XCTAssertTrue(try store.admit(header: firstHeader, account: account))
+        XCTAssertFalse(try store.admit(header: duplicateHeader, account: account))
 
         XCTAssertEqual(store.items.count, 1)
         XCTAssertEqual(store.items.first?.title, "First")
@@ -238,8 +239,8 @@ final class EmailStoreTests: XCTestCase {
             bodyPreview: "Second preview"
         )
 
-        XCTAssertTrue(store.admit(header: firstHeader, account: account))
-        XCTAssertTrue(store.admit(header: secondHeader, account: account))
+        XCTAssertTrue(try store.admit(header: firstHeader, account: account))
+        XCTAssertTrue(try store.admit(header: secondHeader, account: account))
 
         let item = try XCTUnwrap(store.items.first)
         XCTAssertEqual(store.items.count, 1)
@@ -272,8 +273,8 @@ final class EmailStoreTests: XCTestCase {
             bodyPreview: "Earlier thread UID preview"
         )
 
-        XCTAssertTrue(store.admit(header: firstAdmittedHeader, account: account))
-        XCTAssertTrue(store.admit(header: laterAdmittedHeader, account: account))
+        XCTAssertTrue(try store.admit(header: firstAdmittedHeader, account: account))
+        XCTAssertTrue(try store.admit(header: laterAdmittedHeader, account: account))
 
         let item = try XCTUnwrap(store.items.first)
         XCTAssertEqual(store.items.count, 1)
@@ -286,7 +287,7 @@ final class EmailStoreTests: XCTestCase {
     }
 
     @MainActor
-    func testOpeningThreadGroupRemovesCurrentMessagesButAllowsFutureThreadMessages() {
+    func testOpeningThreadGroupRemovesCurrentMessagesButAllowsFutureThreadMessages() throws {
         let defaults = makeDefaults()
         let store = makeStore(defaults: defaults)
         let account = makeAccount()
@@ -294,13 +295,13 @@ final class EmailStoreTests: XCTestCase {
         let secondHeader = makeHeader(uid: 2, gmMessageId: "message-2", gmThreadId: "thread-1")
         let futureHeader = makeHeader(uid: 3, gmMessageId: "message-3", gmThreadId: "thread-1")
 
-        XCTAssertTrue(store.admit(header: firstHeader, account: account))
-        XCTAssertTrue(store.admit(header: secondHeader, account: account))
-        store.markOpened(id: EmailStoreIdentity.id(accountID: account.id, header: firstHeader))
+        XCTAssertTrue(try store.admit(header: firstHeader, account: account))
+        XCTAssertTrue(try store.admit(header: secondHeader, account: account))
+        try store.markOpened(id: EmailStoreIdentity.id(accountID: account.id, header: firstHeader))
 
         XCTAssertTrue(store.items.isEmpty)
-        XCTAssertFalse(store.admit(header: secondHeader, account: account))
-        XCTAssertTrue(store.admit(header: futureHeader, account: account))
+        XCTAssertFalse(try store.admit(header: secondHeader, account: account))
+        XCTAssertTrue(try store.admit(header: futureHeader, account: account))
         XCTAssertEqual(store.items.map(\.title), ["Subject"])
     }
 
@@ -311,15 +312,15 @@ final class EmailStoreTests: XCTestCase {
         let firstHeader = makeHeader(uid: 1, subject: "First", gmMessageId: "message-1", gmThreadId: "thread-1")
         let secondHeader = makeHeader(uid: 2, subject: "Second", gmMessageId: "message-2", gmThreadId: "thread-1")
 
-        XCTAssertTrue(store.admit(header: firstHeader, account: account))
-        XCTAssertTrue(store.admit(header: secondHeader, account: account))
+        XCTAssertTrue(try store.admit(header: firstHeader, account: account))
+        XCTAssertTrue(try store.admit(header: secondHeader, account: account))
 
         let secondID = EmailStoreIdentity.id(accountID: account.id, header: secondHeader)
         let firstItem = try XCTUnwrap(store.firstItemInGroup(containing: secondID))
         XCTAssertEqual(firstItem.title, "First")
     }
 
-    func testStableIdentityPrefersProviderIDsOverSubject() {
+    func testStableIdentityPrefersProviderIDsOverSubject() throws {
         let account = makeAccount()
         let first = makeHeader(uid: 1, subject: "First", gmMessageId: "provider-id")
         let second = makeHeader(uid: 2, subject: "Second", gmMessageId: "provider-id")
@@ -330,7 +331,7 @@ final class EmailStoreTests: XCTestCase {
         )
     }
 
-    func testStableIdentitySeparatesUIDFallbackByMailbox() {
+    func testStableIdentitySeparatesUIDFallbackByMailbox() throws {
         let account = makeAccount()
         let inbox = makeHeader(uid: 1, mailbox: .inbox)
         let spam = makeHeader(uid: 1, mailbox: .spam)
@@ -347,7 +348,7 @@ final class EmailStoreTests: XCTestCase {
         let account = makeAccount()
         let header = makeHeader(uid: 42, mailbox: .spam, mailboxName: "[Gmail]/Spam", gmMessageId: "spam-uid")
 
-        XCTAssertTrue(store.admit(header: header, account: account))
+        XCTAssertTrue(try store.admit(header: header, account: account))
 
         let item = try XCTUnwrap(store.items.first)
         XCTAssertEqual(item.mailbox, .spam)
@@ -356,19 +357,19 @@ final class EmailStoreTests: XCTestCase {
     }
 
     @MainActor
-    func testPendingUIDsAreScopedByAccountAndMailbox() {
+    func testPendingUIDsAreScopedByAccountAndMailbox() throws {
         let store = makeStore()
         let account = makeAccount()
         let otherAccount = MailAccount(providerID: .gmail, email: "other@example.com")
 
-        XCTAssertTrue(store.admit(header: makeHeader(uid: 1, gmMessageId: "inbox"), account: account))
+        XCTAssertTrue(try store.admit(header: makeHeader(uid: 1, gmMessageId: "inbox"), account: account))
         XCTAssertTrue(
-            store.admit(
+            try store.admit(
                 header: makeHeader(uid: 2, mailbox: .spam, mailboxName: "[Gmail]/Spam", gmMessageId: "spam"),
                 account: account
             )
         )
-        XCTAssertTrue(store.admit(header: makeHeader(uid: 3, gmMessageId: "other"), account: otherAccount))
+        XCTAssertTrue(try store.admit(header: makeHeader(uid: 3, gmMessageId: "other"), account: otherAccount))
 
         XCTAssertEqual(store.pendingUIDs(accountID: account.id, mailbox: .inbox), Set([1]))
         XCTAssertEqual(store.pendingUIDs(accountID: account.id, mailbox: .spam), Set([2]))
@@ -380,7 +381,7 @@ final class EmailStoreTests: XCTestCase {
         let account = makeAccount()
         let header = makeHeader(uid: 0, gmMessageId: "legacy")
 
-        XCTAssertTrue(store.admit(header: header, account: account))
+        XCTAssertTrue(try store.admit(header: header, account: account))
 
         let item = try XCTUnwrap(store.items.first)
         XCTAssertNil(item.imapIdentity)
@@ -388,13 +389,13 @@ final class EmailStoreTests: XCTestCase {
     }
 
     @MainActor
-    func testRemoveSpamItemsKeepsInboxItems() {
+    func testRemoveSpamItemsKeepsInboxItems() throws {
         let store = makeStore()
         let account = makeAccount()
 
-        XCTAssertTrue(store.admit(header: makeHeader(subject: "Inbox", gmMessageId: "inbox"), account: account))
+        XCTAssertTrue(try store.admit(header: makeHeader(subject: "Inbox", gmMessageId: "inbox"), account: account))
         XCTAssertTrue(
-            store.admit(
+            try store.admit(
                 header: makeHeader(mailbox: .spam, subject: "Spam", gmMessageId: "spam"),
                 account: account
             )
@@ -407,28 +408,28 @@ final class EmailStoreTests: XCTestCase {
     }
 
     @MainActor
-    func testDismissAndOpenAreIdempotent() {
+    func testDismissAndOpenAreIdempotent() throws {
         let defaults = makeDefaults()
         let account = makeAccount()
         let header = makeHeader(gmMessageId: "1004")
         let id = EmailStoreIdentity.id(accountID: account.id, header: header)
         let store = makeStore(defaults: defaults)
 
-        XCTAssertTrue(store.admit(header: header, account: account))
-        store.dismiss(id: id)
-        store.dismiss(id: id)
-        store.markOpened(id: id)
-        store.markOpened(id: id)
-        store.markRead(id: id)
-        store.markRead(id: id)
+        XCTAssertTrue(try store.admit(header: header, account: account))
+        try store.dismiss(id: id)
+        try store.dismiss(id: id)
+        try store.markOpened(id: id)
+        try store.markOpened(id: id)
+        try store.markRead(id: id)
+        try store.markRead(id: id)
 
         XCTAssertTrue(store.items.isEmpty)
 
         let relaunchedStore = makeStore(defaults: defaults)
-        XCTAssertFalse(relaunchedStore.admit(header: header, account: account))
+        XCTAssertFalse(try relaunchedStore.admit(header: header, account: account))
     }
 
-    func testHandledPersistencePrunesToBoundedRecentSet() {
+    func testHandledPersistencePrunesToBoundedRecentSet() throws {
         let defaults = makeDefaults()
         var timestamp = Date(timeIntervalSince1970: 1)
         let persistence = EmailStorePersistence(
@@ -437,25 +438,128 @@ final class EmailStoreTests: XCTestCase {
             now: { timestamp }
         )
 
-        persistence.mark("old", disposition: .dismissed)
+        try persistence.mark("old", disposition: .dismissed)
         timestamp = Date(timeIntervalSince1970: 2)
-        persistence.mark("middle", disposition: .dismissed)
+        try persistence.mark("middle", disposition: .dismissed)
         timestamp = Date(timeIntervalSince1970: 3)
-        persistence.mark("new", disposition: .opened)
+        try persistence.mark("new", disposition: .opened)
 
-        XCTAssertFalse(persistence.isHandled("old"))
-        XCTAssertTrue(persistence.isHandled("middle"))
-        XCTAssertTrue(persistence.isHandled("new"))
+        XCTAssertFalse(try persistence.isHandled("old"))
+        XCTAssertTrue(try persistence.isHandled("middle"))
+        XCTAssertTrue(try persistence.isHandled("new"))
     }
 
-    func testHandledPersistenceLoadsRecordsAcrossInstances() {
+    func testHandledPersistenceLoadsRecordsAcrossInstances() throws {
         let defaults = makeDefaults()
         let firstPersistence = EmailStorePersistence(userDefaults: defaults)
 
-        firstPersistence.mark("persisted", disposition: .opened)
+        try firstPersistence.mark("persisted", disposition: .opened)
 
         let secondPersistence = EmailStorePersistence(userDefaults: defaults)
-        XCTAssertTrue(secondPersistence.isHandled("persisted"))
+        XCTAssertTrue(try secondPersistence.isHandled("persisted"))
+    }
+
+    func testCorruptHandledPersistenceIsBackedUpOnceAndRecoveredWithWarning() throws {
+        let defaults = makeDefaults()
+        let corrupt = Data("not-json".utf8)
+        defaults.set(corrupt, forKey: EmailStorePersistence.recordsKey)
+        let persistence = EmailStorePersistence(userDefaults: defaults)
+
+        XCTAssertFalse(try persistence.isHandled("anything"))
+
+        XCTAssertEqual(defaults.data(forKey: EmailStorePersistence.corruptBackupKey), corrupt)
+        let activeData = try XCTUnwrap(defaults.data(forKey: EmailStorePersistence.recordsKey))
+        let decoded = try JSONDecoder().decode([String: String].self, from: activeData)
+        XCTAssertTrue(decoded.isEmpty)
+        XCTAssertEqual(persistence.takeRecoveryWarning(), EmailStorePersistence.recoveryWarning)
+        XCTAssertNil(persistence.takeRecoveryWarning())
+
+        let reloadedPersistence = EmailStorePersistence(userDefaults: defaults)
+        XCTAssertFalse(try reloadedPersistence.isHandled("anything"))
+        XCTAssertNil(reloadedPersistence.takeRecoveryWarning())
+    }
+
+    func testCorruptHandledPersistenceBackupFailurePreservesOriginalPayload() {
+        let defaults = makeDefaults()
+        let corrupt = Data("not-json".utf8)
+        defaults.set(corrupt, forKey: EmailStorePersistence.recordsKey)
+        let persistence = EmailStorePersistence(
+            userDefaults: defaults,
+            saveData: { _, key in
+                if key == EmailStorePersistence.corruptBackupKey {
+                    throw EmailStorePersistence.PersistenceError.saveFailed("disk full")
+                }
+            }
+        )
+
+        XCTAssertThrowsError(try persistence.isHandled("anything")) { error in
+            XCTAssertEqual(error.localizedDescription, "Could not save handled-message history: disk full")
+        }
+        XCTAssertEqual(defaults.data(forKey: EmailStorePersistence.recordsKey), corrupt)
+        XCTAssertNil(defaults.data(forKey: EmailStorePersistence.corruptBackupKey))
+        XCTAssertNil(persistence.takeRecoveryWarning())
+    }
+
+    @MainActor
+    func testDismissSaveFailureLeavesDurableCacheAndVisiblePendingStateUnchanged() throws {
+        let defaults = makeDefaults()
+        var shouldFail = false
+        let persistence = EmailStorePersistence(
+            userDefaults: defaults,
+            saveData: { data, key in
+                if shouldFail {
+                    throw EmailStorePersistence.PersistenceError.saveFailed("disk full")
+                }
+                defaults.set(data, forKey: key)
+            }
+        )
+        let store = EmailStore(persistence: persistence)
+        let account = makeAccount()
+        let header = makeHeader(gmMessageId: "atomic-dismiss")
+        let id = EmailStoreIdentity.id(accountID: account.id, header: header)
+
+        XCTAssertTrue(try store.admit(header: header, account: account))
+        shouldFail = true
+
+        XCTAssertThrowsError(try store.dismiss(id: id)) { error in
+            XCTAssertEqual(error.localizedDescription, "Could not save handled-message history: disk full")
+        }
+        XCTAssertEqual(store.items.map(\.id), [id])
+        let relaunchedStore = makeStore(defaults: defaults)
+        XCTAssertTrue(try relaunchedStore.admit(header: header, account: account))
+    }
+
+    @MainActor
+    func testAccountRecordRemovalFailureLeavesVisibleItemsUntouched() throws {
+        let defaults = makeDefaults()
+        var shouldFail = false
+        let persistence = EmailStorePersistence(
+            userDefaults: defaults,
+            saveData: { data, key in
+                if shouldFail {
+                    throw EmailStorePersistence.PersistenceError.saveFailed("disk full")
+                }
+                defaults.set(data, forKey: key)
+            }
+        )
+        let store = EmailStore(persistence: persistence)
+        let account = makeAccount()
+        let handledHeader = makeHeader(gmMessageId: "account-removal-handled")
+        let visibleHeader = makeHeader(uid: 2, gmMessageId: "account-removal-visible")
+
+        XCTAssertTrue(try store.admit(header: handledHeader, account: account))
+        try store.dismiss(id: EmailStoreIdentity.id(accountID: account.id, header: handledHeader))
+        XCTAssertFalse(try store.admit(header: handledHeader, account: account))
+        XCTAssertTrue(try store.admit(header: visibleHeader, account: account))
+        let visibleID = EmailStoreIdentity.id(accountID: account.id, header: visibleHeader)
+        shouldFail = true
+
+        XCTAssertThrowsError(try store.removeAccountRecords(accountID: account.id)) { error in
+            XCTAssertEqual(error.localizedDescription, "Could not save handled-message history: disk full")
+        }
+        XCTAssertEqual(store.items.map(\.id), [visibleID])
+        let relaunchedStore = makeStore(defaults: defaults)
+        XCTAssertFalse(try relaunchedStore.admit(header: handledHeader, account: account))
     }
 
     @MainActor

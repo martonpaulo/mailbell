@@ -2,7 +2,7 @@ import Foundation
 
 struct OAuthConfig {
     let clientID: String
-    let clientSecret: String
+    let clientSecret: String?
 
     let scopes = ["https://mail.google.com/", "openid", "email"]
 
@@ -92,16 +92,15 @@ struct OAuthConfig {
 
     private static func make(clientID: String?, clientSecret: String?) throws -> OAuthConfig {
         guard let clientID = clientID?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !clientID.isEmpty,
-              let clientSecret = clientSecret?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !clientSecret.isEmpty
+              !clientID.isEmpty
         else {
             throw OAuthConfigIssue.missingCredentials
         }
         guard clientID.hasSuffix(".apps.googleusercontent.com") else {
             throw OAuthConfigIssue.invalidClientID
         }
-        return OAuthConfig(clientID: clientID, clientSecret: clientSecret)
+        let trimmedSecret = clientSecret?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return OAuthConfig(clientID: clientID, clientSecret: trimmedSecret.isEmpty ? nil : trimmedSecret)
     }
 }
 
@@ -113,8 +112,8 @@ enum OAuthConfigIssue: Error, Equatable, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingCredentials:
-            "Google OAuth setup is required. Set MAILBELL_GOOGLE_CLIENT_ID and "
-                + "MAILBELL_GOOGLE_CLIENT_SECRET in .env or your shell, then rebuild or reinstall Mailbell. "
+            "Google OAuth setup is required. Set MAILBELL_GOOGLE_CLIENT_ID in .env or your shell, "
+                + "then rebuild or reinstall Mailbell. MAILBELL_GOOGLE_CLIENT_SECRET is optional for Desktop clients. "
                 + "See README > Google sign-in."
         case .invalidClientID:
             "Google OAuth client ID looks invalid. Use your Desktop OAuth client ID ending in "

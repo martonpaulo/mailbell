@@ -10,8 +10,8 @@ struct OAuthSetupPanel: View {
             Label("Google OAuth setup required", systemImage: "key.fill")
 
             Text(
-                "Create your own Google Desktop OAuth client, set `MAILBELL_GOOGLE_CLIENT_ID` and "
-                    + "`MAILBELL_GOOGLE_CLIENT_SECRET`, then rebuild or reinstall Mailbell."
+                "Create your own Google Desktop OAuth client, set `MAILBELL_GOOGLE_CLIENT_ID`, "
+                    + "then rebuild or reinstall Mailbell. `MAILBELL_GOOGLE_CLIENT_SECRET` is optional."
             )
             .foregroundStyle(.secondary)
             .textSelection(.enabled)

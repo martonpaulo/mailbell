@@ -69,6 +69,41 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
     }
 
     @MainActor
+    func testMarkAsReadPersistenceFailureKeepsEmailInStoreAndSurfacesError() async throws {
+        let defaults = makeDefaults()
+        var shouldFail = false
+        let emailStore = EmailStore(
+            persistence: EmailStorePersistence(
+                userDefaults: defaults,
+                saveData: { data, key in
+                    if shouldFail {
+                        throw EmailStorePersistence.PersistenceError.saveFailed("disk full")
+                    }
+                    defaults.set(data, forKey: key)
+                }
+            )
+        )
+        let (supervisor, account) = makeSupervisor(
+            emailStore: emailStore,
+            emailReadMarker: { _, _, _ in }
+        )
+        let header = makeHeader(uid: 44, mailboxName: "INBOX", gmMessageId: "mark-read-persistence-failure")
+
+        let didAdmit = await admit(header, into: supervisor, account: account)
+        XCTAssertTrue(didAdmit)
+        let item = try XCTUnwrap(supervisor.emailStoreItems.first)
+        shouldFail = true
+
+        await supervisor.markEmailAsRead(id: item.id)
+
+        XCTAssertEqual(supervisor.emailStoreItems.map(\.id), [item.id])
+        XCTAssertEqual(
+            supervisor.accountStates.first?.lastError,
+            "Could not save handled-message history: disk full"
+        )
+    }
+
+    @MainActor
     func testMarkAsReadSkipsLegacyPendingItemWithoutUID() async throws {
         var didCallMarker = false
         let (supervisor, account) = makeSupervisor(emailReadMarker: { _, _, _ in
@@ -92,6 +127,7 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
 
     @MainActor
     private func makeSupervisor(
+        emailStore: EmailStore? = nil,
         emailReadMarker: @escaping EmailReadMarker
     ) -> (AccountSupervisor, MailAccount) {
         let account = MailAccount(providerID: .gmail, email: "test@example.com")
@@ -99,8 +135,12 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
         let defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
         let store = AccountStore(userDefaults: defaults)
-        try! store.saveAccounts([account])
-        let emailStore = EmailStore(persistence: EmailStorePersistence(userDefaults: defaults))
+        do {
+            try store.saveAccounts([account])
+        } catch {
+            XCTFail("Could not seed account store: \(error)")
+        }
+        let emailStore = emailStore ?? EmailStore(persistence: EmailStorePersistence(userDefaults: defaults))
         let supervisor = AccountSupervisor(
             configProvider: {
                 OAuthConfig(
@@ -116,6 +156,13 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
             emailReadMarker: emailReadMarker
         )
         return (supervisor, account)
+    }
+
+    private func makeDefaults() -> UserDefaults {
+        let suiteName = "mailbell.AccountSupervisorMarkReadTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        return defaults
     }
 
     private func makeHeader(

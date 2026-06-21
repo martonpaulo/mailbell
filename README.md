@@ -4,15 +4,16 @@
   <img src="Resources/logo.png" alt="Mailbell logo" width="128">
 </p>
 
-Mailbell is a personal macOS menu bar Gmail notifier. It is a local bridge from your Google account to native macOS notifications: Google OAuth, Keychain tokens, Gmail IMAP XOAUTH2, `INBOX` `SELECT`, IMAP `IDLE`, minimal header fetches, bounded sanitized text previews, native notifications, and Gmail Web for reading or managing mail.
+Mailbell is a local, notification-first Gmail companion for macOS. It is a local bridge from your Google account to native macOS notifications: Google OAuth, Keychain tokens, Gmail IMAP XOAUTH2, `INBOX` `SELECT`, IMAP `IDLE`, minimal header fetches, bounded sanitized text previews, native notifications, and Gmail Web for reading or managing mail.
 
 ## Personal-Use Scope
 
 This fork is for private local use on your own Mac.
 
-- It is a menu bar notifier, not a full email client.
-- It does not provide mailbox browsing, full body reading, attachment reading, reply, archive, delete, move, label, or compose flows.
-- Its only message-management action is `Mark as Read` for pending items, implemented against Gmail IMAP with `UID STORE +FLAGS.SILENT (\\Seen)`.
+- Its current implemented scope is menu-bar notifications, pending-review context, bounded sanitized previews, Gmail Web opening, and `Mark as Read` for pending items, implemented against Gmail IMAP with `UID STORE +FLAGS.SILENT (\\Seen)`.
+- Full body viewing, reply, archive, delete, move, labels, compose, and attachments are not implemented by this app today.
+- Those capabilities are allowed only as deliberate future product changes. Each must define data minimization, on-demand fetch rules, storage lifetime, permissions/scopes, UI/accessibility behavior, failure semantics, and tests before implementation.
+- Do not add unused models, generic repositories, attachment caches, compose systems, or Gmail API abstractions just to prepare speculatively.
 - It watches Gmail `INBOX` with IMAP `IDLE`; it does not use content polling as the primary notification mechanism.
 - It opens Gmail Web when you click a notification, open a pending item, or choose `Open Gmail`.
 - It has no cloud relay, hosted backend, analytics relay, public website, gh-pages flow, or public release pipeline.
@@ -28,7 +29,7 @@ You must create and use your own Google OAuth Desktop credentials. This fork doe
 - Notification and menu content use account, sender, subject, sent date, mailbox UID, Gmail thread/message identifiers when available, and a sanitized text preview.
 - IMAP metadata fetches use `BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)]` with Gmail `X-GM-MSGID` and `X-GM-THRID` when available.
 - Body preview fetches use `BODY.PEEK[TEXT]<0.8192>` only for a bounded text preview. Mailbell does not fetch attachments or full message bodies.
-- Preview text is decoded and sanitized locally: HTML, MIME artifacts, URLs, and noisy transport markers are stripped or replaced before rendering in notifications and the menu.
+- Preview text is decoded and sanitized locally: SwiftSoup handles generic HTML parsing/text/entity extraction, then Mailbell strips or replaces MIME artifacts, URLs, and noisy transport markers before rendering in notifications and the menu.
 - Because previews are email content, they can appear in macOS Notification Center and in the local menu while Mailbell is running.
 
 Requested OAuth scopes:
@@ -80,13 +81,13 @@ Use a Google account and Cloud project that you control.
    - `email`
 7. Do not set up Pub/Sub, Gmail API push watches, SMTP, a hosted redirect service, or public website pages for this app. Mailbell connects directly to Gmail IMAP. If Google Cloud requires an API to be enabled for scope configuration, enable only what the console requires; Mailbell does not call Gmail REST API endpoints.
 8. Create an OAuth Client ID with application type `Desktop app`.
-9. Copy the Client ID and Client Secret. The Client ID should end with `.apps.googleusercontent.com`.
+9. Copy the Client ID. The Client ID should end with `.apps.googleusercontent.com`. If Google shows a Desktop Client Secret, you may copy it too, but Mailbell treats it as optional because installed-app clients are public clients.
 
-The app uses Google's installed-app OAuth flow with PKCE and a random local loopback redirect. Do not create a Web app client for this fork.
+The app uses Google's installed-app OAuth flow with PKCE and a temporary `http://127.0.0.1:<port>/oauth/callback` loopback redirect. The callback server binds only to IPv4 loopback and uses an OS-assigned dynamic port. Do not create a Web app client for this fork.
 
 ## Local Configuration
 
-Create a private `.env` from the example and fill in your own Desktop client values. You can also set the bundle identity used for your local app build there:
+Create a private `.env` from the example and fill in your own Desktop client ID. You can also set the bundle identity used for your local app build there:
 
 ```bash
 cp .env.example .env
@@ -97,24 +98,27 @@ Example `.env` content:
 
 ```bash
 MAILBELL_GOOGLE_CLIENT_ID=your-desktop-client-id.apps.googleusercontent.com
-MAILBELL_GOOGLE_CLIENT_SECRET=your-desktop-client-secret
 MAILBELL_BUNDLE_ID=dev.example.mailbell
 MAILBELL_APP_DISPLAY_NAME=Mailbell
+MAILBELL_GOOGLE_CLIENT_SECRET=
 ```
+
+`MAILBELL_GOOGLE_CLIENT_SECRET` is optional. Leave it blank or omit it unless you intentionally want Mailbell to send the Desktop client secret for backward compatibility with an existing local setup.
 
 You can use shell environment variables instead:
 
 ```bash
 export MAILBELL_GOOGLE_CLIENT_ID="your-desktop-client-id.apps.googleusercontent.com"
-export MAILBELL_GOOGLE_CLIENT_SECRET="your-desktop-client-secret"
 export MAILBELL_BUNDLE_ID="dev.example.mailbell"
 export MAILBELL_APP_DISPLAY_NAME="Mailbell"
+# Optional:
+export MAILBELL_GOOGLE_CLIENT_SECRET="your-desktop-client-secret"
 ```
 
-Packaging commands read environment variables first, then `.env`. `Scripts/inject_oauth_config.sh` validates the values and writes only these expected bundle keys into the copied app `Info.plist`:
+Packaging commands read environment variables first, then `.env`, and take the client ID plus optional secret from one source rather than combining credentials across sources. `Scripts/inject_oauth_config.sh` validates the values and writes only these expected bundle keys into the copied app `Info.plist`:
 
 - `MailbellGoogleClientID`
-- `MailbellGoogleClientSecret`
+- `MailbellGoogleClientSecret` only when `MAILBELL_GOOGLE_CLIENT_SECRET` is nonblank
 - `CFBundleIdentifier`
 - `CFBundleName`
 - `CFBundleDisplayName`
@@ -206,15 +210,15 @@ To verify local token storage without printing secrets, open Keychain Access and
 
 Symptoms:
 
-- `make install` or `make dmg` prints `error: set MAILBELL_GOOGLE_CLIENT_ID and MAILBELL_GOOGLE_CLIENT_SECRET...`.
+- `make install` or `make dmg` prints `error: set MAILBELL_GOOGLE_CLIENT_ID...`.
 - The app shows `OAuth setup required` and disables `Add Google Account`.
 
 Fix:
 
-- Fill `.env` or export both environment variables.
+- Fill `.env` or export `MAILBELL_GOOGLE_CLIENT_ID`.
 - Reinstall or rebuild the app bundle after changing packaged credentials.
 
-### Invalid Client ID Or Secret
+### Invalid Client ID Or Optional Secret
 
 Symptoms:
 
@@ -224,12 +228,12 @@ Symptoms:
 Fix:
 
 - Use an OAuth client of type `Desktop app`.
-- Copy the Client ID and Client Secret from the same OAuth client.
+- Copy the Client ID from a Desktop OAuth client. If you configure `MAILBELL_GOOGLE_CLIENT_SECRET`, copy it from the same OAuth client.
 - Do not use a Web, iOS, Android, Chrome, or service-account credential.
 
 ### Redirect Or Loopback Errors
 
-Mailbell starts a temporary local loopback listener and sends Google a `http://127.0.0.1:<port>` redirect URI.
+Mailbell starts a temporary local loopback listener and sends Google a `http://127.0.0.1:<port>/oauth/callback` redirect URI.
 
 Fix:
 

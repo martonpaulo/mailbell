@@ -18,7 +18,8 @@ extension AccountSupervisor {
             for identity in identities {
                 try await emailReadMarker(account, config, identity)
             }
-            emailStore.markRead(id: id)
+            try emailStore.markRead(id: id)
+            applyEmailStoreWarning(accountID: account.id)
             publish()
         } catch {
             handleMarkAsReadFailure(error, accountID: account.id)
@@ -27,7 +28,15 @@ extension AccountSupervisor {
 
     private func handleMarkAsReadFailure(_ error: Error, accountID: UUID) {
         Log.error("Failed to mark email as read: \(error.localizedDescription)")
-        guard let oauthError = error as? OAuthClient.OAuthError else { return }
+        if error is EmailStorePersistence.PersistenceError {
+            handleEmailStorePersistenceFailure(error, accountID: accountID)
+            return
+        }
+        guard let oauthError = error as? OAuthClient.OAuthError else {
+            connectionErrors[accountID] = error.localizedDescription
+            publish()
+            return
+        }
 
         switch oauthError {
         case .refreshFailed, .noRefreshToken:

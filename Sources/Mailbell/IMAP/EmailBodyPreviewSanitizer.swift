@@ -1,4 +1,5 @@
 import Foundation
+import SwiftSoup
 
 enum EmailBodyPreviewSanitizer {
     static let maximumPreviewLength = 240
@@ -12,12 +13,15 @@ enum EmailBodyPreviewSanitizer {
         return preview(from: text, limit: limit)
     }
 
-    static func preview(from rawText: String, limit: Int = maximumPreviewLength) -> String? {
+    static func preview(
+        from rawText: String,
+        limit: Int = maximumPreviewLength,
+        htmlTextExtractor: (String) throws -> String = extractHTMLText
+    ) -> String? {
         let withoutMIMEHeaders = removeMIMEPartHeaders(from: rawText)
         let quotedPrintableDecoded = decodeQuotedPrintable(withoutMIMEHeaders)
-        let htmlStripped = stripHTML(from: quotedPrintableDecoded)
-        let entityDecoded = decodeHTMLEntities(in: htmlStripped)
-        let withoutMIMEArtifacts = removeMIMEArtifacts(from: entityDecoded)
+        let htmlDecoded = decodeHTMLIfNeeded(quotedPrintableDecoded, htmlTextExtractor: htmlTextExtractor)
+        let withoutMIMEArtifacts = removeMIMEArtifacts(from: htmlDecoded)
         let withoutURLs = replacing(
             pattern: #"(?i)\b(?:https?://|www\.)[^\s<>"']+"#,
             in: withoutMIMEArtifacts,
@@ -133,23 +137,16 @@ enum EmailBodyPreviewSanitizer {
         }
     }
 
-    private static func stripHTML(from text: String) -> String {
-        var result = text
-        result = replacing(pattern: "(?is)<script[^>]*>.*?</script>", in: result, with: " ")
-        result = replacing(pattern: "(?is)<style[^>]*>.*?</style>", in: result, with: " ")
-        result = replacing(pattern: #"(?is)<a\b[^>]*href=["'][^"']+["'][^>]*>(.*?)</a>"#, in: result, with: "$1")
-        result = replacing(pattern: "(?is)<br\\s*/?>", in: result, with: "\n")
-        result = replacing(pattern: "(?is)</p\\s*>", in: result, with: "\n")
-        result = replacing(pattern: "(?is)<[^>]+>", in: result, with: " ")
-        return result
-    }
-
     private static func removeMIMEArtifacts(from text: String) -> String {
         var result = text
         result = replacing(pattern: #"(?im)^--[A-Za-z0-9'()+_,./:=?-]+--?$"#, in: result, with: " ")
         result = replacing(pattern: #"(?im)^Content-[A-Za-z-]+:.*$"#, in: result, with: " ")
         result = replacing(pattern: #"(?im)^MIME-Version:.*$"#, in: result, with: " ")
-        result = replacing(pattern: #"(?i)\bThis is a multi[-\s]?part message in MIME format\.?\s*"#, in: result, with: " ")
+        result = replacing(
+            pattern: #"(?i)\bThis is a multi[-\s]?part message in MIME format\.?\s*"#,
+            in: result,
+            with: " "
+        )
         result = replacing(pattern: #"(?i)\bThis message is in MIME format\.?\s*"#, in: result, with: " ")
         result = replacing(pattern: #"(?im)^.*MIME part.*$"#, in: result, with: " ")
         result = replacing(pattern: #"(?im)^charset="?[-A-Za-z0-9_]+"?.*$"#, in: result, with: " ")
@@ -162,49 +159,6 @@ enum EmailBodyPreviewSanitizer {
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return text }
         let range = NSRange(text.startIndex ..< text.endIndex, in: text)
         return regex.stringByReplacingMatches(in: text, range: range, withTemplate: replacement)
-    }
-
-    private static func decodeHTMLEntities(in text: String) -> String {
-        var decoded = text
-        let namedEntities = [
-            "&nbsp;": " ",
-            "&amp;": "&",
-            "&lt;": "<",
-            "&gt;": ">",
-            "&quot;": "\"",
-            "&#39;": "'",
-            "&apos;": "'"
-        ]
-        for (entity, replacement) in namedEntities {
-            decoded = decoded.replacingOccurrences(of: entity, with: replacement)
-        }
-        return decodeNumericEntities(in: decoded)
-    }
-
-    private static func decodeNumericEntities(in text: String) -> String {
-        guard let regex = try? NSRegularExpression(pattern: #"&#(x?[0-9A-Fa-f]+);"#) else {
-            return text
-        }
-
-        var result = text
-        let matches = regex.matches(in: text, range: NSRange(text.startIndex ..< text.endIndex, in: text))
-        for match in matches.reversed() {
-            guard let entityRange = Range(match.range(at: 0), in: result),
-                  let valueRange = Range(match.range(at: 1), in: result)
-            else {
-                continue
-            }
-            let rawValue = result[valueRange]
-            let radix = rawValue.first == "x" ? 16 : 10
-            let digits = rawValue.first == "x" ? rawValue.dropFirst() : rawValue[...]
-            guard let scalarValue = UInt32(String(digits), radix: radix),
-                  let scalar = UnicodeScalar(scalarValue)
-            else {
-                continue
-            }
-            result.replaceSubrange(entityRange, with: String(Character(scalar)))
-        }
-        return result
     }
 
     private static func truncated(_ text: String, limit: Int) -> String {
@@ -253,5 +207,50 @@ enum EmailBodyPreviewSanitizer {
         let remainder = lines.dropFirst(maximumLineCount - 1).joined(separator: " ")
         return (Array(retained) + [truncated(remainder, limit: maximumLineLength)])
             .joined(separator: "\n")
+    }
+
+    private static func decodeHTMLIfNeeded(
+        _ text: String,
+        htmlTextExtractor: (String) throws -> String
+    ) -> String {
+        guard containsHTMLSignal(text) else { return text }
+        do {
+            return try htmlTextExtractor(text)
+        } catch {
+            return text
+        }
+    }
+
+    private static func extractHTMLText(from text: String) throws -> String {
+        let document = try SwiftSoup.parseHTML(text)
+        try document.select("script, style, noscript, template, head, meta, link").remove()
+        try document.select("[hidden], [aria-hidden=true]").remove()
+
+        for element in try document.select("[style]").array() {
+            let style = try element.attr("style")
+                .lowercased()
+                .replacingOccurrences(of: " ", with: "")
+            if style.contains("display:none")
+                || style.contains("visibility:hidden")
+                || style.contains("opacity:0") {
+                try element.remove()
+            }
+        }
+
+        if let body = document.body() {
+            return try body.text()
+        }
+        return try document.text()
+    }
+
+    private static func containsHTMLSignal(_ text: String) -> Bool {
+        containsPattern(#"(?is)</?[A-Za-z][A-Za-z0-9:-]*(?:\s+[^<>]*)?/?>"#, in: text)
+            || containsPattern(#"&#(?:x[0-9A-Fa-f]+|[0-9]+);|&[A-Za-z][A-Za-z0-9]+;"#, in: text)
+    }
+
+    private static func containsPattern(_ pattern: String, in text: String) -> Bool {
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return false }
+        let range = NSRange(text.startIndex ..< text.endIndex, in: text)
+        return regex.firstMatch(in: text, range: range) != nil
     }
 }

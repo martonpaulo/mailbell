@@ -72,16 +72,13 @@ def fail(message):
 def validate_client_id(value):
     client_id = cleaned(value)
     if not client_id:
-        fail(f"set {CLIENT_ID_KEY} and {CLIENT_SECRET_KEY} in the environment or .env")
+        fail(f"set {CLIENT_ID_KEY} in the environment or .env")
     if not client_id.endswith(".apps.googleusercontent.com"):
         fail(f"{CLIENT_ID_KEY} must be a Desktop OAuth client ID ending in .apps.googleusercontent.com")
     return client_id
 
 def validate_client_secret(value):
-    client_secret = cleaned(value)
-    if not client_secret:
-        fail(f"set {CLIENT_ID_KEY} and {CLIENT_SECRET_KEY} in the environment or .env")
-    return client_secret
+    return cleaned(value) or None
 
 def validate_bundle_id(value):
     bundle_id = cleaned(value) or DEFAULT_BUNDLE_ID
@@ -114,7 +111,10 @@ with path.open("rb") as handle:
     plist = plistlib.load(handle)
 
 plist["MailbellGoogleClientID"] = client_id
-plist["MailbellGoogleClientSecret"] = client_secret
+if client_secret:
+    plist["MailbellGoogleClientSecret"] = client_secret
+else:
+    plist.pop("MailbellGoogleClientSecret", None)
 plist["CFBundleIdentifier"] = bundle_id
 plist["CFBundleName"] = display_name
 plist["CFBundleDisplayName"] = display_name

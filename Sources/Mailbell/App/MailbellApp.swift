@@ -244,6 +244,7 @@ enum SettingsTab: CaseIterable, Identifiable {
     }
 }
 
+// swiftlint:disable:next type_body_length
 struct SettingsView: View {
     @ObservedObject var appState: AppState
     @State private var launchAtLogin = LoginItem.isEnabled

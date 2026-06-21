@@ -3,11 +3,11 @@ import Foundation
 import XCTest
 
 final class MailMonitorReconciliationTests: XCTestCase {
-    func testClosedConnectionIsNotUserVisibleReconnectError() {
+    func testClosedConnectionIsNotUserVisibleReconnectError() throws {
         XCTAssertNil(MailMonitor.userVisibleReconnectError(for: IMAPConnection.ConnectionError.closed))
     }
 
-    func testUnexpectedReconnectErrorRemainsUserVisible() {
+    func testUnexpectedReconnectErrorRemainsUserVisible() throws {
         let error = IMAPConnection.ConnectionError.notReady("waiting")
 
         XCTAssertEqual(
@@ -21,7 +21,7 @@ final class MailMonitorReconciliationTests: XCTestCase {
         let account = MailAccount(providerID: .gmail, email: "account@example.com")
         let store = makeStore()
         let pendingHeader = makeHeader(uid: 1, gmMessageId: "externally-read")
-        XCTAssertTrue(store.admit(header: pendingHeader, account: account))
+        XCTAssertTrue(try store.admit(header: pendingHeader, account: account))
 
         let connection = ScriptedMonitorConnection(lines: [
             "A0001 OK SELECT completed",
@@ -60,7 +60,7 @@ final class MailMonitorReconciliationTests: XCTestCase {
         let account = MailAccount(providerID: .gmail, email: "account@example.com")
         let store = makeStore()
         let pendingHeader = makeHeader(uid: 1, gmMessageId: "known-unread")
-        XCTAssertTrue(store.admit(header: pendingHeader, account: account))
+        XCTAssertTrue(try store.admit(header: pendingHeader, account: account))
 
         let connection = ScriptedMonitorConnection(lines: [
             "A0001 OK SELECT completed",
@@ -143,7 +143,7 @@ final class MailMonitorReconciliationTests: XCTestCase {
         let account = MailAccount(providerID: .gmail, email: "account@example.com")
         let store = makeStore()
         let pendingHeader = makeHeader(uid: 1, gmMessageId: "still-pending")
-        XCTAssertTrue(store.admit(header: pendingHeader, account: account))
+        XCTAssertTrue(try store.admit(header: pendingHeader, account: account))
 
         let connection = ScriptedMonitorConnection(lines: [
             "A0001 OK SELECT completed",
@@ -220,14 +220,14 @@ private final class ReconciliationDelegate: MailMonitorDelegate {
         fetchedHeaders: [MessageHeader]
     ) async {
         guard accountID == account.id else { return }
-        _ = await store.reconcileUnread(snapshots: snapshots, fetchedHeaders: fetchedHeaders, account: account)
+        _ = try? await store.reconcileUnread(snapshots: snapshots, fetchedHeaders: fetchedHeaders, account: account)
     }
 
     func monitor(_ accountID: UUID, shouldNotify headers: [MessageHeader]) async -> Set<IMAPMessageIdentity> {
         guard accountID == account.id else { return [] }
         var admittedIdentities = Set<IMAPMessageIdentity>()
         for header in headers {
-            if await store.admit(header: header, account: account),
+            if (try? await store.admit(header: header, account: account)) == true,
                let identity = header.imapIdentity {
                 admittedIdentities.insert(identity)
             }

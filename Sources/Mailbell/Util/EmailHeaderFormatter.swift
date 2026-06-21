@@ -86,7 +86,15 @@ enum EmailHeaderFormatter {
         calendar: Calendar,
         timeZone: TimeZone
     ) -> String {
-        "\(relativeDateText(for: date, relativeTo: now, locale: locale, calendar: calendar, timeZone: timeZone)), \(fullDateTimeText(for: date, locale: locale, calendar: calendar, timeZone: timeZone))"
+        let relativeDate = relativeDateText(
+            for: date,
+            relativeTo: now,
+            locale: locale,
+            calendar: calendar,
+            timeZone: timeZone
+        )
+        let fullDateTime = fullDateTimeText(for: date, locale: locale, calendar: calendar, timeZone: timeZone)
+        return "\(relativeDate), \(fullDateTime)"
     }
 
     private static func relativeDateText(

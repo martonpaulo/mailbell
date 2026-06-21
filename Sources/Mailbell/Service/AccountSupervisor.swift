@@ -225,6 +225,7 @@ final class AccountSupervisor {
         guard accounts.contains(where: { $0.id == accountID }) else { return }
         let remainingAccounts: [MailAccount]
         do {
+            try emailStore.removeAccountRecords(accountID: accountID)
             remainingAccounts = try accountStore.remove(accountID: accountID)
             accountStoreError = nil
         } catch {
@@ -243,8 +244,9 @@ final class AccountSupervisor {
         CheckpointStore(accountID: accountID).reset()
         CheckpointStore(accountID: accountID, mailbox: "SPAM").reset()
         TokenStore(accountID: accountID).clear()
-        emailStore.removeAccount(accountID: accountID)
+        emailStore.removeAccountItems(accountID: accountID)
         accounts = remainingAccounts
+        applyEmailStoreWarning(accountID: nil)
         publish()
     }
 
@@ -353,6 +355,30 @@ final class AccountSupervisor {
             return nil
         }
     }
+
+    func handleEmailStorePersistenceFailure(_ error: Error, accountID: UUID?) {
+        let message = error.localizedDescription
+        Log.error("Email store persistence failed: \(message)")
+        if let accountID {
+            statuses[accountID] = .error
+            connectionErrors[accountID] = message
+        } else {
+            accountStoreError = message
+        }
+        publish()
+    }
+
+    @discardableResult
+    func applyEmailStoreWarning(accountID: UUID?) -> Bool {
+        guard let warning = emailStore.takePersistenceWarning() else { return false }
+        Log.error(warning)
+        if let accountID {
+            connectionErrors[accountID] = warning
+        } else {
+            accountStoreError = warning
+        }
+        return true
+    }
 }
 
 private extension AccountSupervisor {
@@ -415,12 +441,17 @@ extension AccountSupervisor: MailMonitorDelegate {
             }
             let visibleSnapshots = includeSpam ? snapshots : snapshots.filter { $0.mailbox != .spam }
             let visibleHeaders = includeSpam ? fetchedHeaders : fetchedHeaders.filter { $0.mailbox != .spam }
-            if emailStore.reconcileUnread(
-                snapshots: visibleSnapshots,
-                fetchedHeaders: visibleHeaders,
-                account: account
-            ) {
+            do {
+                let didChange = try emailStore.reconcileUnread(
+                    snapshots: visibleSnapshots,
+                    fetchedHeaders: visibleHeaders,
+                    account: account
+                )
+                let didWarn = applyEmailStoreWarning(accountID: account.id)
+                guard didChange || didWarn else { return }
                 publish()
+            } catch {
+                handleEmailStorePersistenceFailure(error, accountID: account.id)
             }
         }
     }
@@ -437,14 +468,20 @@ extension AccountSupervisor: MailMonitorDelegate {
             var didChange = false
 
             for header in visibleHeaders {
-                guard emailStore.admit(header: header, account: account) else { continue }
-                didChange = true
-                if let identity = header.imapIdentity {
-                    admittedIdentities.insert(identity)
+                do {
+                    guard try emailStore.admit(header: header, account: account) else { continue }
+                    didChange = true
+                    if let identity = header.imapIdentity {
+                        admittedIdentities.insert(identity)
+                    }
+                } catch {
+                    handleEmailStorePersistenceFailure(error, accountID: account.id)
+                    return []
                 }
             }
 
-            if didChange {
+            let didWarn = applyEmailStoreWarning(accountID: account.id)
+            if didChange || didWarn {
                 publish()
             }
             return admittedIdentities
