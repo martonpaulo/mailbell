@@ -2,6 +2,8 @@ import Foundation
 
 enum EmailBodyPreviewSanitizer {
     static let maximumPreviewLength = 240
+    private static let maximumLineLength = 80
+    private static let maximumLineCount = 3
 
     static func preview(from data: Data, limit: Int = maximumPreviewLength) -> String? {
         let text = String(data: data, encoding: .utf8)
@@ -15,7 +17,13 @@ enum EmailBodyPreviewSanitizer {
         let quotedPrintableDecoded = decodeQuotedPrintable(withoutMIMEHeaders)
         let htmlStripped = stripHTML(from: quotedPrintableDecoded)
         let entityDecoded = decodeHTMLEntities(in: htmlStripped)
-        let punctuationTightened = replacing(pattern: "\\s+([\\.,;:!?])", in: entityDecoded, with: "$1")
+        let withoutMIMEArtifacts = removeMIMEArtifacts(from: entityDecoded)
+        let withoutURLs = replacing(
+            pattern: #"(?i)\b(?:https?://|www\.)[^\s<>"']+"#,
+            in: withoutMIMEArtifacts,
+            with: "URL"
+        )
+        let punctuationTightened = replacing(pattern: "\\s+([\\.,;:!?])", in: withoutURLs, with: "$1")
         let collapsed = punctuationTightened
             .replacingOccurrences(of: "\u{00a0}", with: " ")
             .components(separatedBy: .whitespacesAndNewlines)
@@ -24,18 +32,20 @@ enum EmailBodyPreviewSanitizer {
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !collapsed.isEmpty else { return nil }
-        return truncated(collapsed, limit: limit)
+        return wrappedPreview(truncated(collapsed, limit: limit))
     }
 
     private static func removeMIMEPartHeaders(from rawText: String) -> String {
         let normalized = rawText.replacingOccurrences(of: "\r\n", with: "\n")
         var retained: [String] = []
         var isSkippingPartHeaders = false
+        var isSkippingFoldedHeader = false
 
         for line in normalized.split(separator: "\n", omittingEmptySubsequences: false).map(String.init) {
             let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
             if trimmed.hasPrefix("--") {
                 isSkippingPartHeaders = true
+                isSkippingFoldedHeader = false
                 continue
             }
             if isSkippingPartHeaders {
@@ -44,7 +54,12 @@ enum EmailBodyPreviewSanitizer {
                 }
                 continue
             }
+            if isSkippingFoldedHeader, line.first == " " || line.first == "\t" {
+                continue
+            }
+            isSkippingFoldedHeader = false
             if isMIMEPartHeader(line) {
+                isSkippingFoldedHeader = true
                 continue
             }
             retained.append(line)
@@ -58,6 +73,7 @@ enum EmailBodyPreviewSanitizer {
         return lowercased.hasPrefix("content-type:")
             || lowercased.hasPrefix("content-transfer-encoding:")
             || lowercased.hasPrefix("content-disposition:")
+            || lowercased.hasPrefix("content-id:")
             || lowercased.hasPrefix("mime-version:")
     }
 
@@ -121,9 +137,23 @@ enum EmailBodyPreviewSanitizer {
         var result = text
         result = replacing(pattern: "(?is)<script[^>]*>.*?</script>", in: result, with: " ")
         result = replacing(pattern: "(?is)<style[^>]*>.*?</style>", in: result, with: " ")
+        result = replacing(pattern: #"(?is)<a\b[^>]*href=["'][^"']+["'][^>]*>(.*?)</a>"#, in: result, with: "$1")
         result = replacing(pattern: "(?is)<br\\s*/?>", in: result, with: "\n")
         result = replacing(pattern: "(?is)</p\\s*>", in: result, with: "\n")
         result = replacing(pattern: "(?is)<[^>]+>", in: result, with: " ")
+        return result
+    }
+
+    private static func removeMIMEArtifacts(from text: String) -> String {
+        var result = text
+        result = replacing(pattern: #"(?im)^--[A-Za-z0-9'()+_,./:=?-]+--?$"#, in: result, with: " ")
+        result = replacing(pattern: #"(?im)^Content-[A-Za-z-]+:.*$"#, in: result, with: " ")
+        result = replacing(pattern: #"(?im)^MIME-Version:.*$"#, in: result, with: " ")
+        result = replacing(pattern: #"(?im)^This is a multi-part message in MIME format\.?$"#, in: result, with: " ")
+        result = replacing(pattern: #"(?im)^.*MIME part.*$"#, in: result, with: " ")
+        result = replacing(pattern: #"(?im)^charset="?[-A-Za-z0-9_]+"?.*$"#, in: result, with: " ")
+        result = replacing(pattern: #"(?im)^boundary="?[-A-Za-z0-9'()+_,./:=?]+"?.*$"#, in: result, with: " ")
+        result = replacing(pattern: #"(?im)^multipart/[-A-Za-z0-9.+]+.*$"#, in: result, with: " ")
         return result
     }
 
@@ -185,5 +215,42 @@ enum EmailBodyPreviewSanitizer {
             return String(prefix[..<wordBoundary]) + "..."
         }
         return String(prefix) + "..."
+    }
+
+    private static func wrappedPreview(_ text: String) -> String {
+        let words = text.split(separator: " ").map(String.init)
+        guard !words.isEmpty else { return text }
+
+        var lines: [String] = []
+        var current = ""
+
+        for word in words {
+            if lines.count == maximumLineCount - 1 {
+                current = current.isEmpty ? word : "\(current) \(word)"
+                continue
+            }
+
+            let candidate = current.isEmpty ? word : "\(current) \(word)"
+            if candidate.count <= maximumLineLength || current.isEmpty {
+                current = candidate
+                continue
+            }
+
+            lines.append(current)
+            current = word
+        }
+
+        if !current.isEmpty {
+            lines.append(current)
+        }
+
+        if lines.count <= maximumLineCount {
+            return lines.joined(separator: "\n")
+        }
+
+        let retained = lines.prefix(maximumLineCount - 1)
+        let remainder = lines.dropFirst(maximumLineCount - 1).joined(separator: " ")
+        return (Array(retained) + [truncated(remainder, limit: maximumLineLength)])
+            .joined(separator: "\n")
     }
 }

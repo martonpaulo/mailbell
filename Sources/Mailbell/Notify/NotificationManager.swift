@@ -122,7 +122,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             from: "Taylor Reed <taylor@example.com>",
             subject: "Contract review today",
             date: "",
-            gmThreadId: nil
+            gmThreadId: nil,
+            bodyPreview: "Please review the updated contract notes before the afternoon sync."
         )
         let url = account.map { webmailURL(for: header, account: $0) } ?? GmailProvider().webmailURL
         return EmailNotificationContentBuilder.build(

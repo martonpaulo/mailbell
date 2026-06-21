@@ -245,6 +245,7 @@ final class EmailStoreTests: XCTestCase {
         XCTAssertEqual(store.items.count, 1)
         XCTAssertEqual(item.title, "First")
         XCTAssertEqual(item.bodyPreview, "First preview")
+        XCTAssertEqual(item.bodyPreviewLines, ["First preview"])
         XCTAssertEqual(
             store.pendingUIDs(accountID: account.id, mailbox: .inbox),
             Set([1, 2])

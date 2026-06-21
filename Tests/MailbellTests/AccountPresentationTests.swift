@@ -31,6 +31,13 @@ final class AccountPresentationTests: XCTestCase {
         XCTAssertEqual(AccountPresentation.statusText(for: state(status: .reauthRequired)), "Sign in needed")
     }
 
+    func testAccountMenuTitleCombinesStatusAndEmail() {
+        XCTAssertEqual(
+            AccountPresentation.menuTitle(for: state(email: "example@example.com", status: .connected)),
+            "Connected • example@example.com"
+        )
+    }
+
     func testAccountDetailPresentationOmitsProviderPrefix() {
         XCTAssertEqual(
             AccountPresentation.detailText(for: state(status: .connected)),

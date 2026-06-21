@@ -86,8 +86,8 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
         let content = NotificationManager.testNotificationContent(account: account)
 
         XCTAssertEqual(content.title, "Taylor Reed")
-        XCTAssertEqual(content.subtitle, "")
-        XCTAssertEqual(content.body, "Contract review today")
+        XCTAssertEqual(content.subtitle, "Contract review today")
+        XCTAssertEqual(content.body, "Please review the updated contract notes before the afternoon sync.")
         XCTAssertEqual(content.userInfo[notificationAccountIDKey] as? String, account.id.uuidString)
     }
 

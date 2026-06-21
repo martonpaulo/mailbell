@@ -17,6 +17,12 @@ struct EmailStoreItem: Identifiable, Equatable {
     var canMarkAsRead: Bool {
         imapIdentity != nil
     }
+
+    var bodyPreviewLines: [String] {
+        bodyPreview?
+            .split(separator: "\n", omittingEmptySubsequences: true)
+            .map(String.init) ?? []
+    }
 }
 
 enum EmailStoreIdentity {

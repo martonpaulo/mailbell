@@ -67,6 +67,10 @@ enum AccountPresentation {
         email
     }
 
+    static func menuTitle(for state: AccountRuntimeState) -> String {
+        "\(statusText(for: state)) • \(state.account.email)"
+    }
+
     static func canRefresh(_ states: [AccountRuntimeState]) -> Bool {
         states.contains { $0.account.isEnabled }
     }

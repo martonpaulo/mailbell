@@ -64,10 +64,8 @@ struct MenuContent: View {
     var body: some View {
         if appState.accounts.isEmpty {
             noAccountSection
-        } else if appState.accounts.count == 1, let accountState = appState.accounts.first {
-            singleAccountSection(accountState)
         } else {
-            multiAccountSection
+            accountsMenuSection
         }
 
         Divider()
@@ -112,23 +110,7 @@ struct MenuContent: View {
         }
     }
 
-    private func singleAccountSection(_ accountState: AccountRuntimeState) -> some View {
-        Group {
-            Text(accountState.account.email)
-            Text(AccountPresentation.statusText(for: accountState))
-            if let action = AccountRecoveryAction.needed(for: accountState) {
-                Button(action.title) {
-                    perform(action, accountID: accountState.account.id)
-                }
-                .disabled(actionDisabled(action))
-            }
-            Button("Open Gmail") {
-                appState.openGmail(accountID: accountState.account.id)
-            }
-        }
-    }
-
-    private var multiAccountSection: some View {
+    private var accountsMenuSection: some View {
         Section("Accounts") {
             ForEach(appState.accounts) { accountState in
                 Menu {
@@ -146,7 +128,7 @@ struct MenuContent: View {
                         .disabled(actionDisabled(action))
                     }
                 } label: {
-                    Text(accountState.account.email)
+                    Text(AccountPresentation.menuTitle(for: accountState))
                 }
             }
         }
@@ -165,8 +147,15 @@ struct MenuContent: View {
                             Label(address, systemImage: "at")
                         }
                         Label(email.time, systemImage: "clock")
-                        if let bodyPreview = email.bodyPreview {
-                            Label(bodyPreview, systemImage: "text.quote")
+                        if !email.bodyPreviewLines.isEmpty {
+                            Divider()
+                            ForEach(Array(email.bodyPreviewLines.enumerated()), id: \.offset) { index, line in
+                                if index == 0 {
+                                    Label(line, systemImage: "text.quote")
+                                } else {
+                                    Text(line)
+                                }
+                            }
                         }
                         Divider()
                         Button(PendingCopy.openActionTitle) {
@@ -543,12 +532,14 @@ struct SettingsView: View {
                 }
             }
 
-            accountActionButton(for: state)
+            accountActionRow(for: state)
 
-            Button("Remove Account", role: .destructive) {
-                accountPendingRemoval = state.account
+            LabeledContent("Remove Account") {
+                Button("Remove", role: .destructive) {
+                    accountPendingRemoval = state.account
+                }
+                .foregroundStyle(.red)
             }
-            .foregroundStyle(.red)
         } header: {
             Text(state.account.email)
         } footer: {
@@ -684,17 +675,21 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
-    private func accountActionButton(for state: AccountRuntimeState) -> some View {
+    private func accountActionRow(for state: AccountRuntimeState) -> some View {
         if let action = AccountRecoveryAction.needed(for: state), action == .signInAgain {
-            Button(appState.isAuthorizing ? "Authorizing…" : action.title) {
-                appState.reauthenticate(accountID: state.account.id)
+            LabeledContent(action.title) {
+                Button(appState.isAuthorizing ? "Authorizing…" : action.title) {
+                    appState.reauthenticate(accountID: state.account.id)
+                }
+                .disabled(appState.isAuthorizing)
             }
-            .disabled(appState.isAuthorizing)
         } else {
-            Button("Reconnect") {
-                appState.reconnect(accountID: state.account.id)
+            LabeledContent("Reconnect") {
+                Button("Reconnect") {
+                    appState.reconnect(accountID: state.account.id)
+                }
+                .disabled(!state.account.isEnabled || appState.isAuthorizing)
             }
-            .disabled(!state.account.isEnabled || appState.isAuthorizing)
         }
     }
 
