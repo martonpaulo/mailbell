@@ -81,7 +81,7 @@ Use a Google account and Cloud project that you control.
    - `email`
 7. Do not set up Pub/Sub, Gmail API push watches, SMTP, a hosted redirect service, or public website pages for this app. Mailbell connects directly to Gmail IMAP. If Google Cloud requires an API to be enabled for scope configuration, enable only what the console requires; Mailbell does not call Gmail REST API endpoints.
 8. Create an OAuth Client ID with application type `Desktop app`.
-9. Copy the Client ID. The Client ID should end with `.apps.googleusercontent.com`. If Google shows a Desktop Client Secret, you may copy it too, but Mailbell treats it as optional because installed-app clients are public clients.
+9. Copy the Client ID. The Client ID should end with `.apps.googleusercontent.com`. `MAILBELL_GOOGLE_CLIENT_SECRET` is not required by Mailbell, but if Google shows a Desktop client secret or token exchange fails without it, configure the secret from the same OAuth client.
 
 The app uses Google's installed-app OAuth flow with PKCE and a temporary `http://127.0.0.1:<port>/oauth/callback` loopback redirect. The callback server binds only to IPv4 loopback and uses an OS-assigned dynamic port. Do not create a Web app client for this fork.
 
@@ -103,7 +103,7 @@ MAILBELL_APP_DISPLAY_NAME=Mailbell
 MAILBELL_GOOGLE_CLIENT_SECRET=
 ```
 
-`MAILBELL_GOOGLE_CLIENT_SECRET` is optional. Leave it blank or omit it unless you intentionally want Mailbell to send the Desktop client secret for backward compatibility with an existing local setup.
+`MAILBELL_GOOGLE_CLIENT_SECRET` is not required by Mailbell. Leave it blank or omit it unless Google shows a Desktop client secret or token exchange fails without it; in that case, configure the secret from the same OAuth client so Mailbell sends it during token exchange and refresh.
 
 You can use shell environment variables instead:
 
@@ -115,7 +115,7 @@ export MAILBELL_APP_DISPLAY_NAME="Mailbell"
 export MAILBELL_GOOGLE_CLIENT_SECRET="your-desktop-client-secret"
 ```
 
-Packaging commands read environment variables first, then `.env`, and take the client ID plus optional secret from one source rather than combining credentials across sources. `Scripts/inject_oauth_config.sh` validates the values and writes only these expected bundle keys into the copied app `Info.plist`:
+Packaging commands read environment variables first, then `.env`, and take the client ID plus any configured secret from one source rather than combining credentials across sources. `Scripts/inject_oauth_config.sh` validates the values and writes only these expected bundle keys into the copied app `Info.plist`:
 
 - `MailbellGoogleClientID`
 - `MailbellGoogleClientSecret` only when `MAILBELL_GOOGLE_CLIENT_SECRET` is nonblank
@@ -228,7 +228,7 @@ Symptoms:
 Fix:
 
 - Use an OAuth client of type `Desktop app`.
-- Copy the Client ID from a Desktop OAuth client. If you configure `MAILBELL_GOOGLE_CLIENT_SECRET`, copy it from the same OAuth client.
+- Copy the Client ID from a Desktop OAuth client. `MAILBELL_GOOGLE_CLIENT_SECRET` is not required by Mailbell, but if Google shows a Desktop client secret or token exchange fails without it, configure the secret from the same OAuth client.
 - Do not use a Web, iOS, Android, Chrome, or service-account credential.
 
 ### Redirect Or Loopback Errors

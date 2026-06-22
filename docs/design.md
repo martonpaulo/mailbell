@@ -87,7 +87,7 @@ https://mail.google.com/
 
 This is a restricted full-mail scope. IMAP offers no narrower option even though Mailbell limits itself to metadata, bounded sanitized text previews, and read marking for pending items. The consent surface covers broader mail access than the app intentionally uses.
 
-The OAuth client must be a user-owned Google Desktop/installed-app client and must use PKCE. Local development reads the required client ID and optional desktop client secret from environment variables or `.env`; local packaging injects the client ID and only injects a nonblank secret into the app bundle. Mailbell must not ship, document as usable, or fall back to an upstream/shared OAuth client.
+The OAuth client must be a user-owned Google Desktop/installed-app client and must use PKCE. Local development reads the required client ID and any configured desktop client secret from environment variables or `.env`; local packaging injects the client ID and only injects a nonblank secret into the app bundle. `MAILBELL_GOOGLE_CLIENT_SECRET` is not required by Mailbell, but if Google shows a Desktop client secret or token exchange fails without it, configure the secret from the same OAuth client. Mailbell must not ship, document as usable, or fall back to an upstream/shared OAuth client.
 
 The loopback callback server binds only to `127.0.0.1`, uses an OS-assigned dynamic port, and serves the exact `/oauth/callback` path through FlyingFox rather than hand-written HTTP request parsing.
 
