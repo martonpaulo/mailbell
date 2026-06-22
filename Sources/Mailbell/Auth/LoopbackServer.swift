@@ -7,6 +7,7 @@ final class LoopbackServer: @unchecked Sendable {
     enum LoopbackError: Error, LocalizedError, Equatable {
         case failedToStart
         case timedOut
+        case cancelled
 
         var errorDescription: String? {
             switch self {
@@ -14,6 +15,8 @@ final class LoopbackServer: @unchecked Sendable {
                 "Could not start the local OAuth callback server."
             case .timedOut:
                 "Google sign-in timed out. Try again from Mailbell."
+            case .cancelled:
+                "Google sign-in was cancelled."
             }
         }
     }
@@ -31,8 +34,10 @@ final class LoopbackServer: @unchecked Sendable {
     private var listener: NWListener?
     private let queue = DispatchQueue(label: AppIdentity.dispatchQueueLabel("loopback"))
     private var continuation: CheckedContinuation<[URLQueryItem], Error>?
+    private var callbackTimeoutWorkItem: DispatchWorkItem?
     private var didResume = false
     private var pendingResult: Result<[URLQueryItem], Error>?
+    private var callbackRunID = 0
 
     private(set) var port: UInt16 = 0
 
@@ -46,10 +51,12 @@ final class LoopbackServer: @unchecked Sendable {
     /// Starts listening on a loopback port. Must complete before building the
     /// authorization URL so the redirect URI is known.
     func start() async throws {
+        let (callbackRunID, cancelledContinuation) = prepareCallbackStateForNewRun()
+        cancelledContinuation?.resume(throwing: LoopbackError.cancelled)
         var lastError: Error?
         for candidate in Self.preferredPorts {
             do {
-                try await bind(to: candidate)
+                try await bind(to: candidate, callbackRunID: callbackRunID)
                 Log.info("OAuth loopback listening on port \(port)")
                 return
             } catch {
@@ -60,7 +67,7 @@ final class LoopbackServer: @unchecked Sendable {
         throw LoopbackError.failedToStart
     }
 
-    private func bind(to candidate: UInt16) async throws {
+    private func bind(to candidate: UInt16, callbackRunID: Int) async throws {
         let params = NWParameters.tcp
         params.requiredInterfaceType = .loopback
         params.allowLocalEndpointReuse = true
@@ -69,7 +76,7 @@ final class LoopbackServer: @unchecked Sendable {
         self.listener = listener
 
         listener.newConnectionHandler = { [weak self] connection in
-            self?.handle(connection)
+            self?.handle(connection, callbackRunID: callbackRunID)
         }
 
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
@@ -114,7 +121,7 @@ final class LoopbackServer: @unchecked Sendable {
                     cont.resume(with: pending)
                 } else {
                     self.continuation = cont
-                    self.scheduleCallbackTimeout(after: timeout)
+                    self.scheduleCallbackTimeout(after: timeout, callbackRunID: self.callbackRunID)
                 }
             }
         }
@@ -124,9 +131,14 @@ final class LoopbackServer: @unchecked Sendable {
         listener?.stateUpdateHandler = nil
         listener?.cancel()
         listener = nil
+        queue.async {
+            self.callbackRunID += 1
+            let continuation = self.resetCallbackState()
+            continuation?.resume(throwing: LoopbackError.cancelled)
+        }
     }
 
-    private func handle(_ connection: NWConnection) {
+    private func handle(_ connection: NWConnection, callbackRunID: Int) {
         connection.start(queue: queue)
         connection.receive(minimumIncompleteLength: 1, maximumLength: 8192) { [weak self] data, _, _, _ in
             guard let self else { return }
@@ -141,7 +153,7 @@ final class LoopbackServer: @unchecked Sendable {
                 return
             }
             respond(connection, succeeded: true)
-            resume(.success(items))
+            resume(.success(items), callbackRunID: callbackRunID)
         }
     }
 
@@ -189,9 +201,11 @@ final class LoopbackServer: @unchecked Sendable {
         })
     }
 
-    private func resume(_ result: Result<[URLQueryItem], Error>) {
-        guard !didResume else { return }
+    private func resume(_ result: Result<[URLQueryItem], Error>, callbackRunID: Int) {
+        guard callbackRunID == self.callbackRunID, !didResume else { return }
         didResume = true
+        callbackTimeoutWorkItem?.cancel()
+        callbackTimeoutWorkItem = nil
         if let cont = continuation {
             continuation = nil
             cont.resume(with: result)
@@ -200,11 +214,35 @@ final class LoopbackServer: @unchecked Sendable {
         }
     }
 
-    private func scheduleCallbackTimeout(after timeout: TimeInterval) {
+    private func scheduleCallbackTimeout(after timeout: TimeInterval, callbackRunID: Int) {
         let clampedTimeout = max(timeout, 0)
         let nanoseconds = Int(clampedTimeout * 1_000_000_000)
-        queue.asyncAfter(deadline: .now() + .nanoseconds(nanoseconds)) { [weak self] in
-            self?.resume(.failure(LoopbackError.timedOut))
+        let timeoutWorkItem = DispatchWorkItem { [weak self] in
+            self?.resume(.failure(LoopbackError.timedOut), callbackRunID: callbackRunID)
         }
+        callbackTimeoutWorkItem?.cancel()
+        callbackTimeoutWorkItem = timeoutWorkItem
+        queue.asyncAfter(deadline: .now() + .nanoseconds(nanoseconds), execute: timeoutWorkItem)
+    }
+
+    private func prepareCallbackStateForNewRun() -> (
+        callbackRunID: Int,
+        cancelledContinuation: CheckedContinuation<[URLQueryItem], Error>?
+    ) {
+        queue.sync {
+            callbackRunID += 1
+            let continuation = resetCallbackState()
+            return (callbackRunID, continuation)
+        }
+    }
+
+    private func resetCallbackState() -> CheckedContinuation<[URLQueryItem], Error>? {
+        callbackTimeoutWorkItem?.cancel()
+        callbackTimeoutWorkItem = nil
+        let previousContinuation = continuation
+        continuation = nil
+        pendingResult = nil
+        didResume = false
+        return previousContinuation
     }
 }
