@@ -14,7 +14,8 @@ ARCH       ?= arm64
 
 DMG_DIR     := $(BUILD_DIR)/dmg
 DMG_STAGING := $(DMG_DIR)/staging
-DMG_PATH    := $(BUILD_DIR)/$(APP_NAME)-$(ARCH).dmg
+DMG_VOLUME_NAME := Install $(APP_NAME)
+DMG_PATH    := $(BUILD_DIR)/$(DMG_VOLUME_NAME).dmg
 
 # Ad-hoc signing by default (identity "-"); no Apple Developer account needed.
 # Override CODE_SIGN_IDENTITY only if you later get a Developer ID certificate.
@@ -98,29 +99,26 @@ refresh-icons: install ## Reinstall and flush macOS icon caches for Mailbell
 	@-killall Finder >/dev/null 2>&1
 	@printf "$(GREEN)[ok]$(RESET) Icon cache refreshed for %s\n" "$(APP_BUNDLE)"
 
-dmg: require-oauth-config icons ## Build an ad-hoc signed DMG
-	@printf "\n$(BOLD)[1/7]$(RESET) Building release app for $(ARCH)\n"
+dmg: require-oauth-config icons ## Build an ad-hoc signed drag-and-drop DMG
+	@printf "\n$(BOLD)[1/8]$(RESET) Building release app for $(ARCH)\n"
 	@$(SWIFT) build -c release --arch $(ARCH) --product $(PRODUCT)
-	@printf "$(BOLD)[2/7]$(RESET) Preparing DMG staging directory\n"
+	@printf "$(BOLD)[2/8]$(RESET) Preparing DMG staging directory\n"
 	@rm -rf $(DMG_STAGING)
 	@mkdir -p $(DMG_STAGING)/$(APP_NAME).app/Contents/MacOS
 	@mkdir -p $(DMG_STAGING)/$(APP_NAME).app/Contents/Resources
 	@cp $$($(SWIFT) build -c release --arch $(ARCH) --product $(PRODUCT) --show-bin-path)/$(PRODUCT) $(DMG_STAGING)/$(APP_NAME).app/Contents/MacOS/$(APP_NAME)
 	@cp $(INFO_PLIST) $(DMG_STAGING)/$(APP_NAME).app/Contents/Info.plist
-	@printf "$(BOLD)[3/7]$(RESET) Injecting local bundle/OAuth configuration\n"
+	@printf "$(BOLD)[3/8]$(RESET) Injecting local bundle/OAuth configuration\n"
 	@Scripts/inject_oauth_config.sh $(DMG_STAGING)/$(APP_NAME).app/Contents/Info.plist
-	@printf "$(BOLD)[4/7]$(RESET) Compiling app resources\n"
+	@printf "$(BOLD)[4/8]$(RESET) Compiling app resources\n"
 	$(call compile-app-resources,$(DMG_STAGING)/$(APP_NAME).app)
-	@printf "$(BOLD)[5/7]$(RESET) Signing app bundle\n"
+	@printf "$(BOLD)[5/8]$(RESET) Signing app bundle\n"
 	@$(CODE_SIGN) $(DMG_STAGING)/$(APP_NAME).app
-	@printf "$(BOLD)[6/7]$(RESET) Creating DMG\n"
+	@printf "$(BOLD)[6/8]$(RESET) Adding Applications shortcut\n"
 	@ln -s /Applications $(DMG_STAGING)/Applications
-	@rm -f $(DMG_PATH)
-	@hdiutil create -volname "$(APP_NAME)" \
-		-srcfolder $(DMG_STAGING) \
-		-ov -format UDZO \
-		$(DMG_PATH)
-	@printf "$(BOLD)[7/7]$(RESET) Cleaning temporary DMG staging files\n"
+	@printf "$(BOLD)[7/8]$(RESET) Creating standard macOS installer DMG\n"
+	@Scripts/create_dmg.sh "$(DMG_STAGING)" "$(APP_NAME)" "$(APP_ICON)" "$(DMG_VOLUME_NAME)" "$(DMG_PATH)"
+	@printf "$(BOLD)[8/8]$(RESET) Cleaning temporary DMG staging files\n"
 	@rm -rf $(DMG_DIR)
 	@printf "$(GREEN)[ok]$(RESET) DMG created: %s\n" "$(DMG_PATH)"
 

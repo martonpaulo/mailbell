@@ -170,11 +170,13 @@ make install
 open /Applications/Mailbell.app
 ```
 
-Build a local DMG:
+Build a local drag-and-drop DMG installer:
 
 ```bash
 make dmg
 ```
+
+The DMG is written to `.build/Install Mailbell.dmg`. It mounts as `Install Mailbell`, uses the Mailbell icon for the mounted volume, and opens as the standard macOS drag-and-drop installer surface with `Mailbell.app` plus an `Applications` shortcut.
 
 Architecture notes:
 
