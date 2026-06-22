@@ -1,14 +1,64 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 1 ]]; then
-  echo "usage: $0 <Info.plist>|--check" >&2
+usage() {
+  echo "usage: $0 [--version X.Y.Z --build-number N] <Info.plist>|--check" >&2
+}
+
+VERSION=""
+BUILD_NUMBER=""
+CHECK_ONLY=0
+PLIST_PATH=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --check)
+      CHECK_ONLY=1
+      shift
+      ;;
+    --version)
+      [[ $# -ge 2 ]] || { usage; exit 2; }
+      VERSION="$2"
+      shift 2
+      ;;
+    --build-number)
+      [[ $# -ge 2 ]] || { usage; exit 2; }
+      BUILD_NUMBER="$2"
+      shift 2
+      ;;
+    -*)
+      usage
+      exit 2
+      ;;
+    *)
+      if [[ -n "${PLIST_PATH}" ]]; then
+        usage
+        exit 2
+      fi
+      PLIST_PATH="$1"
+      shift
+      ;;
+  esac
+done
+
+if [[ "${CHECK_ONLY}" -eq 1 && -n "${PLIST_PATH}" ]]; then
+  usage
+  exit 2
+fi
+
+if [[ "${CHECK_ONLY}" -eq 0 && -z "${PLIST_PATH}" ]]; then
+  usage
+  exit 2
+fi
+
+if [[ -n "${VERSION}" && -z "${BUILD_NUMBER}" ]] || [[ -z "${VERSION}" && -n "${BUILD_NUMBER}" ]]; then
+  echo "error: release version and build number must be provided together" >&2
   exit 2
 fi
 
 cd "$(dirname "$0")/.."
 
-python3 - "$1" <<'PY'
+python3 - "${CHECK_ONLY}" "${VERSION}" "${BUILD_NUMBER}" "${PLIST_PATH}" <<'PY'
 import os
 import plistlib
 import re
@@ -18,10 +68,12 @@ from pathlib import Path
 CLIENT_ID_KEY = "MAILBELL_GOOGLE_CLIENT_ID"
 CLIENT_SECRET_KEY = "MAILBELL_GOOGLE_CLIENT_SECRET"
 BUNDLE_ID_KEY = "MAILBELL_BUNDLE_ID"
-DISPLAY_NAME_KEY = "MAILBELL_APP_DISPLAY_NAME"
 DEFAULT_BUNDLE_ID = "dev.mailbell.local"
-DEFAULT_DISPLAY_NAME = "Mailbell"
-CHECK_ONLY = sys.argv[1] == "--check"
+PRODUCT_NAME = "Mailbell"
+CHECK_ONLY = sys.argv[1] == "1"
+VERSION = sys.argv[2].strip()
+BUILD_NUMBER = sys.argv[3].strip()
+PLIST_PATH = sys.argv[4]
 
 def strip_matching_quotes(value):
     if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
@@ -45,7 +97,6 @@ def read_dotenv():
 def first_configured_source(dotenv):
     bundle = {
         BUNDLE_ID_KEY: os.environ.get(BUNDLE_ID_KEY) or dotenv.get(BUNDLE_ID_KEY),
-        DISPLAY_NAME_KEY: os.environ.get(DISPLAY_NAME_KEY) or dotenv.get(DISPLAY_NAME_KEY),
     }
     env_credentials = {
         CLIENT_ID_KEY: os.environ.get(CLIENT_ID_KEY),
@@ -86,11 +137,16 @@ def validate_bundle_id(value):
         fail(f"{BUNDLE_ID_KEY} must be a reverse-DNS bundle identifier")
     return bundle_id
 
-def validate_display_name(value):
-    display_name = cleaned(value) or DEFAULT_DISPLAY_NAME
-    if "/" in display_name or "\0" in display_name or len(display_name) > 80:
-        fail(f"{DISPLAY_NAME_KEY} must be a short app display name")
-    return display_name
+def validate_release_metadata(version, build_number):
+    if not version and not build_number:
+        return None
+    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
+        fail("release version must use X.Y.Z format")
+    if not re.fullmatch(r"[0-9]+", build_number):
+        fail("release build number must be a positive integer")
+    if int(build_number) <= 0:
+        fail("release build number must be a positive integer")
+    return version, build_number
 
 dotenv = read_dotenv()
 credentials, bundle_values = first_configured_source(dotenv)
@@ -98,15 +154,15 @@ credentials, bundle_values = first_configured_source(dotenv)
 client_id = validate_client_id(credentials.get(CLIENT_ID_KEY))
 client_secret = validate_client_secret(credentials.get(CLIENT_SECRET_KEY))
 bundle_id = validate_bundle_id(bundle_values.get(BUNDLE_ID_KEY))
-display_name = validate_display_name(bundle_values.get(DISPLAY_NAME_KEY))
+release_metadata = validate_release_metadata(VERSION, BUILD_NUMBER)
 
 if CHECK_ONLY:
-    print("OAuth configuration found for local packaging.")
+    print("Bundle configuration found for local packaging.")
     print(f"Bundle identifier: {bundle_id}")
-    print(f"Display name: {display_name}")
+    print(f"Product name: {PRODUCT_NAME}")
     sys.exit(0)
 
-path = Path(sys.argv[1])
+path = Path(PLIST_PATH)
 with path.open("rb") as handle:
     plist = plistlib.load(handle)
 
@@ -116,13 +172,19 @@ if client_secret:
 else:
     plist.pop("MailbellGoogleClientSecret", None)
 plist["CFBundleIdentifier"] = bundle_id
-plist["CFBundleName"] = display_name
-plist["CFBundleDisplayName"] = display_name
+plist["CFBundleName"] = PRODUCT_NAME
+plist["CFBundleDisplayName"] = PRODUCT_NAME
+if release_metadata:
+    plist["CFBundleShortVersionString"] = release_metadata[0]
+    plist["CFBundleVersion"] = release_metadata[1]
 
 with path.open("wb") as handle:
     plistlib.dump(plist, handle, sort_keys=False)
 
 print(f"Injected local configuration into {path}")
 print(f"Bundle identifier: {bundle_id}")
-print(f"Display name: {display_name}")
+print(f"Product name: {PRODUCT_NAME}")
+if release_metadata:
+    print(f"Release version: {release_metadata[0]}")
+    print(f"Build number: {release_metadata[1]}")
 PY

@@ -20,7 +20,7 @@ The app icon was generated with [IconKitchen][icon-kitchen-app-icon] using these
 
 ## Build-Time Packaging Tool
 
-`make dmg` may install the pinned build-only Python packages below into `.build/dmg-python-tools` to write the native Finder `.DS_Store` layout for the DMG. They are not vendored into the repository and are not bundled into the Mailbell app runtime.
+`make dmg` and `make release` may install the pinned build-only Python packages below into `.build/dmg-python-tools` to write the native Finder `.DS_Store` layout for the DMG. They are not vendored into the repository and are not bundled into the Mailbell app runtime.
 
 ### dmgbuild 1.6.7
 
