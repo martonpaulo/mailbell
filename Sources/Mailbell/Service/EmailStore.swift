@@ -85,61 +85,137 @@ private struct EmailStoreRecord: Codable, Equatable {
 }
 
 final class EmailStorePersistence {
+    enum PersistenceError: Error, LocalizedError {
+        case decodingFailed(String)
+        case encodingFailed(String)
+        case saveFailed(String)
+
+        var errorDescription: String? {
+            switch self {
+            case let .decodingFailed(detail):
+                "Could not read handled-message history: \(detail)"
+            case let .encodingFailed(detail):
+                "Could not encode handled-message history: \(detail)"
+            case let .saveFailed(detail):
+                "Could not save handled-message history: \(detail)"
+            }
+        }
+    }
+
+    static let recoveryWarning =
+        "Handled-message history was reset because saved state was unreadable. Some items may reappear."
+
     private let userDefaults: UserDefaults
-    private let recordsKey = "mailbell.emailStore.handledRecords.v1"
+    static let recordsKey = "mailbell.emailStore.handledRecords.v1"
+    static let corruptBackupKey = "mailbell.emailStore.handledRecords.corruptBackup.v1"
     private let maxRecordCount: Int
     private let now: () -> Date
+    private let saveData: (_ data: Data, _ key: String) throws -> Void
     private var cachedRecords: [String: EmailStoreRecord]?
+    private var pendingRecoveryWarning: String?
 
     init(
         userDefaults: UserDefaults = .standard,
         maxRecordCount: Int = 500,
-        now: @escaping () -> Date = Date.init
+        now: @escaping () -> Date = Date.init,
+        saveData: ((_ data: Data, _ key: String) throws -> Void)? = nil
     ) {
         self.userDefaults = userDefaults
         self.maxRecordCount = maxRecordCount
         self.now = now
+        self.saveData = saveData ?? { [userDefaults] data, key in
+            userDefaults.set(data, forKey: key)
+        }
     }
 
-    func isHandled(_ id: String) -> Bool {
-        records()[id] != nil
+    func isHandled(_ id: String) throws -> Bool {
+        try records()[id] != nil
     }
 
-    func suppressesUnreadSync(_ id: String) -> Bool {
-        records()[id]?.disposition == .dismissed
+    func suppressesUnreadSync(_ id: String) throws -> Bool {
+        try records()[id]?.disposition == .dismissed
     }
 
-    func mark(_ id: String, disposition: EmailStoreDisposition) {
-        var records = records()
-        records[id] = EmailStoreRecord(id: id, disposition: disposition, updatedAt: now())
-        save(pruned(records))
+    func mark(_ id: String, disposition: EmailStoreDisposition) throws {
+        try mark([id], disposition: disposition)
     }
 
-    func removeRecords(accountID: UUID) {
+    func mark(_ ids: [String], disposition: EmailStoreDisposition) throws {
+        guard !ids.isEmpty else { return }
+        var records = try records()
+        let updatedAt = now()
+        for id in ids {
+            records[id] = EmailStoreRecord(id: id, disposition: disposition, updatedAt: updatedAt)
+        }
+        try save(pruned(records))
+    }
+
+    func removeRecords(accountID: UUID) throws {
         let prefix = EmailStoreIdentity.accountPrefix(accountID: accountID)
-        let filtered = records().filter { id, _ in
+        let records = try records()
+        let filtered = records.filter { id, _ in
             !id.hasPrefix(prefix)
         }
-        save(filtered)
+        guard filtered != records else { return }
+        try save(filtered)
     }
 
-    private func records() -> [String: EmailStoreRecord] {
+    func takeRecoveryWarning() -> String? {
+        let warning = pendingRecoveryWarning
+        pendingRecoveryWarning = nil
+        return warning
+    }
+
+    private func records() throws -> [String: EmailStoreRecord] {
         if let cachedRecords {
             return cachedRecords
         }
-        guard let data = userDefaults.data(forKey: recordsKey),
-              let decoded = try? JSONDecoder().decode([String: EmailStoreRecord].self, from: data)
-        else {
+        guard let data = userDefaults.data(forKey: Self.recordsKey) else {
             cachedRecords = [:]
             return [:]
         }
-        cachedRecords = decoded
-        return decoded
+        do {
+            let decoded = try JSONDecoder().decode([String: EmailStoreRecord].self, from: data)
+            cachedRecords = decoded
+            return decoded
+        } catch {
+            try recoverCorruptRecords(data)
+            pendingRecoveryWarning = Self.recoveryWarning
+            cachedRecords = [:]
+            return [:]
+        }
     }
 
-    private func save(_ records: [String: EmailStoreRecord]) {
-        guard let data = try? JSONEncoder().encode(records) else { return }
-        userDefaults.set(data, forKey: recordsKey)
+    private func recoverCorruptRecords(_ data: Data) throws {
+        let emptyRecords = [String: EmailStoreRecord]()
+        do {
+            try saveData(data, Self.corruptBackupKey)
+            let emptyData = try JSONEncoder().encode(emptyRecords)
+            try saveData(emptyData, Self.recordsKey)
+        } catch let error as PersistenceError {
+            throw error
+        } catch let error as EncodingError {
+            throw PersistenceError.encodingFailed(error.localizedDescription)
+        } catch {
+            throw PersistenceError.saveFailed(error.localizedDescription)
+        }
+    }
+
+    private func save(_ records: [String: EmailStoreRecord]) throws {
+        let data: Data
+        do {
+            data = try JSONEncoder().encode(records)
+        } catch {
+            throw PersistenceError.encodingFailed(error.localizedDescription)
+        }
+
+        do {
+            try saveData(data, Self.recordsKey)
+        } catch let error as PersistenceError {
+            throw error
+        } catch {
+            throw PersistenceError.saveFailed(error.localizedDescription)
+        }
         cachedRecords = records
     }
 
@@ -188,9 +264,9 @@ final class EmailStore {
         !itemsByID.isEmpty
     }
 
-    func admit(header: MessageHeader, account: MailAccount) -> Bool {
+    func admit(header: MessageHeader, account: MailAccount) throws -> Bool {
         let id = EmailStoreIdentity.id(accountID: account.id, header: header)
-        guard !persistence.isHandled(id) else {
+        guard try !persistence.isHandled(id) else {
             itemsByID[id] = nil
             return false
         }
@@ -218,7 +294,7 @@ final class EmailStore {
         snapshots: [MailboxUnreadSnapshot],
         fetchedHeaders: [MessageHeader],
         account: MailAccount
-    ) -> Bool {
+    ) throws -> Bool {
         let previousItems = itemsByID
         let snapshotsByMailbox = Dictionary(uniqueKeysWithValues: snapshots.map { ($0.mailbox, $0) })
         let monitoredMailboxes = Set(snapshotsByMailbox.keys)
@@ -242,7 +318,7 @@ final class EmailStore {
                 continue
             }
             let id = EmailStoreIdentity.id(accountID: account.id, header: header)
-            guard !persistence.suppressesUnreadSync(id) else { continue }
+            guard try !persistence.suppressesUnreadSync(id) else { continue }
             nextItems[id] = makeItem(
                 id: id,
                 header: header,
@@ -273,24 +349,27 @@ final class EmailStore {
             .compactMap(\.imapIdentity)
     }
 
-    func dismiss(id: String) {
-        removeGroup(containing: id, disposition: .dismissed)
+    func dismiss(id: String) throws {
+        try removeGroup(containing: id, disposition: .dismissed)
     }
 
-    func markOpened(id: String) {
-        removeGroup(containing: id, disposition: .opened)
+    func markOpened(id: String) throws {
+        try removeGroup(containing: id, disposition: .opened)
     }
 
-    func markRead(id: String) {
-        removeGroup(containing: id, disposition: .markedRead)
+    func markRead(id: String) throws {
+        try removeGroup(containing: id, disposition: .markedRead)
     }
 
-    func removeAccount(accountID: UUID) {
+    func removeAccountRecords(accountID: UUID) throws {
+        try persistence.removeRecords(accountID: accountID)
+    }
+
+    func removeAccountItems(accountID: UUID) {
         let prefix = EmailStoreIdentity.accountPrefix(accountID: accountID)
         itemsByID = itemsByID.filter { id, _ in
             !id.hasPrefix(prefix)
         }
-        persistence.removeRecords(accountID: accountID)
     }
 
     func removeSpamItems() -> Bool {
@@ -338,17 +417,22 @@ final class EmailStore {
         return left.title.localizedCaseInsensitiveCompare(right.title) == .orderedAscending
     }
 
-    private func removeGroup(containing id: String, disposition: EmailStoreDisposition) {
+    func takePersistenceWarning() -> String? {
+        persistence.takeRecoveryWarning()
+    }
+
+    private func removeGroup(containing id: String, disposition: EmailStoreDisposition) throws {
         guard let item = itemsByID[id] else {
-            persistence.mark(id, disposition: disposition)
+            try persistence.mark(id, disposition: disposition)
             itemsByID[id] = nil
             return
         }
 
         let groupID = item.groupID
-        for groupedItem in itemsByID.values where groupedItem.groupID == groupID {
-            persistence.mark(groupedItem.id, disposition: disposition)
-        }
+        let groupedIDs = itemsByID.values
+            .filter { $0.groupID == groupID }
+            .map(\.id)
+        try persistence.mark(groupedIDs, disposition: disposition)
         itemsByID = itemsByID.filter { _, item in
             item.groupID != groupID
         }

@@ -42,74 +42,80 @@ final class OAuthClient {
 
     private let config: OAuthConfig
     private let session: URLSession
+    private let openBrowser: @MainActor (URL) -> Bool
+    private let loopbackServerFactory: () -> LoopbackServer
 
     private static let requestTimeout: TimeInterval = 30
     private static let resourceTimeout: TimeInterval = 60
 
-    init(config: OAuthConfig, session: URLSession? = nil) {
+    init(
+        config: OAuthConfig,
+        session: URLSession? = nil,
+        openBrowser: @escaping @MainActor (URL) -> Bool = { NSWorkspace.shared.open($0) },
+        loopbackServerFactory: @escaping () -> LoopbackServer = { LoopbackServer() }
+    ) {
         self.config = config
         self.session = session ?? Self.makeSession()
+        self.openBrowser = openBrowser
+        self.loopbackServerFactory = loopbackServerFactory
     }
 
     // MARK: - Interactive sign-in
 
     /// Runs the full interactive flow and returns tokens plus the account email.
     func signIn() async throws -> (tokens: GoogleTokens, email: String) {
-        let server = LoopbackServer()
-        try await server.start()
-        defer { server.stop() }
-
-        let redirectURI = server.redirectURI
-        Log.info("OAuth redirect URI: \(redirectURI)")
-
         let verifier = try Self.randomURLSafeString(count: 64)
         let challenge = Self.codeChallenge(for: verifier)
         let state = try Self.randomURLSafeString(count: 24)
+        let server = loopbackServerFactory()
 
-        var comps = URLComponents(url: config.authEndpoint, resolvingAgainstBaseURL: false)!
-        comps.queryItems = [
-            .init(name: "client_id", value: config.clientID),
-            .init(name: "redirect_uri", value: redirectURI),
-            .init(name: "response_type", value: "code"),
-            .init(name: "scope", value: config.scopeString),
-            .init(name: "code_challenge", value: challenge),
-            .init(name: "code_challenge_method", value: "S256"),
-            .init(name: "state", value: state),
-            .init(name: "access_type", value: "offline"),
-            .init(name: "prompt", value: "consent")
-        ]
+        do {
+            try await server.start(expectedState: state)
+            let redirectURI = await server.redirectURI
+            Log.info("OAuth redirect URI: \(redirectURI)")
 
-        guard let authURL = comps.url, NSWorkspace.shared.open(authURL) else {
-            throw OAuthError.browserOpenFailed
-        }
+            var comps = URLComponents(url: config.authEndpoint, resolvingAgainstBaseURL: false)!
+            comps.queryItems = [
+                .init(name: "client_id", value: config.clientID),
+                .init(name: "redirect_uri", value: redirectURI),
+                .init(name: "response_type", value: "code"),
+                .init(name: "scope", value: config.scopeString),
+                .init(name: "code_challenge", value: challenge),
+                .init(name: "code_challenge_method", value: "S256"),
+                .init(name: "state", value: state),
+                .init(name: "access_type", value: "offline"),
+                .init(name: "prompt", value: "consent")
+            ]
 
-        let items = try await server.waitForCallback()
-        if let error = items.first(where: { $0.name == "error" })?.value {
-            throw OAuthError.authorizationDenied(error)
-        }
-        guard items.first(where: { $0.name == "state" })?.value == state else {
-            throw OAuthError.authorizationDenied("state mismatch")
-        }
-        guard let code = items.first(where: { $0.name == "code" })?.value else {
-            throw OAuthError.missingCode
-        }
+            guard let authURL = comps.url else {
+                await server.stop()
+                throw OAuthError.browserOpenFailed
+            }
+            guard await openBrowser(authURL) else {
+                await server.stop()
+                throw OAuthError.browserOpenFailed
+            }
 
-        let tokens = try await exchangeCode(code, verifier: verifier, redirectURI: redirectURI)
-        let email = try await fetchEmail(accessToken: tokens.accessToken)
-        return (tokens, email)
+            let callback = try await server.waitForCallback()
+            let tokens = try await exchangeCode(callback.code, verifier: verifier, redirectURI: redirectURI)
+            let email = try await fetchEmail(accessToken: tokens.accessToken)
+            return (tokens, email)
+        } catch {
+            await server.stop()
+            throw Self.oauthError(from: error)
+        }
     }
 
     // MARK: - Token exchange / refresh
 
     private func exchangeCode(_ code: String, verifier: String, redirectURI: String) async throws -> GoogleTokens {
-        let form: [String: String] = [
+        let form = tokenForm([
             "client_id": config.clientID,
-            "client_secret": config.clientSecret,
             "code": code,
             "code_verifier": verifier,
             "grant_type": "authorization_code",
             "redirect_uri": redirectURI
-        ]
+        ])
 
         do {
             let response: TokenResponse = try await postForm(config.tokenEndpoint, form: form)
@@ -121,12 +127,11 @@ final class OAuthClient {
 
     /// Exchanges a refresh token for a fresh access token.
     func refresh(refreshToken: String) async throws -> GoogleTokens {
-        let form: [String: String] = [
+        let form = tokenForm([
             "client_id": config.clientID,
-            "client_secret": config.clientSecret,
             "refresh_token": refreshToken,
             "grant_type": "refresh_token"
-        ]
+        ])
 
         do {
             let response: TokenResponse = try await postForm(config.tokenEndpoint, form: form)
@@ -191,6 +196,31 @@ final class OAuthClient {
         configuration.timeoutIntervalForRequest = requestTimeout
         configuration.timeoutIntervalForResource = resourceTimeout
         return URLSession(configuration: configuration)
+    }
+
+    private func tokenForm(_ fields: [String: String]) -> [String: String] {
+        var form = fields
+        if let clientSecret = config.clientSecret?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !clientSecret.isEmpty {
+            form["client_secret"] = clientSecret
+        }
+        return form
+    }
+
+    private static func oauthError(from error: Error) -> Error {
+        guard let loopbackError = error as? LoopbackServer.LoopbackError else {
+            return error
+        }
+        switch loopbackError {
+        case let .providerError(detail):
+            return OAuthError.authorizationDenied(detail)
+        case .missingCode:
+            return OAuthError.missingCode
+        case .missingState, .stateMismatch:
+            return OAuthError.authorizationDenied("state mismatch")
+        case .failedToStart, .timedOut, .cancelled:
+            return loopbackError
+        }
     }
 
     private static func transientRefreshError(_ error: Error) -> OAuthError {

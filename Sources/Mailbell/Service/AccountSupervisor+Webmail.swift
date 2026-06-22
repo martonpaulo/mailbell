@@ -37,8 +37,13 @@ extension AccountSupervisor {
             accountID: account?.id ?? resolvedAccountID
         )
         if outcome.didOpen, let id {
-            emailStore.markOpened(id: id)
-            publish()
+            do {
+                try emailStore.markOpened(id: id)
+                applyEmailStoreWarning(accountID: resolvedAccountID)
+                publish()
+            } catch {
+                handleEmailStorePersistenceFailure(error, accountID: resolvedAccountID)
+            }
         }
     }
 
@@ -49,8 +54,15 @@ extension AccountSupervisor {
 
     func dismissEmail(id: String?) {
         guard let id else { return }
-        emailStore.dismiss(id: id)
-        publish()
+        let accountID = emailStore.item(id: id)?.accountID
+            ?? emailStore.firstItemInGroup(containing: id)?.accountID
+        do {
+            try emailStore.dismiss(id: id)
+            applyEmailStoreWarning(accountID: accountID)
+            publish()
+        } catch {
+            handleEmailStorePersistenceFailure(error, accountID: accountID)
+        }
     }
 
     @discardableResult

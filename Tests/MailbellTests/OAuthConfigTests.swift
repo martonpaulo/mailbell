@@ -23,6 +23,29 @@ final class OAuthConfigTests: XCTestCase {
         XCTAssertEqual(config.clientSecret, clientSecret)
     }
 
+    func testLoadsDesktopClientIDWithoutClientSecret() throws {
+        let config = try OAuthConfig.load(
+            environment: [
+                OAuthConfig.clientIDKey: clientID
+            ]
+        )
+
+        XCTAssertEqual(config.clientID, clientID)
+        XCTAssertNil(config.clientSecret)
+    }
+
+    func testBlankClientSecretIsTreatedAsAbsent() throws {
+        let config = try OAuthConfig.load(
+            environment: [
+                OAuthConfig.clientIDKey: clientID,
+                OAuthConfig.clientSecretKey: "   "
+            ]
+        )
+
+        XCTAssertEqual(config.clientID, clientID)
+        XCTAssertNil(config.clientSecret)
+    }
+
     func testRejectsMissingCredentials() {
         XCTAssertThrowsError(try OAuthConfig.load(environment: [:])) { error in
             XCTAssertEqual(error as? OAuthConfigIssue, .missingCredentials)
@@ -56,6 +79,36 @@ final class OAuthConfigTests: XCTestCase {
             )
         ) { error in
             XCTAssertEqual(error as? OAuthConfigIssue, .invalidClientID)
+        }
+    }
+
+    func testEnvironmentClientIDDoesNotCombineDotEnvSecret() throws {
+        let config = try OAuthConfig.load(
+            environment: [
+                OAuthConfig.clientIDKey: clientID
+            ],
+            dotEnv: [
+                OAuthConfig.clientIDKey: "other-client-id.apps.googleusercontent.com",
+                OAuthConfig.clientSecretKey: clientSecret
+            ]
+        )
+
+        XCTAssertEqual(config.clientID, clientID)
+        XCTAssertNil(config.clientSecret)
+    }
+
+    func testSecretWithoutClientIDDoesNotFallBackToDotEnvClientID() {
+        XCTAssertThrowsError(
+            try OAuthConfig.load(
+                environment: [
+                    OAuthConfig.clientSecretKey: clientSecret
+                ],
+                dotEnv: [
+                    OAuthConfig.clientIDKey: clientID
+                ]
+            )
+        ) { error in
+            XCTAssertEqual(error as? OAuthConfigIssue, .missingCredentials)
         }
     }
 
@@ -93,6 +146,50 @@ final class OAuthConfigTests: XCTestCase {
         XCTAssertEqual(plist["CFBundleIdentifier"], "dev.example.mailbell")
         XCTAssertEqual(plist["CFBundleName"], "Mailbell")
         XCTAssertEqual(plist["CFBundleDisplayName"], "Mailbell")
+    }
+
+    func testInjectorOmitsBundleSecretKeyWhenSecretIsAbsent() throws {
+        let root = repositoryRoot()
+        let plistURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("MailbellInfo.\(UUID().uuidString).plist")
+        let initialPlist = [
+            "CFBundleIdentifier": "com.example.old",
+            "CFBundleName": "Old",
+            "CFBundleDisplayName": "Old",
+            "MailbellGoogleClientSecret": "old-secret"
+        ]
+        let data = try PropertyListSerialization.data(fromPropertyList: initialPlist, format: .xml, options: 0)
+        try data.write(to: plistURL)
+        defer { try? FileManager.default.removeItem(at: plistURL) }
+
+        let result = runInjector(
+            root: root,
+            arguments: [plistURL.path],
+            environment: [
+                OAuthConfig.clientIDKey: clientID
+            ]
+        )
+
+        XCTAssertEqual(result.status, 0, result.stderr)
+        let updatedData = try Data(contentsOf: plistURL)
+        let plist = try XCTUnwrap(
+            PropertyListSerialization.propertyList(from: updatedData, format: nil) as? [String: String]
+        )
+        XCTAssertEqual(plist["MailbellGoogleClientID"], clientID)
+        XCTAssertNil(plist["MailbellGoogleClientSecret"])
+    }
+
+    func testInjectorCheckPassesWithClientIDOnly() {
+        let result = runInjector(
+            root: repositoryRoot(),
+            arguments: ["--check"],
+            environment: [
+                OAuthConfig.clientIDKey: clientID
+            ]
+        )
+
+        XCTAssertEqual(result.status, 0, result.stderr)
+        XCTAssertFalse(result.stdout.contains(clientID))
     }
 
     func testInjectorReadsBundleIdentityFromDotEnv() throws {
@@ -142,7 +239,8 @@ final class OAuthConfigTests: XCTestCase {
         let result = runInjector(root: repositoryRoot(), arguments: ["--check"], environment: [:])
 
         XCTAssertNotEqual(result.status, 0)
-        XCTAssertTrue(result.stderr.contains("set \(OAuthConfig.clientIDKey) and \(OAuthConfig.clientSecretKey)"))
+        XCTAssertTrue(result.stderr.contains("set \(OAuthConfig.clientIDKey)"))
+        XCTAssertFalse(result.stderr.contains("set \(OAuthConfig.clientIDKey) and \(OAuthConfig.clientSecretKey)"))
     }
 
     private func repositoryRoot() -> URL {

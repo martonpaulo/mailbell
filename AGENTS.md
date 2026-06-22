@@ -4,15 +4,16 @@ This is the durable root policy for the personal-use Mailbell fork. Follow it fo
 
 ## Product Boundary
 
-Mailbell is a minimal local macOS menu bar notifier for Gmail. It is a notification bridge, not an email client.
+Mailbell is a local, notification-first Gmail companion for macOS.
 
-Keep the product boundary tight:
+Keep the current implemented boundary tight:
 
 - Notify on new Gmail inbox mail.
 - Open Gmail Web for reading and mail management.
-- Do not add mailbox UI, full message body reading, attachment reading, reply, archive, delete, move, label, or compose flows.
-- The only message-management action in scope is server-backed `Mark as Read` for pending items already surfaced by Mailbell.
-- Bounded sanitized body previews are in scope for notification/menu context only; they must not grow into an in-app reader.
+- The current pending-review surface is menu-bar notifications, bounded sanitized previews, Gmail Web opening, and server-backed `Mark as Read` for pending items already surfaced by Mailbell.
+- Full body viewing, reply, archive, delete, move, labels, compose, and attachments are not implemented in the current app.
+- Those capabilities are allowed only as explicit future product changes. Each must define data minimization, on-demand fetch rules, storage lifetime, permissions/scopes, UI/accessibility behavior, failure semantics, and tests before implementation.
+- Do not prebuild unused models, generic repositories, attachment caches, compose systems, or Gmail API abstractions merely to look future-ready.
 - Do not add cloud relay services, hosted backends, analytics relays, public mail processing, or third-party notification services.
 - Do not introduce content polling as the primary new-mail mechanism. Gmail IMAP IDLE is the product transport; the liveness re-arm timer is not a content polling loop.
 
@@ -59,6 +60,7 @@ This personal fork must use only the user's own Google OAuth credentials.
 - `.env` must stay untracked. `.env.example` may contain variable names only, with empty values.
 - Build/runtime paths must fail clearly or show setup guidance when credentials are missing. Do not silently continue with fake, upstream, or fallback credentials.
 - OAuth uses Google's desktop/installed-app flow with PKCE and the scopes required for the current IMAP implementation: `https://mail.google.com/`, `openid`, and `email`.
+- `MAILBELL_GOOGLE_CLIENT_ID` is required. `MAILBELL_GOOGLE_CLIENT_SECRET` is optional for Desktop clients; send it only when the user configures a nonblank value.
 - Refresh tokens and access-token cache belong in the macOS Keychain only.
 
 ## Security And Data Rules
@@ -67,7 +69,7 @@ This personal fork must use only the user's own Google OAuth credentials.
 - Do not log tokens, OAuth codes, client secrets, IMAP auth payloads, raw message bodies, attachments, or full provider responses that may contain secrets.
 - Fetch only the smallest useful notification/menu data: sender/from, subject, sent date, account, UID, RFC message ID, Gmail thread/message identifiers when available, and bounded sanitized text preview.
 - Body preview fetches must stay bounded and non-mutating, currently `BODY.PEEK[TEXT]<0.8192>`. Do not fetch attachments or full message bodies unless the user explicitly changes the product scope.
-- Sanitize previews before UI/notification use: strip HTML, MIME artifacts, transport boilerplate, noisy URLs, and whitespace noise as best effort.
+- Sanitize previews before UI/notification use: use SwiftSoup for generic HTML parsing/text/entity handling, then apply Mailbell-specific MIME artifact, transport boilerplate, URL, whitespace, length, and line-shape rules.
 - UserDefaults may hold non-secret UI state, account metadata, webmail preferences, IMAP checkpoint data, and pruned pending-item handled dispositions only.
 - Keep Keychain and UserDefaults ownership DRY; do not introduce parallel persistence paths for the same state.
 - Treat the broad `https://mail.google.com/` scope honestly. Do not claim a narrower Gmail API scope works for the current IMAP XOAUTH2 implementation.
