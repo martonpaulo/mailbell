@@ -18,6 +18,28 @@ The app icon was generated with [IconKitchen][icon-kitchen-app-icon] using these
 
 [icon-kitchen-app-icon]: https://icon.kitchen/i/H4sIAAAAAAAAA0VR0W6DIBT9l7tX01CdVn1b2m5PS5Zsb02zICCSKBjEpo3x33dB7Xjh3sPhHO5hghttRzFAOUEtj6Y1Fkp4qcOCCKp_LKMJF3nAfh69QEhaypXQLmAfW4NKgzN9kCSLGE9fKZLIrijIPk7zLCepX5k_5nlREQJzBFTLFnXjA8Gmkp9iaLxIb5R2KHeZ4A4l2cVpBI-tYNvz0iQ7vZ9RZmUdNpYvnqzsLTmdc5ivweG7oWEQpixD5wgjWEdjreqpDZNRLsUzhD0XRZUtIYi7Gy2SJ9Sq5RflXGnpH4zTQ7lHW6tkg4H4sjLOmW6pW1EHNNw7rk4-NoEbWDNqjg6KGY2tNk7VilGnjB5-KXPqJmDGq53hY-t_7gIdZWaA6_wHPt2MQs4BAAA
 
+## Build-Time Packaging Tool
+
+`make dmg` may install the pinned build-only Python packages below into `.build/dmg-python-tools` to write the native Finder `.DS_Store` layout for the DMG. They are not vendored into the repository and are not bundled into the Mailbell app runtime.
+
+### dmgbuild 1.6.7
+
+- Repository: https://github.com/dmgbuild/dmgbuild
+- License: MIT
+- Notes: Mailbell uses dmgbuild to create a native macOS drag-and-drop DMG with a deterministic Finder background, icon placement, hidden technical files, and volume icon.
+
+### ds_store 1.3.2
+
+- Repository: https://github.com/dmgbuild/ds_store
+- License: MIT
+- Notes: Transitive dependency of dmgbuild for writing Finder `.DS_Store` records.
+
+### mac_alias 2.2.3
+
+- Repository: https://github.com/dmgbuild/mac_alias
+- License: MIT
+- Notes: Transitive dependency of dmgbuild for macOS alias/bookmark records.
+
 ## Third-Party Packages
 
 Mailbell does not vendor third-party source directly. The SwiftPM application build resolves the packages below through `Package.resolved`.

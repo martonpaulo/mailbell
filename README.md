@@ -59,7 +59,7 @@ These are the user-visible contracts the code is expected to preserve:
 
 - macOS 26 or newer.
 - Xcode Command Line Tools or a Swift toolchain that can build the SwiftPM package.
-- `make`, `python3`, `xcrun`, and `codesign` from the macOS toolchain for local install/DMG packaging.
+- `make`, `python3` with `pip`, `xcrun`, and `codesign` from the macOS toolchain for local install/DMG packaging.
 - Optional: `swiftlint` and `swiftformat` if you run `make lint`, `make format`, or `make check`.
 
 No Apple Developer account is required for local use. `make install` and `make dmg` use ad-hoc signing by default.
@@ -176,7 +176,9 @@ Build a local drag-and-drop DMG installer:
 make dmg
 ```
 
-The DMG is written to `.build/Install Mailbell.dmg`. It mounts as `Install Mailbell`, uses the Mailbell icon for the mounted volume, and opens as the standard macOS drag-and-drop installer surface with `Mailbell.app` plus an `Applications` shortcut.
+The DMG is written to `.build/Install Mailbell.dmg`. It mounts as `Install Mailbell`, uses the Mailbell icon for the mounted volume and local DMG file, and opens as the standard macOS drag-and-drop installer surface with `Mailbell.app` plus an `Applications` shortcut on a Mailbell-branded background.
+
+The first `make dmg` may install the pinned build-only DMG layout helper `dmgbuild==1.6.7` and its Python dependencies into `.build/dmg-python-tools`. This local helper writes the Finder `.DS_Store` layout deterministically; it is not bundled into Mailbell and does not change the app runtime.
 
 Architecture notes:
 
