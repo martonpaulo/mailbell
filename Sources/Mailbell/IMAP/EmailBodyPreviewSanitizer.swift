@@ -5,6 +5,9 @@ enum EmailBodyPreviewSanitizer {
     static let maximumPreviewLength = 240
     private static let maximumLineLength = 80
     private static let maximumLineCount = 3
+    private static let urlMarker = "[URL]"
+    private static let imageMarker = "[IMG]"
+    private static let attachmentMarker = "[ATT]"
 
     static func preview(from data: Data, limit: Int = maximumPreviewLength) -> String? {
         let text = String(data: data, encoding: .utf8)
@@ -18,16 +21,26 @@ enum EmailBodyPreviewSanitizer {
         limit: Int = maximumPreviewLength,
         htmlTextExtractor: (String) throws -> String = extractHTMLText
     ) -> String? {
-        let withoutMIMEHeaders = removeMIMEPartHeaders(from: rawText)
-        let quotedPrintableDecoded = decodeQuotedPrintable(withoutMIMEHeaders)
-        let htmlDecoded = decodeHTMLIfNeeded(quotedPrintableDecoded, htmlTextExtractor: htmlTextExtractor)
-        let withoutMIMEArtifacts = removeMIMEArtifacts(from: htmlDecoded)
-        let withoutURLs = replacing(
-            pattern: #"(?i)\b(?:https?://|www\.)[^\s<>"']+"#,
-            in: withoutMIMEArtifacts,
-            with: "URL"
+        let withoutNonTextMIMEParts = MIMEBodyPreviewNormalizer.replaceNonTextParts(
+            from: rawText,
+            imageMarker: imageMarker,
+            attachmentMarker: attachmentMarker
         )
-        let punctuationTightened = replacing(pattern: "\\s+([\\.,;:!?])", in: withoutURLs, with: "$1")
+        let withoutMIMEHeaders = removeMIMEPartHeaders(from: withoutNonTextMIMEParts)
+        let quotedPrintableDecoded = decodeQuotedPrintable(withoutMIMEHeaders)
+        let transferDecoded = Base64PreviewDecoder.decodePayloadsIfUseful(
+            quotedPrintableDecoded,
+            imageMarker: imageMarker
+        )
+        let htmlDecoded = decodeHTMLIfNeeded(transferDecoded, htmlTextExtractor: htmlTextExtractor)
+        let withoutMIMEArtifacts = removeMIMEArtifacts(from: htmlDecoded)
+        let withPreviewTokens = PreviewTokenReplacer.replaceTokens(
+            in: withoutMIMEArtifacts,
+            urlMarker: urlMarker,
+            imageMarker: imageMarker,
+            attachmentMarker: attachmentMarker
+        )
+        let punctuationTightened = replacing(pattern: "\\s+([\\.,;:!?])", in: withPreviewTokens, with: "$1")
         let collapsed = punctuationTightened
             .replacingOccurrences(of: "\u{00a0}", with: " ")
             .components(separatedBy: .whitespacesAndNewlines)
@@ -235,6 +248,11 @@ enum EmailBodyPreviewSanitizer {
                 || style.contains("opacity:0") {
                 try element.remove()
             }
+        }
+
+        for element in try document.select("img, svg").array() {
+            try element.before(" \(imageMarker) ")
+            try element.remove()
         }
 
         if let body = document.body() {

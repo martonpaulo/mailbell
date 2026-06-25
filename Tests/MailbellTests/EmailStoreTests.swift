@@ -199,7 +199,7 @@ final class EmailStoreTests: XCTestCase {
         let updated = try XCTUnwrap(store.items.first)
         XCTAssertEqual(updated.id, original.id)
         XCTAssertEqual(updated.receivedAt, original.receivedAt)
-        XCTAssertEqual(updated.title, "Moved to spam")
+        XCTAssertEqual(updated.title, "(SPAM) Moved to spam")
         XCTAssertEqual(updated.mailbox, .spam)
         XCTAssertEqual(updated.imapIdentity, IMAPMessageIdentity(uid: 42, mailboxName: "[Gmail]/Spam"))
     }

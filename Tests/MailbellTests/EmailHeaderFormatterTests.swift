@@ -2,6 +2,36 @@
 import XCTest
 
 final class EmailHeaderFormatterTests: XCTestCase {
+    func testTitlePrefixesSpamMailbox() {
+        let title = EmailHeaderFormatter.title(
+            for: MessageHeader(
+                uid: 1,
+                mailbox: .spam,
+                from: "Sender <sender@example.com>",
+                subject: "Limited time offer",
+                date: "",
+                gmThreadId: nil
+            )
+        )
+
+        XCTAssertEqual(title, "(SPAM) Limited time offer")
+    }
+
+    func testTitleDoesNotDuplicateExistingSpamMarker() {
+        let title = EmailHeaderFormatter.title(
+            for: MessageHeader(
+                uid: 1,
+                mailbox: .spam,
+                from: "Sender <sender@example.com>",
+                subject: "[SPAM] Limited time offer",
+                date: "",
+                gmThreadId: nil
+            )
+        )
+
+        XCTAssertEqual(title, "[SPAM] Limited time offer")
+    }
+
     func testSenderIdentitySeparatesDisplayNameAndAddress() {
         let sender = EmailHeaderFormatter.senderIdentity(
             from: "\"Contabilizei Contabilidade Online\" <mensalidade@contabilizei.com.br>"

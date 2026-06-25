@@ -10,7 +10,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
 
         XCTAssertEqual(
             EmailBodyPreviewSanitizer.preview(from: raw),
-            "Hello Ana."
+            "Hello Ana. [IMG]"
         )
     }
 
@@ -113,7 +113,93 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
 
         XCTAssertEqual(
             EmailBodyPreviewSanitizer.preview(from: raw),
-            "Open URL for details."
+            "Open [URL] for details."
+        )
+    }
+
+    func testPreviewReplacesWrappedURLsWithBracketedToken() {
+        let raw = "Open (https://example.com/really/long/link?token=secret) or <www.example.com>."
+
+        XCTAssertEqual(
+            EmailBodyPreviewSanitizer.preview(from: raw),
+            "Open [URL] or [URL]."
+        )
+    }
+
+    func testPreviewDecodesBase64TextBeforeSanitizingTokens() {
+        let raw = """
+        VGhpcyBpcyBhIGNvcHkgb2YgYSBzZWN1cml0eSBhbGVydCBzZW50IHRvIHVzZXJAZXhhbXBs
+        ZS5jb20uIFJldmlldyBodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20vYS4=
+        """
+
+        XCTAssertEqual(
+            EmailBodyPreviewSanitizer.preview(from: raw),
+            "This is a copy of a security alert sent to user@example.com. Review [URL]"
+        )
+    }
+
+    func testPreviewReplacesMIMEImagePartsWithImageToken() {
+        let raw = """
+        --boundary
+        Content-Type: text/plain; charset=utf-8
+
+        Here is the receipt.
+        --boundary
+        Content-Type: image/png
+        Content-Transfer-Encoding: base64
+        Content-Disposition: inline; filename="receipt.png"
+
+        iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB
+        --boundary--
+        """
+
+        XCTAssertEqual(
+            EmailBodyPreviewSanitizer.preview(from: raw),
+            "Here is the receipt. [IMG]"
+        )
+    }
+
+    func testPreviewReplacesMIMEAttachmentsWithAttachmentToken() {
+        let raw = """
+        --boundary
+        Content-Type: text/plain; charset=utf-8
+
+        See the attached file.
+        --boundary
+        Content-Type: application/pdf
+        Content-Transfer-Encoding: base64
+        Content-Disposition: attachment; filename="invoice.pdf"
+
+        JVBERi0xLjQKJcTl8uXrp/Og0MTGCg==
+        --boundary--
+        """
+
+        XCTAssertEqual(
+            EmailBodyPreviewSanitizer.preview(from: raw),
+            "See the attached file. [ATT]"
+        )
+    }
+
+    func testPreviewReplacesBareBase64ImagePayloadWithImageToken() {
+        let raw = """
+        iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR42mP8z8BQDwAFgwJ
+        lJvcf8wAAAABJRU5ErkJggg==
+        """
+
+        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: raw), "[IMG]")
+    }
+
+    func testPreviewCollapsesRepeatedURLAndImageTokens() {
+        let raw = """
+        <html><body>
+        <img src="cid:first"><img src="cid:second">
+        <p>Open https://example.com/one https://example.com/two</p>
+        </body></html>
+        """
+
+        XCTAssertEqual(
+            EmailBodyPreviewSanitizer.preview(from: raw),
+            "[IMG] Open [URL]"
         )
     }
 

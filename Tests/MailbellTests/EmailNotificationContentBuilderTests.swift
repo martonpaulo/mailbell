@@ -57,6 +57,26 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
         XCTAssertEqual(content.body, "The contract is ready for review.")
     }
 
+    func testSpamNotificationPrefixesSubjectSubtitle() throws {
+        let content = try EmailNotificationContentBuilder.build(
+            header: MessageHeader(
+                uid: 5,
+                mailbox: .spam,
+                from: "Promo <promo@example.com>",
+                subject: "Limited time offer",
+                date: "",
+                gmThreadId: nil,
+                bodyPreview: "Act now."
+            ),
+            webmailURL: XCTUnwrap(URL(string: "https://mail.google.com/")),
+            accountID: UUID()
+        )
+
+        XCTAssertEqual(content.title, "Promo")
+        XCTAssertEqual(content.subtitle, "(SPAM) Limited time offer")
+        XCTAssertEqual(content.body, "Act now.")
+    }
+
     func testRealNotificationContentUsesSharedEmailFormatter() {
         let account = MailAccount(providerID: .gmail, email: "account@example.com")
         let header = MessageHeader(
