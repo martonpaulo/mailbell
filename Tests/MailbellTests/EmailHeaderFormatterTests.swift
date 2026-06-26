@@ -88,6 +88,101 @@ final class EmailHeaderFormatterTests: XCTestCase {
         XCTAssertTrue(text.contains("9:30"), text)
     }
 
+    func testTimeTextUsesWeeksForDatesBelowOneCalendarMonth() {
+        let text = EmailHeaderFormatter.timeText(
+            for: MessageHeader(
+                uid: 1,
+                from: "Sender <sender@example.com>",
+                subject: "Subject",
+                date: "Wed, 27 May 2026 09:30:00 +0000",
+                gmThreadId: nil
+            ),
+            now: date(year: 2026, month: 6, day: 26, hour: 9, minute: 30),
+            locale: Locale(identifier: "en_US"),
+            calendar: utcGregorianCalendar,
+            timeZone: utcTimeZone
+        )
+
+        XCTAssertTrue(text.hasPrefix("4 weeks ago, "), text)
+        XCTAssertTrue(text.contains("May 27, 2026"), text)
+    }
+
+    func testTimeTextUsesMonthsForCalendarMonthDifference() {
+        let text = EmailHeaderFormatter.timeText(
+            for: MessageHeader(
+                uid: 1,
+                from: "Sender <sender@example.com>",
+                subject: "Subject",
+                date: "Tue, 26 May 2026 09:30:00 +0000",
+                gmThreadId: nil
+            ),
+            now: date(year: 2026, month: 6, day: 26, hour: 9, minute: 30),
+            locale: Locale(identifier: "en_US"),
+            calendar: utcGregorianCalendar,
+            timeZone: utcTimeZone
+        )
+
+        XCTAssertTrue(text.hasPrefix("1 month ago, "), text)
+        XCTAssertTrue(text.contains("May 26, 2026"), text)
+    }
+
+    func testTimeTextUsesPluralMonthsBeforeFullYear() {
+        let text = EmailHeaderFormatter.timeText(
+            for: MessageHeader(
+                uid: 1,
+                from: "Sender <sender@example.com>",
+                subject: "Subject",
+                date: "Tue, 26 Aug 2025 09:30:00 +0000",
+                gmThreadId: nil
+            ),
+            now: date(year: 2026, month: 6, day: 26, hour: 9, minute: 30),
+            locale: Locale(identifier: "en_US"),
+            calendar: utcGregorianCalendar,
+            timeZone: utcTimeZone
+        )
+
+        XCTAssertTrue(text.hasPrefix("10 months ago, "), text)
+        XCTAssertTrue(text.contains("Aug 26, 2025"), text)
+    }
+
+    func testTimeTextUsesYearAcrossLeapDayCalendarDifference() {
+        let text = EmailHeaderFormatter.timeText(
+            for: MessageHeader(
+                uid: 1,
+                from: "Sender <sender@example.com>",
+                subject: "Subject",
+                date: "Thu, 29 Feb 2024 09:30:00 +0000",
+                gmThreadId: nil
+            ),
+            now: date(year: 2025, month: 3, day: 1, hour: 9, minute: 30),
+            locale: Locale(identifier: "en_US"),
+            calendar: utcGregorianCalendar,
+            timeZone: utcTimeZone
+        )
+
+        XCTAssertTrue(text.hasPrefix("1 year ago, "), text)
+        XCTAssertTrue(text.contains("Feb 29, 2024"), text)
+    }
+
+    func testTimeTextUsesYearsForDatesMoreThanOneYearAgo() {
+        let text = EmailHeaderFormatter.timeText(
+            for: MessageHeader(
+                uid: 1,
+                from: "Sender <sender@example.com>",
+                subject: "Subject",
+                date: "Wed, 26 Jun 2024 09:30:00 +0000",
+                gmThreadId: nil
+            ),
+            now: date(year: 2026, month: 6, day: 26, hour: 9, minute: 30),
+            locale: Locale(identifier: "en_US"),
+            calendar: utcGregorianCalendar,
+            timeZone: utcTimeZone
+        )
+
+        XCTAssertTrue(text.hasPrefix("2 years ago, "), text)
+        XCTAssertTrue(text.contains("Jun 26, 2024"), text)
+    }
+
     func testTimeTextConvertsUTCHeaderCommentToLocalTime() {
         let localTimeZone = TimeZone(secondsFromGMT: -3 * 60 * 60)!
         let calendar = gregorianCalendar(timeZone: localTimeZone)
@@ -137,5 +232,17 @@ final class EmailHeaderFormatterTests: XCTestCase {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
         return calendar
+    }
+
+    private func date(year: Int, month: Int, day: Int, hour: Int, minute: Int) -> Date {
+        DateComponents(
+            calendar: utcGregorianCalendar,
+            timeZone: utcTimeZone,
+            year: year,
+            month: month,
+            day: day,
+            hour: hour,
+            minute: minute
+        ).date!
     }
 }

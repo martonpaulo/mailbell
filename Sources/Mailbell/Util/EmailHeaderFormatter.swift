@@ -124,26 +124,44 @@ enum EmailHeaderFormatter {
     ) -> String {
         var calendar = calendar
         calendar.timeZone = timeZone
-        let dayDelta = calendar.dateComponents(
-            [.day],
-            from: calendar.startOfDay(for: now),
-            to: calendar.startOfDay(for: date)
-        ).day ?? 0
-
-        var components = DateComponents()
-        if abs(dayDelta) >= 7, dayDelta.isMultiple(of: 7) {
-            components.weekOfYear = dayDelta / 7
-        } else {
-            components.day = dayDelta
-        }
+        let components = relativeDateComponents(
+            date: date,
+            relativeTo: now,
+            calendar: calendar
+        )
 
         let formatter = RelativeDateTimeFormatter()
         formatter.locale = locale
         formatter.calendar = calendar
         formatter.unitsStyle = .full
-        formatter.dateTimeStyle = .named
+        formatter.dateTimeStyle = components.month != nil || components.year != nil ? .numeric : .named
         return formatter.localizedString(from: components)
             .uppercasingFirstCharacter(locale: locale)
+    }
+
+    private static func relativeDateComponents(
+        date: Date,
+        relativeTo now: Date,
+        calendar: Calendar
+    ) -> DateComponents {
+        let startOfNow = calendar.startOfDay(for: now)
+        let startOfDate = calendar.startOfDay(for: date)
+        let calendarComponents = calendar.dateComponents(
+            [.year, .month, .weekOfYear, .day],
+            from: startOfNow,
+            to: startOfDate
+        )
+
+        if let year = calendarComponents.year, year != 0 {
+            return DateComponents(year: year)
+        }
+        if let month = calendarComponents.month, month != 0 {
+            return DateComponents(month: month)
+        }
+        if let week = calendarComponents.weekOfYear, week != 0 {
+            return DateComponents(weekOfMonth: week)
+        }
+        return DateComponents(day: calendarComponents.day ?? 0)
     }
 
     private static func fullDateTimeText(
