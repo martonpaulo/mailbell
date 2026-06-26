@@ -88,6 +88,39 @@ final class EmailHeaderFormatterTests: XCTestCase {
         XCTAssertTrue(text.contains("9:30"), text)
     }
 
+    func testTimeTextConvertsUTCHeaderCommentToLocalTime() {
+        let localTimeZone = TimeZone(secondsFromGMT: -3 * 60 * 60)!
+        let calendar = gregorianCalendar(timeZone: localTimeZone)
+        let now = DateComponents(
+            calendar: calendar,
+            timeZone: localTimeZone,
+            year: 2026,
+            month: 6,
+            day: 26,
+            hour: 10,
+            minute: 30
+        ).date!
+        let text = EmailHeaderFormatter.timeText(
+            for: MessageHeader(
+                uid: 1,
+                from: "Sender <sender@example.com>",
+                subject: "Subject",
+                date: "Fri, 26 Jun 2026 13:29:33 +0000 (UTC)",
+                gmThreadId: nil
+            ),
+            now: now,
+            locale: Locale(identifier: "en_US"),
+            calendar: calendar,
+            timeZone: localTimeZone
+        )
+
+        XCTAssertTrue(text.hasPrefix("Today, "), text)
+        XCTAssertTrue(text.contains("Jun 26, 2026"), text)
+        XCTAssertTrue(text.contains("10:29"), text)
+        XCTAssertFalse(text.contains("+0000"), text)
+        XCTAssertFalse(text.contains("UTC"), text)
+    }
+
     private var utcGregorianCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = Self.utcTimeZone
@@ -98,5 +131,11 @@ final class EmailHeaderFormatterTests: XCTestCase {
 
     private var utcTimeZone: TimeZone {
         Self.utcTimeZone
+    }
+
+    private func gregorianCalendar(timeZone: TimeZone) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        return calendar
     }
 }

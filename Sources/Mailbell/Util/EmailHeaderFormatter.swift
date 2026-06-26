@@ -86,10 +86,12 @@ enum EmailHeaderFormatter {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
 
-        for format in ["EEE, d MMM yyyy HH:mm:ss Z", "d MMM yyyy HH:mm:ss Z"] {
-            formatter.dateFormat = format
-            if let date = formatter.date(from: rawDate) {
-                return date
+        for candidate in [rawDate, rawDate.removingTrailingParenthesizedTimeZoneComment()] {
+            for format in ["EEE, d MMM yyyy HH:mm:ss Z", "d MMM yyyy HH:mm:ss Z"] {
+                formatter.dateFormat = format
+                if let date = formatter.date(from: candidate) {
+                    return date
+                }
             }
         }
         return nil
@@ -191,5 +193,12 @@ private extension String {
     func uppercasingFirstCharacter(locale: Locale) -> String {
         guard let first else { return self }
         return String(first).uppercased(with: locale) + dropFirst()
+    }
+
+    func removingTrailingParenthesizedTimeZoneComment() -> String {
+        replacing(
+            #/\s+\([A-Za-z_/\-+0-9: ]+\)\s*$/#,
+            with: ""
+        )
     }
 }
