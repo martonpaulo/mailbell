@@ -88,6 +88,25 @@ final class EmailHeaderFormatterTests: XCTestCase {
         XCTAssertTrue(text.contains("9:30"), text)
     }
 
+    func testTimeTextUsesYesterdayForPreviousCalendarDay() {
+        let text = EmailHeaderFormatter.timeText(
+            for: MessageHeader(
+                uid: 1,
+                from: "Sender <sender@example.com>",
+                subject: "Subject",
+                date: "Thu, 25 Jun 2026 09:30:00 +0000",
+                gmThreadId: nil
+            ),
+            now: date(year: 2026, month: 6, day: 26, hour: 9, minute: 30),
+            locale: Locale(identifier: "en_US"),
+            calendar: utcGregorianCalendar,
+            timeZone: utcTimeZone
+        )
+
+        XCTAssertTrue(text.hasPrefix("Yesterday, "), text)
+        XCTAssertTrue(text.contains("Jun 25, 2026"), text)
+    }
+
     func testTimeTextUsesWeeksForDatesBelowOneCalendarMonth() {
         let text = EmailHeaderFormatter.timeText(
             for: MessageHeader(
