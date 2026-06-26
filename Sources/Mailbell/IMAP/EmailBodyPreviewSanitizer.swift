@@ -127,7 +127,10 @@ enum EmailBodyPreviewSanitizer {
             index += 1
         }
 
-        return String(data: Data(decoded), encoding: .utf8) ?? text
+        let decodedData = Data(decoded)
+        return String(data: decodedData, encoding: .utf8)
+            ?? String(data: decodedData, encoding: .isoLatin1)
+            ?? text
     }
 
     private static func hexValue(_ byte: UInt8) -> UInt8? {

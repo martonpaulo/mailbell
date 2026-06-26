@@ -89,6 +89,21 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         )
     }
 
+    func testPreviewDecodesLatin1QuotedPrintableText() {
+        let raw = """
+        =20 =20 =20 A defesa do seu dinheiro come=E7a aqui =20 =20 =20 =20
+        =20 =20 Chegamos =E0 metade do ano, um per=EDodo com muitas festividades.
+        """
+
+        XCTAssertEqual(
+            EmailBodyPreviewSanitizer.preview(from: raw),
+            """
+            A defesa do seu dinheiro começa aqui Chegamos à metade do ano, um período com
+            muitas festividades.
+            """
+        )
+    }
+
     func testPreviewDropsMIMEPartHeaders() {
         let raw = """
         --boundary
