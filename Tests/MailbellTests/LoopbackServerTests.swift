@@ -25,6 +25,15 @@ final class LoopbackServerTests: XCTestCase {
 
         XCTAssertEqual(response.statusCode, 200)
         XCTAssertTrue(response.body.contains("Mailbell connected"))
+        XCTAssertTrue(response.body.contains("data-state=\"success\""))
+        XCTAssertTrue(response.body.contains(":root[data-state=\"success\"]"))
+        XCTAssertTrue(response.body.contains("--state-accent: #248a3d"))
+        XCTAssertTrue(response.body.contains("background: var(--state-accent)"))
+        XCTAssertTrue(response.body.contains("data:image/png;base64,"))
+        XCTAssertTrue(response.body.contains("aria-labelledby=\"page-title\""))
+        XCTAssertTrue(response.body.contains("prefers-color-scheme: dark"))
+        XCTAssertFalse(response.body.contains("abc123"))
+        XCTAssertFalse(response.body.contains("state-value"))
         XCTAssertEqual(callback.code, "abc123")
     }
 
@@ -49,6 +58,9 @@ final class LoopbackServerTests: XCTestCase {
         let response = try await request(server, query: "code=abc123")
 
         XCTAssertEqual(response.statusCode, 400)
+        XCTAssertTrue(response.body.contains("The sign-in session expired"))
+        XCTAssertTrue(response.body.contains("Start sign-in again from Mailbell"))
+        XCTAssertFalse(response.body.contains("abc123"))
         await assertAsyncThrows({ try await waitTask.value }, validate: { error in
             XCTAssertEqual(error as? LoopbackServer.LoopbackError, .missingState)
         })
@@ -58,9 +70,12 @@ final class LoopbackServerTests: XCTestCase {
         let server = try await startedServer()
         let waitTask = Task { try await server.waitForCallback(timeout: 2) }
 
-        let response = try await request(server, query: "code=abc123&state=wrong")
+        let response = try await request(server, query: "code=abc123&state=raw-state-token")
 
         XCTAssertEqual(response.statusCode, 400)
+        XCTAssertTrue(response.body.contains("The sign-in session changed"))
+        XCTAssertFalse(response.body.contains("abc123"))
+        XCTAssertFalse(response.body.contains("raw-state-token"))
         await assertAsyncThrows({ try await waitTask.value }, validate: { error in
             XCTAssertEqual(error as? LoopbackServer.LoopbackError, .stateMismatch)
         })
@@ -73,6 +88,17 @@ final class LoopbackServerTests: XCTestCase {
         let response = try await request(server, query: "error=access_denied&state=state-value")
 
         XCTAssertEqual(response.statusCode, 400)
+        XCTAssertTrue(response.body.contains("Mailbell could not connect"))
+        XCTAssertTrue(response.body.contains("data-state=\"error\""))
+        XCTAssertTrue(response.body.contains("--state-accent: #d70015"))
+        XCTAssertTrue(response.body.contains("Permission was not granted"))
+        XCTAssertTrue(response.body.contains("Google prompt is cancelled or the permission is denied"))
+        XCTAssertTrue(
+            response.body.contains("--state-bar: linear-gradient(90deg, #ff3b30 0%, #ff453a 52%, #ff9f0a 100%)")
+        )
+        XCTAssertFalse(response.body.contains("access_denied"))
+        XCTAssertFalse(response.body.contains("Provider code"))
+        XCTAssertFalse(response.body.contains("state-value"))
         await assertAsyncThrows({ try await waitTask.value }, validate: { error in
             XCTAssertEqual(error as? LoopbackServer.LoopbackError, .providerError("access_denied"))
             XCTAssertFalse(error.localizedDescription.contains("state-value"))
@@ -86,6 +112,8 @@ final class LoopbackServerTests: XCTestCase {
         let response = try await request(server, query: "state=state-value")
 
         XCTAssertEqual(response.statusCode, 400)
+        XCTAssertTrue(response.body.contains("Google sign-in did not finish"))
+        XCTAssertFalse(response.body.contains("state-value"))
         await assertAsyncThrows({ try await waitTask.value }, validate: { error in
             XCTAssertEqual(error as? LoopbackServer.LoopbackError, .missingCode)
         })
@@ -101,6 +129,10 @@ final class LoopbackServerTests: XCTestCase {
 
         XCTAssertEqual(wrongPath.statusCode, 404)
         XCTAssertEqual(wrongMethod.statusCode, 405)
+        XCTAssertTrue(wrongPath.body.contains("data-state=\"error\""))
+        XCTAssertTrue(wrongMethod.body.contains("data-state=\"error\""))
+        XCTAssertTrue(wrongPath.body.contains("This sign-in page is not available"))
+        XCTAssertTrue(wrongMethod.body.contains("This sign-in request is not supported"))
         await assertAsyncThrows({ try await waitTask.value }, validate: { error in
             XCTAssertEqual(error as? LoopbackServer.LoopbackError, .cancelled)
         })

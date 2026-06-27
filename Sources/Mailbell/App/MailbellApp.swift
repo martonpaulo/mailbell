@@ -614,9 +614,7 @@ struct SettingsView: View {
 
     private var aboutAppSection: some View {
         Section {
-            LabeledContent("App") {
-                Text("Mailbell")
-            }
+            aboutAppIdentityRow
 
             LabeledContent("Version") {
                 Text(appVersionText)
@@ -631,6 +629,26 @@ struct SettingsView: View {
         } footer: {
             settingsFooter("Mailbell is a local macOS menu bar notifier for Gmail.")
         }
+    }
+
+    private var aboutAppIdentityRow: some View {
+        HStack(spacing: 14) {
+            Image(nsImage: NSApplication.shared.applicationIconImage)
+                .resizable()
+                .frame(width: 56, height: 56)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Mailbell")
+                    .font(.title3)
+                    .fontWeight(.semibold)
+
+                Text("Menu bar notifier for Gmail")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
     }
 
     private var aboutSupportSection: some View {

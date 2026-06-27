@@ -73,7 +73,7 @@ actor LoopbackServer {
             let address = try sockaddr_in.inet(ip4: "127.0.0.1", port: 0)
             let handler = LoopbackHTTPHandler { [weak self, callbackRunID] request in
                 guard let self else {
-                    return Self.htmlResponse(status: .serviceUnavailable, succeeded: false)
+                    return Self.htmlResponse(status: .serviceUnavailable, state: .error(.serverUnavailable))
                 }
                 return await self.handle(request, callbackRunID: callbackRunID)
             }
@@ -194,17 +194,17 @@ actor LoopbackServer {
 
     private func handle(_ request: HTTPRequest, callbackRunID: Int) async -> HTTPResponse {
         guard request.path == Self.callbackPath else {
-            return Self.htmlResponse(status: .notFound, succeeded: false)
+            return Self.htmlResponse(status: .notFound, state: .error(.unexpectedPath))
         }
         guard request.method == .GET else {
-            return Self.htmlResponse(status: .methodNotAllowed, succeeded: false)
+            return Self.htmlResponse(status: .methodNotAllowed, state: .error(.unsupportedMethod))
         }
 
         let outcome = callbackOutcome(from: request.query)
         let accepted = complete(outcome.result, callbackRunID: callbackRunID)
         return Self.htmlResponse(
             status: outcome.responseStatus,
-            succeeded: accepted && outcome.succeeded
+            state: accepted ? outcome.pageState : .error(.alreadyHandled)
         )
     }
 
@@ -251,16 +251,8 @@ actor LoopbackServer {
         continuation?.resume(throwing: LoopbackError.cancelled)
     }
 
-    private static func htmlResponse(status: HTTPStatusCode, succeeded: Bool) -> HTTPResponse {
-        let title = succeeded ? "Mailbell connected" : "Mailbell error"
-        let body = succeeded
-            ? "You can close this tab and return to Mailbell."
-            : "Authorization failed. Please try again from Mailbell."
-        let html = """
-        <!doctype html><html><head><meta charset="utf-8"><title>\(title)</title></head>
-        <body style="font-family:-apple-system,sans-serif;text-align:center;padding-top:80px">
-        <h2>\(title)</h2><p>\(body)</p></body></html>
-        """
+    private static func htmlResponse(status: HTTPStatusCode, state: LoopbackCallbackPage.State) -> HTTPResponse {
+        let html = LoopbackCallbackPage.html(state: state)
         return HTTPResponse(
             statusCode: status,
             headers: [.contentType: "text/html; charset=utf-8"],
@@ -284,14 +276,35 @@ actor LoopbackServer {
 private struct CallbackOutcome {
     let result: Result<LoopbackServer.Callback, Error>
     let responseStatus: HTTPStatusCode
-    let succeeded: Bool
+    let pageState: LoopbackCallbackPage.State
 
     static func accepted(_ callback: LoopbackServer.Callback) -> CallbackOutcome {
-        CallbackOutcome(result: .success(callback), responseStatus: .ok, succeeded: true)
+        CallbackOutcome(result: .success(callback), responseStatus: .ok, pageState: .success)
     }
 
     static func rejected(_ error: LoopbackServer.LoopbackError) -> CallbackOutcome {
-        CallbackOutcome(result: .failure(error), responseStatus: .badRequest, succeeded: false)
+        CallbackOutcome(
+            result: .failure(error),
+            responseStatus: .badRequest,
+            pageState: .error(error.callbackPageReason)
+        )
+    }
+}
+
+private extension LoopbackServer.LoopbackError {
+    var callbackPageReason: LoopbackCallbackPage.ErrorReason {
+        switch self {
+        case .failedToStart, .timedOut, .cancelled:
+            .serverUnavailable
+        case .missingState:
+            .missingState
+        case .stateMismatch:
+            .stateMismatch
+        case .missingCode:
+            .missingCode
+        case let .providerError(error):
+            .providerError(error)
+        }
     }
 }
 
