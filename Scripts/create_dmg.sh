@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ $# -ne 5 ]]; then
-  echo "usage: $0 <staging-dir> <app-name> <app-icon.icns> <volume-name> <output.dmg>" >&2
+  echo "usage: $0 <staging-dir> <app-name> <installer-icon.icns> <volume-name> <output.dmg>" >&2
   exit 2
 fi
 
@@ -17,7 +17,7 @@ absolute_path() {
 
 STAGING_DIR="$(absolute_path "$1")"
 APP_NAME="$2"
-APP_ICON="$(absolute_path "$3")"
+INSTALLER_ICON="$(absolute_path "$3")"
 VOLUME_NAME="$4"
 OUTPUT_DMG="$5"
 
@@ -31,8 +31,8 @@ if [[ ! -L "${STAGING_DIR}/Applications" ]]; then
   exit 1
 fi
 
-if [[ ! -f "${APP_ICON}" ]]; then
-  echo "error: missing app icon ${APP_ICON}" >&2
+if [[ ! -f "${INSTALLER_ICON}" ]]; then
+  echo "error: missing installer icon ${INSTALLER_ICON}" >&2
   exit 1
 fi
 
@@ -92,7 +92,7 @@ generate_background_image() {
   "${SWIFT_TOOL}" - \
     "${output_path}" \
     "${APP_NAME}" \
-    "${APP_ICON}" \
+    "${INSTALLER_ICON}" \
     "${WINDOW_WIDTH}" \
     "${WINDOW_HEIGHT}" \
     "${CARD_MARGIN_X}" \
@@ -225,7 +225,7 @@ SWIFT
 apply_file_icon() {
   local target_path="$1"
 
-  "${SWIFT_TOOL}" - "${APP_ICON}" "${target_path}" <<'SWIFT'
+  "${SWIFT_TOOL}" - "${INSTALLER_ICON}" "${target_path}" <<'SWIFT'
 import AppKit
 
 let args = CommandLine.arguments
@@ -261,7 +261,7 @@ PY
     --disable-pip-version-check \
     --quiet \
     --target "${tool_dir}" \
-    "dmgbuild==1.6.7"
+    "dmgbuild==1.6.5"
   printf '%s\n' "${tool_dir}"
 }
 
@@ -272,7 +272,7 @@ write_dmgbuild_settings() {
   python3 - \
     "${settings_path}" \
     "${STAGING_DIR}/${APP_NAME}.app" \
-    "${APP_ICON}" \
+    "${INSTALLER_ICON}" \
     "${background_path}" \
     "${APP_NAME}" \
     "${WINDOW_WIDTH}" \
@@ -473,7 +473,7 @@ fi
 
 mkdir -p "${MOUNT_DIR}/.background"
 generate_background_image "${MOUNT_DIR}/.background/background.png"
-cp "${APP_ICON}" "${MOUNT_DIR}/.VolumeIcon.icns"
+cp "${INSTALLER_ICON}" "${MOUNT_DIR}/.VolumeIcon.icns"
 hide_in_finder "${MOUNT_DIR}/.background"
 hide_in_finder "${MOUNT_DIR}/.background/background.png"
 hide_in_finder "${MOUNT_DIR}/.VolumeIcon.icns"
@@ -485,7 +485,7 @@ if [[ -z "${MAILBELL_SKIP_DMG_FINDER_LAYOUT:-}" ]]; then
 fi
 
 if [[ ! -f "${MOUNT_DIR}/.VolumeIcon.icns" ]]; then
-  cp "${APP_ICON}" "${MOUNT_DIR}/.VolumeIcon.icns"
+  cp "${INSTALLER_ICON}" "${MOUNT_DIR}/.VolumeIcon.icns"
   hide_in_finder "${MOUNT_DIR}/.VolumeIcon.icns"
 fi
 

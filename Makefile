@@ -9,6 +9,7 @@ BUILD_DIR  := .build
 APP_BUNDLE := /Applications/$(APP_NAME).app
 INFO_PLIST := Resources/Info.plist
 APP_ICON   := Resources/AppIcon.icns
+INSTALLER_ICON := Resources/AppInstallerIcon.icns
 ASSETS     := Resources/Assets.xcassets
 ARCH       ?= arm64
 
@@ -128,7 +129,7 @@ release: icons ## Build, sign, notarize, and staple a tagged release DMG
 		printf "$(BOLD)[7/14]$(RESET) Adding Applications shortcut\n"; \
 		ln -s /Applications "$(RELEASE_STAGING)/Applications"; \
 		printf "$(BOLD)[8/14]$(RESET) Creating release DMG\n"; \
-		Scripts/create_dmg.sh "$(RELEASE_STAGING)" "$(APP_NAME)" "$(APP_ICON)" "$${DMG_VOLUME_NAME}" "$${final_dmg}"; \
+		Scripts/create_dmg.sh "$(RELEASE_STAGING)" "$(APP_NAME)" "$(INSTALLER_ICON)" "$${DMG_VOLUME_NAME}" "$${final_dmg}"; \
 		printf "$(BOLD)[9/14]$(RESET) Cleaning release staging files\n"; \
 		rm -rf "$(RELEASE_DIR)"; \
 		printf "$(BOLD)[10/14]$(RESET) Signing DMG with Developer ID\n"; \
@@ -180,7 +181,7 @@ dmg: require-oauth-config icons ## Build an ad-hoc signed drag-and-drop DMG
 	@printf "$(BOLD)[6/8]$(RESET) Adding Applications shortcut\n"
 	@ln -s /Applications $(DMG_STAGING)/Applications
 	@printf "$(BOLD)[7/8]$(RESET) Creating standard macOS installer DMG\n"
-	@Scripts/create_dmg.sh "$(DMG_STAGING)" "$(APP_NAME)" "$(APP_ICON)" "$(DMG_VOLUME_NAME)" "$(DMG_PATH)"
+	@Scripts/create_dmg.sh "$(DMG_STAGING)" "$(APP_NAME)" "$(INSTALLER_ICON)" "$(DMG_VOLUME_NAME)" "$(DMG_PATH)"
 	@printf "$(BOLD)[8/8]$(RESET) Cleaning temporary DMG staging files\n"
 	@rm -rf $(DMG_DIR)
 	@printf "$(GREEN)[ok]$(RESET) DMG created: %s\n" "$(DMG_PATH)"

@@ -177,7 +177,7 @@ make dmg
 .build/Install Mailbell.dmg
 ```
 
-This local DMG is not the public notarized release artifact. It mounts as `Install Mailbell`, contains `Mailbell.app` plus an `Applications` shortcut, and may install the pinned build-only `dmgbuild==1.6.7` helper into `.build/dmg-python-tools` for deterministic Finder layout. That helper is not bundled into Mailbell.
+This local DMG is not the public notarized release artifact. It mounts as `Install Mailbell`, contains `Mailbell.app` plus an `Applications` shortcut, and may install the pinned build-only `dmgbuild==1.6.5` helper into `.build/dmg-python-tools` for deterministic Finder layout. That helper is not bundled into Mailbell.
 
 ## Release Flow
 
