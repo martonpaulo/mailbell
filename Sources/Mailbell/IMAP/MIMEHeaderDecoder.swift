@@ -12,7 +12,10 @@ enum MIMEHeaderDecoder {
         while let start = remainder.range(of: "=?") {
             result += remainder[remainder.startIndex ..< start.lowerBound]
             let afterStart = remainder[start.upperBound...]
-            guard let end = afterStart.range(of: "?=") else {
+            guard let charsetEnd = afterStart.firstIndex(of: "?"),
+                  let encodingEnd = afterStart[afterStart.index(after: charsetEnd)...].firstIndex(of: "?"),
+                  let end = afterStart[afterStart.index(after: encodingEnd)...].range(of: "?=")
+            else {
                 result += remainder[start.lowerBound...]
                 remainder = Substring("")
                 break

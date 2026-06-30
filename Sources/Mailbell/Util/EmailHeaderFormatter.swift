@@ -2,6 +2,7 @@ import Foundation
 
 enum EmailHeaderFormatter {
     private static let spamTitlePrefix = "(SPAM)"
+    private static let maximumTitleLength = 160
 
     struct SenderIdentity: Equatable {
         let name: String
@@ -9,7 +10,7 @@ enum EmailHeaderFormatter {
     }
 
     static func title(for header: MessageHeader) -> String {
-        let title = header.subject.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = sanitizedTitle(from: header.subject)
         let resolvedTitle = title.isEmpty ? "(no subject)" : title
         guard header.mailbox == .spam else { return resolvedTitle }
         return titleWithSpamPrefix(resolvedTitle)
@@ -60,6 +61,14 @@ enum EmailHeaderFormatter {
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
         return normalized.hasPrefix("(spam)") || normalized.hasPrefix("[spam]")
+    }
+
+    private static func sanitizedTitle(from rawSubject: String) -> String {
+        let decodedSubject = MIMEHeaderDecoder.decode(rawSubject)
+        return EmailBodyPreviewSanitizer.preview(from: decodedSubject, limit: maximumTitleLength)?
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ") ?? ""
     }
 
     static func timeText(
