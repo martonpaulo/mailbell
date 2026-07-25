@@ -34,8 +34,10 @@ enum EmailBodyPreviewSanitizer {
         )
         let htmlDecoded = decodeHTMLIfNeeded(transferDecoded, htmlTextExtractor: htmlTextExtractor)
         let withoutMIMEArtifacts = removeMIMEArtifacts(from: htmlDecoded)
+        // Before markers are inserted, so bracket cleanup cannot eat [IMG]/[URL].
+        let withoutMarkdown = removeMarkdownArtifacts(from: withoutMIMEArtifacts)
         let withPreviewTokens = PreviewTokenReplacer.replaceTokens(
-            in: withoutMIMEArtifacts,
+            in: withoutMarkdown,
             urlMarker: urlMarker,
             imageMarker: imageMarker,
             attachmentMarker: attachmentMarker
@@ -168,6 +170,40 @@ enum EmailBodyPreviewSanitizer {
         result = replacing(pattern: #"(?im)^charset="?[-A-Za-z0-9_]+"?.*$"#, in: result, with: " ")
         result = replacing(pattern: #"(?im)^boundary="?[-A-Za-z0-9'()+_,./:=?]+"?.*$"#, in: result, with: " ")
         result = replacing(pattern: #"(?im)^multipart/[-A-Za-z0-9.+]+.*$"#, in: result, with: " ")
+        return result
+    }
+
+    /// Senders that ship a Markdown plain-text alternative leak raw syntax into
+    /// previews: escaped punctuation (`broadcast\_body\_warning`) and image or
+    /// link scaffolding (`[![](logo.png)](site)`). Unescape first so the
+    /// structural passes see well-formed Markdown, then unwrap links and images
+    /// innermost-first, then sweep up any scaffolding left behind.
+    private static func removeMarkdownArtifacts(from text: String) -> String {
+        var result = replacing(
+            pattern: #"\\([\\`*_{}\[\]()#+\-.!>~|])"#,
+            in: text,
+            with: "$1"
+        )
+
+        // Unwrap repeatedly: `[![](image)](link)` needs the inner image gone
+        // before the outer link can match.
+        for _ in 0 ..< 3 {
+            let unwrapped = replacing(
+                pattern: #"!?\[([^\[\]]*)\]\([^()\s]*\)"#,
+                in: result,
+                with: "$1"
+            )
+            if unwrapped == result {
+                break
+            }
+            result = unwrapped
+        }
+
+        result = replacing(pattern: #"!\[[^\[\]]*\]"#, in: result, with: " ")
+        result = replacing(pattern: #"\]\("#, in: result, with: " ")
+        result = replacing(pattern: #"(?m)^\s{0,3}#{1,6}\s+"#, in: result, with: "")
+        result = replacing(pattern: #"(?m)^\s{0,3}>\s?"#, in: result, with: "")
+        result = replacing(pattern: #"(?m)^\s{0,3}([-*_])(?:\s*\1){2,}\s*$"#, in: result, with: " ")
         return result
     }
 

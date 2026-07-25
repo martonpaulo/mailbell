@@ -190,14 +190,31 @@ Preserve the IMAP IDLE reconnect model:
   are watched, and everything about each account), **About** (what it is).
   Never split one entity across panes: an account's status, routing, and removal
   belong together.
-- **Controls carry meaning; pick the right one.**
+- **Controls carry meaning; pick the right one.** These follow what macOS
+  System Settings actually does, not invention:
   - `Toggle` for a binary preference, labelled with a **stable description of
     the enabled state**. A label that inverts with its own value
     ("Disable Account") reads as its own opposite and is a defect.
-  - `LabeledContent` for **label to value** only — status, counts, versions.
-    Wrapping a button in one produces "Remove Account: Remove" and is banned.
-  - A bare `Button` whose title is a complete, self-naming action.
-  - Destructive actions use `role: .destructive`, never a hand-applied red.
+  - **Explanation belongs in the row, under its own label** (`SettingsRowLabel`),
+    the way System Settings explains FileVault, AirDrop, and AirPlay Receiver.
+    A section `footer` is for text about the group as a whole.
+  - `LabeledContent` / `SettingsRow` for **label to value** — status, counts,
+    versions — or label to a row-scoped control. A label that merely restates
+    its button ("Remove Account: Remove") is banned.
+  - **Action placement follows the action's scope**, and every action goes
+    through `SettingsActionRow` so alignment has one definition:
+    - *row-scoped* → in that row, trailing (System Settings: "Siri history"
+      `Delete Siri & Dictation History…`, "Recovery Key" `Show`);
+    - *section-scoped* → inside the box, as its own last row, trailing
+      (`Add User…`, `About AirDrop & Privacy…`);
+    - *pane-scoped* → below every box, trailing, in the last section's footer
+      (`Advanced…` in Privacy & Security).
+  - Buttons are sized to their content and trailing-aligned. Leading-aligned,
+    full-width buttons are not the platform convention.
+  - Append `…` when a control opens another window, view, or app (HIG,
+    *Buttons › Push buttons*).
+  - Destructive actions use `role: .destructive`, never a hand-applied red, and
+    anything irreversible confirms first.
   - A status row earns its space only when it can disagree with the control
     above it; otherwise it is noise.
   These rules are enforced by `SettingsControlSemanticsTests`.

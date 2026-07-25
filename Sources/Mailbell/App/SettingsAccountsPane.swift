@@ -15,27 +15,27 @@ extension SettingsView {
                 OAuthSetupPanel(details: setupMessage)
             }
 
-            LabeledContent("Connected") {
+            SettingsRow(title: "Connected", description: signInGuidanceText) {
                 connectedAccountsValue
             }
 
-            HStack(spacing: Token.Space.sm) {
-                Button("Add Gmail Account…") {
-                    appState.addGoogleAccount()
-                }
-                .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
-
+            SettingsActionRow {
                 if appState.isAuthorizing {
                     ProgressView()
                         .controlSize(.small)
                         .accessibilityLabel("Waiting for Google sign-in")
                 }
-            }
 
-            Button("Check for New Mail") {
-                appState.refreshMailNow()
+                Button("Check for New Mail") {
+                    appState.refreshMailNow()
+                }
+                .disabled(!appState.canRequestManualRefresh)
+
+                Button("Add Gmail Account…") {
+                    appState.addGoogleAccount()
+                }
+                .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
             }
-            .disabled(!appState.canRequestManualRefresh)
         } header: {
             Text("Gmail")
         } footer: {
@@ -47,25 +47,25 @@ extension SettingsView {
     /// rather than hiding behind an "Advanced" pane.
     var watchedMailboxesSection: some View {
         Section {
-            LabeledContent("Inbox") {
+            SettingsRow(title: "Inbox") {
                 SettingsStatusValue("Always watched", tone: .success, context: "Inbox")
             }
 
             Toggle(
-                "Also watch the Spam folder",
                 isOn: Binding(
                     get: { appState.includeSpam },
                     set: { appState.setIncludeSpam($0) }
                 )
-            )
+            ) {
+                SettingsRowLabel(
+                    title: "Also watch the Spam folder",
+                    description: "Unread Spam can then reach notifications and the review count. "
+                        + "Turning this off also clears any Spam already awaiting review. "
+                        + "Nothing in Gmail changes either way."
+                )
+            }
         } header: {
             Text("Watched Mailboxes")
-        } footer: {
-            settingsFooter(
-                "With Spam on, unread Spam can reach notifications and the review count. "
-                    + "Turning it off also clears any Spam already awaiting review. "
-                    + "Nothing in Gmail changes either way."
-            )
         }
     }
 
@@ -80,20 +80,24 @@ extension SettingsView {
             // The label states what being on means, so it never reads inverted
             // the way an action label would.
             Toggle(
-                "Watch this account for new mail",
                 isOn: Binding(
                     get: { state.account.isEnabled },
                     set: { appState.setAccountEnabled($0, accountID: state.account.id) }
                 )
-            )
+            ) {
+                SettingsRowLabel(
+                    title: "Watch this account for new mail",
+                    description: accountDetailText(for: state)
+                )
+            }
 
-            LabeledContent("Status") {
+            SettingsRow(title: "Status", description: state.lastError) {
                 accountStatusValue(for: state)
             }
 
             // Always shown: hiding a status row behind a menu bar display
             // preference would make Settings lie about what is pending.
-            LabeledContent(PendingCopy.reviewSectionTitle) {
+            SettingsRow(title: PendingCopy.reviewSectionTitle) {
                 Text(PendingCopy.reviewCountText(pendingCount(accountID: state.account.id)))
             }
 
@@ -104,19 +108,9 @@ extension SettingsView {
                 chromeProfiles: chromeProfiles
             )
 
-            Button("Open Gmail") {
-                appState.openGmail(accountID: state.account.id)
-            }
-
             accountActionRow(for: state)
-
-            Button("Remove Account…", role: .destructive) {
-                accountPendingRemoval = state.account
-            }
         } header: {
             Text(state.account.email)
-        } footer: {
-            settingsFooter(accountFooterText(for: state))
         }
     }
 
@@ -146,27 +140,36 @@ extension SettingsView {
         )
     }
 
-    /// The recovery action a stalled account needs, or a plain Reconnect.
-    @ViewBuilder
+    /// One action row per account: recovery first, then the everyday action,
+    /// with the destructive one last, the way System Settings orders a group.
     func accountActionRow(for state: AccountRuntimeState) -> some View {
-        if let action = AccountRecoveryAction.needed(for: state), action == .signInAgain {
-            HStack(spacing: Token.Space.sm) {
+        let needsSignIn = AccountRecoveryAction.needed(for: state) == .signInAgain
+        return SettingsActionRow {
+            if needsSignIn, appState.isAuthorizing {
+                ProgressView()
+                    .controlSize(.small)
+                    .accessibilityLabel("Waiting for Google sign-in")
+            }
+
+            Button("Remove Account…", role: .destructive) {
+                accountPendingRemoval = state.account
+            }
+
+            if needsSignIn {
                 Button("Sign in Again…") {
                     appState.reauthenticate(accountID: state.account.id)
                 }
                 .disabled(appState.isAuthorizing)
-
-                if appState.isAuthorizing {
-                    ProgressView()
-                        .controlSize(.small)
-                        .accessibilityLabel("Waiting for Google sign-in")
+            } else {
+                Button("Reconnect") {
+                    appState.reconnect(accountID: state.account.id)
                 }
+                .disabled(!state.account.isEnabled || appState.isAuthorizing)
             }
-        } else {
-            Button("Reconnect") {
-                appState.reconnect(accountID: state.account.id)
+
+            Button("Open Gmail") {
+                appState.openGmail(accountID: state.account.id)
             }
-            .disabled(!state.account.isEnabled || appState.isAuthorizing)
         }
     }
 
@@ -194,10 +197,7 @@ extension SettingsView {
     }
 
     var accountOverviewFooterText: String {
-        if let message = appState.manualRefreshMessage {
-            return joined([message, appState.lastError])
-        }
-        return joined([signInGuidanceText, appState.lastError])
+        joined([appState.manualRefreshMessage, appState.lastError])
     }
 
     /// Google's unverified-app screen is the most surprising moment in setup.
@@ -215,10 +215,6 @@ extension SettingsView {
                 + "connection problem."
         }
         return "Turn an account back on to watch it for new mail."
-    }
-
-    func accountFooterText(for state: AccountRuntimeState) -> String {
-        joined([accountDetailText(for: state), state.lastError, state.webmailOpenError])
     }
 
     func accountDetailText(for state: AccountRuntimeState) -> String {

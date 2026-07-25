@@ -2,107 +2,122 @@ import AppKit
 import SwiftUI
 import UserNotifications
 
-/// How Mailbell presents itself: menu bar, startup, updates, and reset.
+/// How Mailbell presents itself: menu bar, startup, and updates. Restore
+/// Defaults is pane-scoped, so it sits below every box.
 extension SettingsView {
     var pendingCountSection: some View {
         Section {
             Toggle(
-                "Show the number of messages awaiting review",
                 isOn: Binding(
                     get: { appState.showPendingCount },
                     set: { appState.setShowPendingCount($0) }
                 )
-            )
+            ) {
+                SettingsRowLabel(
+                    title: "Show the number of messages awaiting review",
+                    description: "The bell is always visible. Turn this off to keep the menu bar quiet "
+                        + "and see the count only when you open the menu."
+                )
+            }
         } header: {
             Text("Menu Bar")
-        } footer: {
-            settingsFooter(
-                "The bell is always visible. Turn this off to keep the menu bar quiet and see the count "
-                    + "only when you open the menu."
-            )
         }
     }
 
     var startupSection: some View {
         Section {
-            Toggle("Open Mailbell at login", isOn: $launchAtLogin)
-                .onChange(of: launchAtLogin) { _, newValue in
-                    LoginItem.set(newValue)
-                    refreshLoginItemStatus()
-                }
+            Toggle(isOn: $launchAtLogin) {
+                SettingsRowLabel(
+                    title: "Open Mailbell at login",
+                    description: "Mailbell watches for mail only while it is running."
+                )
+            }
+            .onChange(of: launchAtLogin) { _, newValue in
+                LoginItem.set(newValue)
+                refreshLoginItemStatus()
+            }
 
             if loginItemNeedsAttention {
-                LabeledContent("Login item") {
+                SettingsRow(title: "Login item", description: loginItemStatus.detail) {
                     loginItemStatusValue
                 }
 
-                Button("Open Login Items Settings") {
-                    SystemSettings.open()
+                // Section-scoped: inside the box, as its own last row.
+                SettingsActionRow {
+                    Button("Open Login Items Settings") {
+                        SystemSettings.open()
+                    }
                 }
             }
         } header: {
             Text("Startup")
-        } footer: {
-            settingsFooter(loginItemStatus.detail)
         }
     }
 
     var updatesSection: some View {
         Section {
             Toggle(
-                "Automatically check for updates",
                 isOn: Binding(
                     get: { appState.automaticallyChecksForUpdates },
                     set: { appState.setAutomaticallyChecksForUpdates($0) }
                 )
-            )
-            .disabled(!appState.isUpdaterAvailable)
-
-            Button("Check for Updates Now") {
-                appState.checkForUpdates()
+            ) {
+                SettingsRowLabel(
+                    title: "Automatically check for updates",
+                    description: updatesDescription
+                )
             }
             .disabled(!appState.isUpdaterAvailable)
+
+            SettingsRow(title: "Installed version") {
+                Text(appVersionText)
+                    .textSelection(.enabled)
+            }
+
+            SettingsActionRow {
+                Button("Check for Updates…") {
+                    appState.checkForUpdates()
+                }
+                .disabled(!appState.isUpdaterAvailable)
+            }
         } header: {
             Text("Updates")
         } footer: {
-            settingsFooter(updatesFooterText)
+            // Pane-scoped: below every box, the way "Advanced…" sits at the
+            // bottom of Privacy & Security.
+            settingsFooter(restoreDefaultsFooterText) {
+                Button("Restore Defaults…", role: .destructive) {
+                    showsRestoreDefaultsConfirmation = true
+                }
+                .confirmationDialog(
+                    "Restore all settings to their defaults?",
+                    isPresented: $showsRestoreDefaultsConfirmation
+                ) {
+                    Button("Restore Defaults", role: .destructive) {
+                        appState.restoreDefaults()
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text(
+                        "The menu bar count and watched mailboxes return to their defaults. "
+                            + "Your Gmail accounts, sign-ins, login item, and notification permission "
+                            + "are not affected."
+                    )
+                }
+            }
         }
     }
 
-    var updatesFooterText: String {
+    var updatesDescription: String {
         guard appState.isUpdaterAvailable else {
             return "Updates apply to an installed release of Mailbell, not to development builds."
         }
-        return "Mailbell \(appVersionText) is installed. Updates come from GitHub Releases and are "
-            + "checked against Mailbell's signature before they replace the app. "
-            + "Update checks never include Gmail data."
+        return "Updates come from GitHub Releases and are checked against Mailbell's signature before "
+            + "they replace the app. Update checks never include Gmail data."
     }
 
-    var restoreDefaultsSection: some View {
-        Section {
-            Button("Restore Defaults…", role: .destructive) {
-                showsRestoreDefaultsConfirmation = true
-            }
-            .confirmationDialog(
-                "Restore all settings to their defaults?",
-                isPresented: $showsRestoreDefaultsConfirmation
-            ) {
-                Button("Restore Defaults", role: .destructive) {
-                    appState.restoreDefaults()
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text(
-                    "The menu bar count and watched mailboxes return to their defaults. "
-                        + "Your Gmail accounts, sign-ins, login item, and notification permission are not affected."
-                )
-            }
-        } header: {
-            Text("Reset")
-        } footer: {
-            settingsFooter(
-                "Resets Mailbell's own preferences. Nothing is removed from Gmail and no account is disconnected."
-            )
-        }
+    var restoreDefaultsFooterText: String {
+        "Restoring defaults resets Mailbell's own preferences only. Nothing is removed from Gmail and "
+            + "no account is disconnected."
     }
 }

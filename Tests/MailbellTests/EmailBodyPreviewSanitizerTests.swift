@@ -244,4 +244,33 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         XCTAssertLessThanOrEqual(lines.count, 3)
         XCTAssertTrue(lines.allSatisfy { $0.count <= 83 })
     }
+
+    // Regression: a real BeWelcome notification arrived as a Markdown plain-text
+    // alternative and reached the notification as
+    // "[!\\]( [IMG] broadcast\\_body\\_phishing\\_warning Esta a receber...".
+    func testMarkdownImageLinkScaffoldingDoesNotReachThePreview() {
+        let raw = "[![](https://www.bewelcome.org/logo.png)](https://www.bewelcome.org) "
+            + "broadcast\\_body\\_phishing\\_warning Esta a receber esta mensagem."
+        let preview = EmailBodyPreviewSanitizer.preview(from: raw)
+
+        let text = preview ?? ""
+        XCTAssertFalse(text.contains("]("), "markdown link scaffolding must not survive")
+        XCTAssertFalse(text.contains("!["), "markdown image scaffolding must not survive")
+        XCTAssertFalse(text.contains("\\_"), "escaped underscores must be unescaped")
+        XCTAssertTrue(text.contains("broadcast_body_phishing_warning"))
+        XCTAssertTrue(text.contains("Esta a receber esta mensagem."))
+    }
+
+    func testMarkdownEmphasisAndHeadingMarkersAreRemoved() {
+        let preview = EmailBodyPreviewSanitizer.preview(
+            from: "## Weekly digest\n> quoted line\nSee [our site](https://example.com) for details."
+        )
+
+        let text = preview ?? ""
+        XCTAssertFalse(text.contains("##"))
+        XCTAssertFalse(text.contains(">"))
+        XCTAssertTrue(text.contains("Weekly digest"))
+        XCTAssertTrue(text.contains("our site"))
+        XCTAssertFalse(text.contains("https://example.com"))
+    }
 }

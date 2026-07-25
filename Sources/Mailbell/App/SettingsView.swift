@@ -105,7 +105,6 @@ struct SettingsView: View {
             pendingCountSection
             startupSection
             updatesSection
-            restoreDefaultsSection
         }
         .formStyle(.grouped)
     }
@@ -113,7 +112,6 @@ struct SettingsView: View {
     var notificationsTab: some View {
         Form {
             notificationStatusSection
-            notificationActionsSection
         }
         .formStyle(.grouped)
     }
@@ -146,6 +144,22 @@ struct SettingsView: View {
             .font(.footnote)
             .foregroundStyle(.secondary)
             .textSelection(.enabled)
+    }
+
+    /// Explanatory text plus the section's own actions, rendered below the group
+    /// box the way System Settings places a section-scoped button.
+    func settingsFooter(
+        _ text: String?,
+        @ViewBuilder actions: () -> some View
+    ) -> some View {
+        VStack(alignment: .leading, spacing: Token.Space.sm) {
+            if let text, !text.isEmpty {
+                settingsFooter(text)
+            }
+            SettingsActionRow {
+                actions()
+            }
+        }
     }
 
     var loginItemStatusValue: SettingsStatusValue {
