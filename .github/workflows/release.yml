@@ -66,11 +66,15 @@ jobs:
           [ -n "$SPARKLE_KEY" ] || missing+=(SPARKLE_PRIVATE_KEY)
           [ -n "$GOOGLE_CLIENT_ID" ] || missing+=(MAILBELL_GOOGLE_CLIENT_ID)
           if [ "${#missing[@]}" -ne 0 ]; then
-            echo "Official release blocked: missing required secrets: ${missing[*]}" >&2
-            exit 1
+            echo "Skipping the CI release: missing secrets: ${missing[*]}" >&2
+            echo "Cut the release locally with 'make release' until they are configured." >&2
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Import Developer ID certificate
+        if: steps.gate.outputs.ready == 'true'
         env:
           CERT: ${{ secrets.DEVELOPER_ID_CERT_P12 }}
           CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_CERT_PASSWORD }}
@@ -95,6 +99,7 @@ jobs:
           echo "MAILBELL_CODE_SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
 
       - name: Build and sign the app
+        if: steps.gate.outputs.ready == 'true'
         env:
           MAILBELL_GOOGLE_CLIENT_ID: ${{ secrets.MAILBELL_GOOGLE_CLIENT_ID }}
           MAILBELL_GOOGLE_CLIENT_SECRET: ${{ secrets.MAILBELL_GOOGLE_CLIENT_SECRET }}
@@ -109,6 +114,7 @@ jobs:
           ditto -c -k --keepParent "build/release/staging/Mailbell.app" "artifacts/Mailbell-$VERSION.zip"
 
       - name: Notarize, staple, and validate the app
+        if: steps.gate.outputs.ready == 'true'
         env:
           APPLE_ID: ${{ secrets.NOTARIZATION_APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
@@ -136,6 +142,7 @@ jobs:
           ditto -c -k --keepParent "$APP" "artifacts/Mailbell-$VERSION.zip"
 
       - name: Sign the update for Sparkle
+        if: steps.gate.outputs.ready == 'true'
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
@@ -146,6 +153,7 @@ jobs:
           echo "SPARKLE_SIG_ATTRS=$SIG" >> "$GITHUB_ENV"
 
       - name: Build, sign, and notarize the DMG
+        if: steps.gate.outputs.ready == 'true'
         env:
           APPLE_ID: ${{ secrets.NOTARIZATION_APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
@@ -175,6 +183,7 @@ jobs:
           hdiutil verify "$DMG" >/dev/null
 
       - name: Update the appcast on main
+        if: steps.gate.outputs.ready == 'true'
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           git config user.name "github-actions[bot]"
@@ -190,6 +199,7 @@ jobs:
           fi
 
       - name: Create the GitHub release
+        if: steps.gate.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

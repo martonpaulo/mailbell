@@ -115,8 +115,13 @@ release: icons ## Build, sign, notarize, and staple a tagged release DMG
 			exit 1; \
 		fi; \
 		plist_version="$$($(PLISTBUDDY) -c "Print :CFBundleShortVersionString" $(INFO_PLIST))"; \
+		plist_build="$$($(PLISTBUDDY) -c "Print :CFBundleVersion" $(INFO_PLIST))"; \
 		if [[ "$${plist_version}" != "$${VERSION}" ]]; then \
 			echo "error: tag v$${VERSION} does not match $(INFO_PLIST) ($${plist_version})" >&2; \
+			exit 1; \
+		fi; \
+		if [[ "$${plist_build}" != "$${BUILD_NUMBER}" ]]; then \
+			echo "error: $(INFO_PLIST) build $${plist_build} does not match derived $${BUILD_NUMBER}" >&2; \
 			exit 1; \
 		fi; \
 		final_dmg="$(BUILD_DIR)/$${DMG_NAME}"; \

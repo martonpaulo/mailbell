@@ -57,33 +57,11 @@ fi
 TAG="${valid_tags[0]}"
 VERSION="${TAG#v}"
 
-ci_build_number() {
-  local value
-  for key in \
-    GITHUB_RUN_NUMBER \
-    CI_PIPELINE_IID \
-    CI_PIPELINE_ID \
-    BUILD_NUMBER \
-    BUILDKITE_BUILD_NUMBER \
-    CIRCLE_BUILD_NUM \
-    TRAVIS_BUILD_NUMBER \
-    BITRISE_BUILD_NUMBER
-  do
-    value="${!key:-}"
-    if [[ -n "${value}" ]]; then
-      if [[ ! "${value}" =~ ^[0-9]+$ || "${value}" == "0" ]]; then
-        fail "${key} must be a positive integer build number"
-      fi
-      printf '%s\n' "${value}"
-      return 0
-    fi
-  done
-  return 1
-}
-
-if ! BUILD_NUMBER="$(ci_build_number)"; then
-  BUILD_NUMBER="$(git rev-list --count HEAD)"
-fi
+# Derived from the version so every release path agrees: this script, the CI
+# workflow, and CFBundleVersion in Resources/Info.plist. A commit count would
+# differ between a local build and CI for the same tag.
+IFS=. read -r VERSION_MAJOR VERSION_MINOR VERSION_PATCH <<< "${VERSION}"
+BUILD_NUMBER="$(( VERSION_MAJOR * 10000 + VERSION_MINOR * 100 + VERSION_PATCH ))"
 
 if [[ ! "${BUILD_NUMBER}" =~ ^[0-9]+$ || "${BUILD_NUMBER}" == "0" ]]; then
   fail "resolved build number must be a positive integer"
