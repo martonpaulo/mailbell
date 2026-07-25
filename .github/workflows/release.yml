@@ -42,9 +42,12 @@ jobs:
             exit 1
           }
 
-      # Fail closed: a release without real credentials would ship an app that
-      # cannot sign in, or one Gatekeeper refuses to open.
-      - name: Require official release credentials
+      # Releases are cut locally with `make release` until the signing secrets
+      # are configured here. Publishing nothing is safe; publishing an unsigned
+      # or credential-less build is not. So this gate skips the rest of the job
+      # rather than failing it, and every later step depends on the gate.
+      - name: Check for official release credentials
+        id: gate
         env:
           CERT: ${{ secrets.DEVELOPER_ID_CERT_P12 }}
           CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_CERT_PASSWORD }}

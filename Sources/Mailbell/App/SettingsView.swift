@@ -2,12 +2,14 @@ import AppKit
 import SwiftUI
 import UserNotifications
 
+/// Four panes, each owning one coherent question:
+/// how Mailbell presents itself, whether alerts get through, which mailboxes it
+/// watches, and what it is. Nothing that belongs to one account is split across
+/// two panes.
 enum SettingsTab: CaseIterable, Identifiable {
     case general
     case notifications
     case accounts
-    case advanced
-    case updates
     case about
 
     var id: Self {
@@ -22,10 +24,6 @@ enum SettingsTab: CaseIterable, Identifiable {
             "Notifications"
         case .accounts:
             "Accounts"
-        case .advanced:
-            "Advanced"
-        case .updates:
-            "Updates"
         case .about:
             "About"
         }
@@ -39,17 +37,12 @@ enum SettingsTab: CaseIterable, Identifiable {
             "bell"
         case .accounts:
             "person.crop.circle"
-        case .advanced:
-            "slider.horizontal.3"
-        case .updates:
-            "arrow.triangle.2.circlepath"
         case .about:
             "info.circle"
         }
     }
 }
 
-// swiftlint:disable:next type_body_length
 struct SettingsView: View {
     @ObservedObject var appState: AppState
     @State var launchAtLogin = LoginItem.isEnabled
@@ -77,16 +70,6 @@ struct SettingsView: View {
                     Label(SettingsTab.accounts.title, systemImage: SettingsTab.accounts.systemImage)
                 }
 
-            advancedTab
-                .tabItem {
-                    Label(SettingsTab.advanced.title, systemImage: SettingsTab.advanced.systemImage)
-                }
-
-            updatesTab
-                .tabItem {
-                    Label(SettingsTab.updates.title, systemImage: SettingsTab.updates.systemImage)
-                }
-
             aboutTab
                 .tabItem {
                     Label(SettingsTab.about.title, systemImage: SettingsTab.about.systemImage)
@@ -111,8 +94,8 @@ struct SettingsView: View {
             }
         } message: {
             Text(
-                "Mailbell will delete local tokens and stop notifications for this account. "
-                    + "Gmail mail will not be changed."
+                "Mailbell deletes this account's sign-in from your Keychain and stops watching it. "
+                    + "Nothing in Gmail changes, and no mail is deleted."
             )
         }
     }
@@ -121,14 +104,8 @@ struct SettingsView: View {
         Form {
             pendingCountSection
             startupSection
-            restoreDefaultsSection
-        }
-        .formStyle(.grouped)
-    }
-
-    var updatesTab: some View {
-        Form {
             updatesSection
+            restoreDefaultsSection
         }
         .formStyle(.grouped)
     }
@@ -141,19 +118,13 @@ struct SettingsView: View {
         .formStyle(.grouped)
     }
 
+    /// Everything about an account lives here, including where its mail opens,
+    /// so a user never has to remember which pane holds which half.
     var accountsTab: some View {
         Form {
             accountOverviewSection
+            watchedMailboxesSection
             accountSections
-        }
-        .formStyle(.grouped)
-    }
-
-    var advancedTab: some View {
-        Form {
-            spamSection
-            webmailSections
-            oauthSetupSection
         }
         .formStyle(.grouped)
         .task {
@@ -186,6 +157,12 @@ struct SettingsView: View {
         case .requiresApproval, .unavailable:
             SettingsStatusValue(loginItemStatus.title, tone: .warning, context: "Login item")
         }
+    }
+
+    /// The toggle already reports the ordinary case. A separate status row earns
+    /// its space only when the system disagrees with what the toggle says.
+    var loginItemNeedsAttention: Bool {
+        loginItemStatus == .requiresApproval || loginItemStatus == .unavailable
     }
 
     func refreshBehaviorState() {

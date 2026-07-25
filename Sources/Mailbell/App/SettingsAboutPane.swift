@@ -16,8 +16,6 @@ extension SettingsView {
                 Text(AppIdentity.bundleIdentifier)
                     .textSelection(.enabled)
             }
-        } header: {
-            Text("About")
         } footer: {
             settingsFooter(
                 "Mailbell runs entirely on this Mac. There is no Mailbell server, and Gmail data never leaves your Mac."

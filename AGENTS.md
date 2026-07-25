@@ -184,8 +184,23 @@ Preserve the IMAP IDLE reconnect model:
   user (sign-in expired, surfaced error) outranks unread mail, so the alert
   symbol replaces the bell rather than the app looking idle while nothing is
   monitored.
-- Settings stays small and native: menu bar, startup, notifications, accounts,
-  advanced routing, updates, about.
+- Settings stays small and native: four panes, each owning one question —
+  **General** (how Mailbell presents itself: menu bar, startup, updates, reset),
+  **Notifications** (whether alerts get through), **Accounts** (which mailboxes
+  are watched, and everything about each account), **About** (what it is).
+  Never split one entity across panes: an account's status, routing, and removal
+  belong together.
+- **Controls carry meaning; pick the right one.**
+  - `Toggle` for a binary preference, labelled with a **stable description of
+    the enabled state**. A label that inverts with its own value
+    ("Disable Account") reads as its own opposite and is a defect.
+  - `LabeledContent` for **label to value** only — status, counts, versions.
+    Wrapping a button in one produces "Remove Account: Remove" and is banned.
+  - A bare `Button` whose title is a complete, self-naming action.
+  - Destructive actions use `role: .destructive`, never a hand-applied red.
+  - A status row earns its space only when it can disagree with the control
+    above it; otherwise it is noise.
+  These rules are enforced by `SettingsControlSemanticsTests`.
 - Preserve native controls, keyboard navigation, focus, hover/pressed/disabled/
   loading/error states, Dynamic Type, contrast, validation feedback, and safe
   areas.

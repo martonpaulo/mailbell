@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>Mailbell</title>
+    <link>https://github.com/martonpaulo/mailbell</link>
+    <description>Most recent updates to Mailbell</description>
+    <language>en</language>
+    <item>
+      <title>0.1.0</title>
+      <pubDate>Sat, 25 Jul 2026 18:19:37 +0000</pubDate>
+      <sparkle:releaseNotesLink>https://github.com/martonpaulo/mailbell/releases/tag/v0.1.0</sparkle:releaseNotesLink>
+      <sparkle:version>89</sparkle:version>
+      <sparkle:shortVersionString>0.1.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/martonpaulo/mailbell/releases/download/v0.1.0/Mailbell-0.1.0.zip" sparkle:edSignature="eXWdSwEzixTOburwZPZVqpYHitlnwrT5n33yKbrknYouOB9AlcyA1/2+JMMVlcRW3qnb5N3FTVT7vRHprF7vAA==" length="3817342" type="application/octet-stream"/>
+    </item>
+  </channel>
+</rss>

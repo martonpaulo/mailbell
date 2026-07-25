@@ -4,9 +4,11 @@ import UserNotifications
 
 /// macOS notification permission state and the controls that change it.
 extension SettingsView {
+    /// Status rows sit with the actions that change that status, so a user who
+    /// sees "Denied" finds the fix without hunting through another section.
     var notificationStatusSection: some View {
         Section {
-            LabeledContent("Permission") {
+            LabeledContent("Status") {
                 notificationPermissionStatus
             }
 
@@ -21,8 +23,20 @@ extension SettingsView {
             LabeledContent("Badge") {
                 notificationSettingStatusValue(appState.notificationAuthorizationState.badgeSetting, context: "Badge")
             }
+
+            if appState.notificationAuthorizationState.canRequestPermission {
+                Button("Allow Notifications…") {
+                    appState.requestNotificationAuthorization()
+                }
+            }
+
+            if appState.notificationAuthorizationState.shouldOpenSystemSettings {
+                Button("Open Notification Settings") {
+                    SystemSettings.open()
+                }
+            }
         } header: {
-            Text("Notifications")
+            Text("Permission")
         } footer: {
             settingsFooter(notificationFooterText)
         }
@@ -30,41 +44,26 @@ extension SettingsView {
 
     var notificationActionsSection: some View {
         Section {
-            LabeledContent("Notification Status") {
-                Button("Refresh") {
-                    appState.refreshNotificationAuthorizationState(showStatusMessage: true)
+            HStack(spacing: Token.Space.sm) {
+                Button("Send a Test Notification") {
+                    appState.sendTestNotification()
                 }
-            }
+                .disabled(appState.isSendingTestNotification)
 
-            LabeledContent("Test Notification") {
                 if appState.isSendingTestNotification {
-                    SettingsProgressValue("Sending", context: "Test notification")
-                } else {
-                    Button("Send") {
-                        appState.sendTestNotification()
-                    }
+                    ProgressView()
+                        .controlSize(.small)
+                        .accessibilityLabel("Sending test notification")
                 }
             }
 
-            if appState.notificationAuthorizationState.canRequestPermission {
-                LabeledContent("Permission Request") {
-                    Button("Request") {
-                        appState.requestNotificationAuthorization()
-                    }
-                }
-            }
-
-            if appState.notificationAuthorizationState.shouldOpenSystemSettings {
-                LabeledContent("System Settings") {
-                    Button("Open") {
-                        SystemSettings.open()
-                    }
-                }
+            Button("Refresh Permission Status") {
+                appState.refreshNotificationAuthorizationState(showStatusMessage: true)
             }
         } header: {
-            Text("Notification Controls")
+            Text("Check Delivery")
         } footer: {
-            notificationActionsFooter
+            settingsFooter(notificationActionsFooterText)
         }
     }
 
@@ -102,28 +101,23 @@ extension SettingsView {
         }
     }
 
-    @ViewBuilder
-    var notificationActionsFooter: some View {
-        if appState.isSendingTestNotification {
-            settingsFooter("Sending test notification…")
-        } else {
-            settingsFooter(notificationActionsFooterText)
-        }
-    }
-
     var notificationActionsFooterText: String {
+        if appState.isSendingTestNotification {
+            return "Sending a test notification…"
+        }
         if let message = appState.notificationTestMessage {
             return message
         }
         if let message = appState.notificationStatusMessage {
             return message
         }
-        return "Use Refresh after changing notification settings in macOS."
+        return "A test notification confirms macOS will actually show Mailbell's alerts. "
+            + "Refresh after changing anything in System Settings."
     }
 
     var notificationFooterText: String {
         guard notificationNeedsAttention else {
-            return "Mailbell uses macOS notification settings for alerts, sound, and badge."
+            return "Alerts, sound, and badge follow whatever you set for Mailbell in System Settings."
         }
         return appState.notificationAuthorizationState.detail
     }

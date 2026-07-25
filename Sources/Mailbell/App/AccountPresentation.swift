@@ -91,10 +91,6 @@ enum AccountRecoveryAction: Equatable {
 }
 
 enum AccountPresentation {
-    static func webmailOpenLabel(email: String) -> String {
-        email
-    }
-
     static func menuTitle(for state: AccountRuntimeState) -> String {
         "\(statusText(for: state)) • \(state.account.email)"
     }

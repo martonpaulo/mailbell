@@ -76,13 +76,6 @@ final class AccountPresentationTests: XCTestCase {
         )
     }
 
-    func testWebmailOpenLabelUsesOnlyAccountEmail() {
-        XCTAssertEqual(
-            AccountPresentation.webmailOpenLabel(email: "user@example.com"),
-            "user@example.com"
-        )
-    }
-
     private func state(
         email: String = "user@example.com",
         status: MonitorStatus,

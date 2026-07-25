@@ -12,46 +12,32 @@ struct AccountWebmailSettingsView: View {
 
     var body: some View {
         Group {
-            LabeledContent {
-                Picker("Open with", selection: $selectedBrowserID) {
-                    ForEach(browserOptions) { browser in
-                        Text(browserLabel(for: browser)).tag(browser.id)
-                    }
+            // The section header already names the account, so this row says
+            // what the control does instead of repeating the address.
+            Picker("Open with", selection: $selectedBrowserID) {
+                ForEach(browserOptions) { browser in
+                    Text(browserLabel(for: browser)).tag(browser.id)
                 }
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .onChange(of: selectedBrowserID) {
-                    userChangedPreference()
-                }
-            } label: {
-                Text(AccountPresentation.webmailOpenLabel(email: accountState.account.email))
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+            }
+            .pickerStyle(.menu)
+            .onChange(of: selectedBrowserID) {
+                userChangedPreference()
             }
 
             if selectedBrowserSupportsChromeProfiles {
-                LabeledContent("Chrome profile") {
-                    Picker("Chrome profile", selection: $selectedChromeProfileDirectory) {
-                        ForEach(chromeProfileOptions) { option in
-                            Text(option.label).tag(option.directory)
-                        }
+                Picker("Chrome profile", selection: $selectedChromeProfileDirectory) {
+                    ForEach(chromeProfileOptions) { option in
+                        Text(option.label).tag(option.directory)
                     }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
-                    .onChange(of: selectedChromeProfileDirectory) {
-                        userChangedPreference()
-                    }
+                }
+                .pickerStyle(.menu)
+                .onChange(of: selectedChromeProfileDirectory) {
+                    userChangedPreference()
                 }
             }
 
             if let warning = missingSelectionWarning {
-                Label(warning, systemImage: "exclamationmark.triangle.fill")
-                    .textSelection(.enabled)
-            }
-
-            if let error = accountState.webmailOpenError {
-                Label(error, systemImage: "exclamationmark.triangle.fill")
-                    .textSelection(.enabled)
+                webmailProblem(warning)
             }
         }
         .onAppear {
@@ -65,6 +51,19 @@ struct AccountWebmailSettingsView: View {
         }
         .onChange(of: chromeProfiles) {
             syncFromAccount()
+        }
+    }
+
+    /// A routing problem the user can still act on: the app keeps working by
+    /// falling back, so this warns rather than reading as a failure.
+    private func webmailProblem(_ message: String) -> some View {
+        Label {
+            Text(message)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+        } icon: {
+            Image(systemName: SettingsStatusTone.warning.systemImage)
+                .foregroundStyle(SettingsStatusTone.warning.iconColor)
         }
     }
 

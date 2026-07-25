@@ -5,7 +5,7 @@ final class SettingsPresentationTests: XCTestCase {
     func testSettingsTabsExposeRequiredNativeTopLevelSections() {
         XCTAssertEqual(
             SettingsTab.allCases.map(\.title),
-            ["General", "Notifications", "Accounts", "Advanced", "Updates", "About"]
+            ["General", "Notifications", "Accounts", "About"]
         )
     }
 }
