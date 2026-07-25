@@ -169,12 +169,32 @@ Per release: bump `CFBundleShortVersionString` in `Resources/Info.plist`, add a
 git tag v0.1.0 && make release
 ```
 
-`make release` refuses a dirty worktree or a tag that disagrees with the plist.
-It builds, signs with Developer ID, notarizes and staples both the app archive
-and the DMG, signs the update for Sparkle, and writes the `appcast.xml` entry.
-Commit the appcast, push the tag, and attach the DMG and ZIP to the GitHub
-Release. Pushing a `v*.*.*` tag runs the same flow in CI when the release
-secrets are configured.
+`make release` refuses a dirty worktree, a tag that disagrees with the plist
+version, or a build number that disagrees with the derived one. It builds, signs
+with Developer ID, notarizes and staples both the app archive and the DMG, signs
+the update for Sparkle, and writes the `appcast.xml` entry. Commit the appcast,
+push the tag, and attach the DMG and ZIP to the GitHub Release.
+
+Pushing a `v*.*.*` tag runs the same flow in CI. It needs these repository
+secrets, and skips the release cleanly if any are missing rather than failing:
+
+| Secret | What it is |
+|---|---|
+| `DEVELOPER_ID_CERT_P12` | base64 of a PKCS#12 holding **only** the Developer ID Application identity |
+| `DEVELOPER_ID_CERT_PASSWORD` | that PKCS#12's export password |
+| `NOTARIZATION_APPLE_ID` | Apple Developer account email |
+| `NOTARIZATION_PASSWORD` | app-specific password for notarization |
+| `NOTARIZATION_TEAM_ID` | Apple Developer Team ID |
+| `SPARKLE_PRIVATE_KEY` | Sparkle EdDSA private key (`generate_keys -x`) |
+| `MAILBELL_GOOGLE_CLIENT_ID` / `MAILBELL_GOOGLE_CLIENT_SECRET` | the release OAuth client |
+
+> **Exporting the certificate:** `security export -t identities` dumps *every*
+> identity in the login keychain, which on a normal Mac includes unrelated
+> personal certificates such as government eID keys. Narrow the export to the
+> single Developer ID identity before it goes anywhere near a secret store.
+
+`workflow_dispatch` reruns the whole signing chain against an existing tag, so
+the pipeline can be exercised without inventing a version.
 
 ## 🐛 Troubleshooting
 

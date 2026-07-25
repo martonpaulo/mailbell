@@ -3,6 +3,14 @@ name: Release
 on:
   push:
     tags: ["v*.*.*"]
+  # Lets the signing, notarization, and Sparkle chain be exercised against an
+  # existing tag without inventing a version. Publishing steps still refuse to
+  # replace a release that already exists.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing vX.Y.Z tag to build"
+        required: true
 
 permissions:
   contents: write
@@ -14,6 +22,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Tests and validation
         run: |
@@ -23,7 +32,9 @@ jobs:
       - name: Derive version
         id: version
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           IFS=. read -r MAJOR MINOR PATCH <<< "$VERSION"
           BUILD=$((MAJOR * 10000 + MINOR * 100 + PATCH))
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
@@ -32,10 +43,14 @@ jobs:
       - name: Enforce release source and version
         run: |
           git fetch origin main
-          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" || {
-            echo "Official release tags must point at the current main commit." >&2
-            exit 1
-          }
+          # A manual run rebuilds an existing tag, which main has usually moved
+          # past; only a tag push has to be the tip of main.
+          if [ "${{ github.event_name }}" = "push" ]; then
+            test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" || {
+              echo "Official release tags must point at the current main commit." >&2
+              exit 1
+            }
+          fi
           PLIST_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Resources/Info.plist)
           test "$PLIST_VERSION" = "${{ steps.version.outputs.version }}" || {
             echo "Tag version does not match Resources/Info.plist ($PLIST_VERSION)." >&2
@@ -204,7 +219,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+          if gh release view "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
             echo "release $GITHUB_REF_NAME already exists; skipping creation"
             exit 0
           fi
@@ -214,7 +229,7 @@ jobs:
             printing { print }
           ' CHANGELOG.md > release-notes.md
           test -s release-notes.md || { echo "Missing CHANGELOG release notes for $VERSION" >&2; exit 1; }
-          gh release create "$GITHUB_REF_NAME" \
+          gh release create "${{ steps.version.outputs.tag }}" \
             "artifacts/Mailbell-$VERSION.dmg" \
             "artifacts/Mailbell-$VERSION.zip" \
             --title "Mailbell $VERSION" \
