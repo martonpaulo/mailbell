@@ -7,7 +7,7 @@ let package = Package(
         .macOS(.v26)
     ],
     dependencies: [
-        .package(url: "https://github.com/swhitty/FlyingFox.git", .upToNextMinor(from: "0.26.2")),
+        .package(url: "https://github.com/swhitty/FlyingFox.git", .upToNextMinor(from: "0.27.1")),
         .package(url: "https://github.com/scinfu/SwiftSoup.git", .upToNextMajor(from: "2.13.5")),
         // Automatic updates for the direct-download build. Update checks are the
         // only network activity Mailbell performs outside Gmail itself.
