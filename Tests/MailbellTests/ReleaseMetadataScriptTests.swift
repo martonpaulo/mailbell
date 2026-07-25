@@ -7,7 +7,7 @@ final class ReleaseMetadataScriptTests: XCTestCase {
         let stderr: String
     }
 
-    func testResolvesVersionAndFallbackBuildNumberFromExactTag() throws {
+    func testDerivesBuildNumberFromTheVersion() throws {
         let repo = try makeTemporaryGitRepository(lightweightTag: "v1.2.3")
         defer { try? FileManager.default.removeItem(at: repo) }
 
@@ -16,7 +16,9 @@ final class ReleaseMetadataScriptTests: XCTestCase {
         XCTAssertEqual(result.status, 0, result.stderr)
         let values = parseAssignments(result.stdout)
         XCTAssertEqual(values["VERSION"], "1.2.3")
-        XCTAssertEqual(values["BUILD_NUMBER"], "1")
+        // major * 10000 + minor * 100 + patch, matching the release workflow
+        // and CFBundleVersion in Resources/Info.plist.
+        XCTAssertEqual(values["BUILD_NUMBER"], "10203")
         XCTAssertEqual(values["DMG_NAME"], "Mailbell-1.2.3.dmg")
         XCTAssertEqual(values["DMG_VOLUME_NAME"], "Install Mailbell")
     }
@@ -30,23 +32,35 @@ final class ReleaseMetadataScriptTests: XCTestCase {
         XCTAssertEqual(result.status, 0, result.stderr)
         let values = parseAssignments(result.stdout)
         XCTAssertEqual(values["VERSION"], "1.2.4")
-        XCTAssertEqual(values["BUILD_NUMBER"], "1")
+        XCTAssertEqual(values["BUILD_NUMBER"], "10204")
         XCTAssertEqual(values["DMG_NAME"], "Mailbell-1.2.4.dmg")
     }
 
-    func testUsesCIBuildNumberWhenPresent() throws {
+    /// The build number must not depend on where the release is built. A CI run
+    /// number or a commit count would make the same tag produce a different
+    /// CFBundleVersion locally and in CI, which Sparkle compares when deciding
+    /// whether an update is newer.
+    func testBuildNumberIgnoresTheCIEnvironment() throws {
         let repo = try makeTemporaryGitRepository(lightweightTag: "v2.0.0")
         defer { try? FileManager.default.removeItem(at: repo) }
 
-        let result = runReleaseMetadataScript(
+        let plain = runReleaseMetadataScript(currentDirectory: repo)
+        let underCI = runReleaseMetadataScript(
             currentDirectory: repo,
-            environment: ["GITHUB_RUN_NUMBER": "987"]
+            environment: [
+                "GITHUB_RUN_NUMBER": "987",
+                "CI_PIPELINE_IID": "654",
+                "BUILD_NUMBER": "321"
+            ]
         )
 
-        XCTAssertEqual(result.status, 0, result.stderr)
-        let values = parseAssignments(result.stdout)
-        XCTAssertEqual(values["VERSION"], "2.0.0")
-        XCTAssertEqual(values["BUILD_NUMBER"], "987")
+        XCTAssertEqual(plain.status, 0, plain.stderr)
+        XCTAssertEqual(underCI.status, 0, underCI.stderr)
+        let plainValues = parseAssignments(plain.stdout)
+        let ciValues = parseAssignments(underCI.stdout)
+        XCTAssertEqual(plainValues["VERSION"], "2.0.0")
+        XCTAssertEqual(plainValues["BUILD_NUMBER"], "20000")
+        XCTAssertEqual(ciValues["BUILD_NUMBER"], plainValues["BUILD_NUMBER"])
     }
 
     func testFailsWhenHeadIsNotOnReleaseTag() throws {
