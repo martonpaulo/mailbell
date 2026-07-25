@@ -7,20 +7,35 @@ import UserNotifications
 extension SettingsView {
     var notificationStatusSection: some View {
         Section {
-            SettingsRow(title: "Mailbell notifications", description: notificationStatusDescription) {
+            SettingsRow(
+                title: SettingsCopy.Notifications.statusTitle,
+                description: SettingsCopy.Notifications.statusDescription(
+                    needsAttention: notificationNeedsAttention,
+                    detail: appState.notificationAuthorizationState.detail
+                )
+            ) {
                 notificationPermissionStatus
             }
 
-            SettingsRow(title: "Alerts") {
-                notificationSettingStatusValue(appState.notificationAuthorizationState.alertSetting, context: "Alerts")
+            SettingsRow(title: SettingsCopy.Notifications.alertsTitle) {
+                notificationSettingStatusValue(
+                    appState.notificationAuthorizationState.alertSetting,
+                    context: SettingsCopy.Notifications.alertsTitle
+                )
             }
 
-            SettingsRow(title: "Sound") {
-                notificationSettingStatusValue(appState.notificationAuthorizationState.soundSetting, context: "Sound")
+            SettingsRow(title: SettingsCopy.Notifications.soundTitle) {
+                notificationSettingStatusValue(
+                    appState.notificationAuthorizationState.soundSetting,
+                    context: SettingsCopy.Notifications.soundTitle
+                )
             }
 
-            SettingsRow(title: "Badge") {
-                notificationSettingStatusValue(appState.notificationAuthorizationState.badgeSetting, context: "Badge")
+            SettingsRow(title: SettingsCopy.Notifications.badgeTitle) {
+                notificationSettingStatusValue(
+                    appState.notificationAuthorizationState.badgeSetting,
+                    context: SettingsCopy.Notifications.badgeTitle
+                )
             }
 
             // Section-scoped: the actions that change the status above, inside
@@ -28,34 +43,34 @@ extension SettingsView {
             if notificationNeedsAttention {
                 SettingsActionRow {
                     if appState.notificationAuthorizationState.canRequestPermission {
-                        Button("Allow Notifications…") {
+                        Button(SettingsCopy.Notifications.allow) {
                             appState.requestNotificationAuthorization()
                         }
                     }
 
                     if appState.notificationAuthorizationState.shouldOpenSystemSettings {
-                        Button("Open Notification Settings") {
+                        Button(SettingsCopy.Notifications.openSystemSettings) {
                             SystemSettings.open()
                         }
                     }
                 }
             }
         } header: {
-            Text("Permission")
+            Text(SettingsCopy.Notifications.sectionTitle)
         } footer: {
             // Pane-scoped verification actions, below the box.
             settingsFooter(notificationActionsFooterText) {
                 if appState.isSendingTestNotification {
                     ProgressView()
                         .controlSize(.small)
-                        .accessibilityLabel("Sending test notification")
+                        .accessibilityLabel(SettingsCopy.Notifications.sendingTestAccessibilityLabel)
                 }
 
-                Button("Refresh Status") {
+                Button(SettingsCopy.Notifications.refreshStatus) {
                     appState.refreshNotificationAuthorizationState(showStatusMessage: true)
                 }
 
-                Button("Send Test Notification") {
+                Button(SettingsCopy.Notifications.sendTest) {
                     appState.sendTestNotification()
                 }
                 .disabled(appState.isSendingTestNotification)
@@ -63,28 +78,22 @@ extension SettingsView {
         }
     }
 
-    var notificationStatusDescription: String {
-        guard notificationNeedsAttention else {
-            return "Alerts, sound, and badge follow whatever you set for Mailbell in System Settings."
-        }
-        return appState.notificationAuthorizationState.detail
-    }
-
     var notificationPermissionStatus: SettingsStatusValue {
         let state = appState.notificationAuthorizationState
+        let context = SettingsCopy.Notifications.statusTitle
         guard state.isBundled else {
-            return SettingsStatusValue(state.summary, tone: .warning, context: "Notification permission")
+            return SettingsStatusValue(state.summary, tone: .warning, context: context)
         }
 
         switch state.status {
         case .authorized, .provisional, .ephemeral:
-            return SettingsStatusValue(state.summary, tone: .success, context: "Notification permission")
+            return SettingsStatusValue(state.summary, tone: .success, context: context)
         case .denied:
-            return SettingsStatusValue(state.summary, tone: .error, context: "Notification permission")
+            return SettingsStatusValue(state.summary, tone: .error, context: context)
         case .notDetermined:
-            return SettingsStatusValue(state.summary, tone: .warning, context: "Notification permission")
+            return SettingsStatusValue(state.summary, tone: .warning, context: context)
         @unknown default:
-            return SettingsStatusValue(state.summary, tone: .warning, context: "Notification permission")
+            return SettingsStatusValue(state.summary, tone: .warning, context: context)
         }
     }
 
@@ -105,17 +114,11 @@ extension SettingsView {
     }
 
     var notificationActionsFooterText: String {
-        if appState.isSendingTestNotification {
-            return "Sending a test notification…"
-        }
-        if let message = appState.notificationTestMessage {
-            return message
-        }
-        if let message = appState.notificationStatusMessage {
-            return message
-        }
-        return "A test notification confirms macOS will actually show Mailbell's alerts. "
-            + "Refresh after changing anything in System Settings."
+        SettingsCopy.Notifications.footer(
+            isSendingTest: appState.isSendingTestNotification,
+            testMessage: appState.notificationTestMessage,
+            statusMessage: appState.notificationStatusMessage
+        )
     }
 
     var notificationNeedsAttention: Bool {

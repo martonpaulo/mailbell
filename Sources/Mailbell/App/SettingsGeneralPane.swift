@@ -1,123 +1,100 @@
 import AppKit
 import SwiftUI
-import UserNotifications
 
 /// How Mailbell presents itself: menu bar, startup, and updates. Restore
 /// Defaults is pane-scoped, so it sits below every box.
 extension SettingsView {
     var pendingCountSection: some View {
         Section {
-            Toggle(
+            SettingsToggleRow(
+                title: SettingsCopy.MenuBar.showCountTitle,
+                description: SettingsCopy.MenuBar.showCountDescription,
                 isOn: Binding(
                     get: { appState.showPendingCount },
                     set: { appState.setShowPendingCount($0) }
                 )
-            ) {
-                SettingsRowLabel(
-                    title: "Show the number of messages awaiting review",
-                    description: "The bell is always visible. Turn this off to keep the menu bar quiet "
-                        + "and see the count only when you open the menu."
-                )
-            }
+            )
         } header: {
-            Text("Menu Bar")
+            Text(SettingsCopy.MenuBar.sectionTitle)
         }
     }
 
     var startupSection: some View {
         Section {
-            Toggle(isOn: $launchAtLogin) {
-                SettingsRowLabel(
-                    title: "Open Mailbell at login",
-                    description: "Mailbell watches for mail only while it is running."
-                )
-            }
+            SettingsToggleRow(
+                title: SettingsCopy.Startup.openAtLoginTitle,
+                description: SettingsCopy.Startup.openAtLoginDescription,
+                isOn: $launchAtLogin
+            )
             .onChange(of: launchAtLogin) { _, newValue in
                 LoginItem.set(newValue)
                 refreshLoginItemStatus()
             }
 
             if loginItemNeedsAttention {
-                SettingsRow(title: "Login item", description: loginItemStatus.detail) {
+                SettingsRow(
+                    title: SettingsCopy.Startup.loginItemTitle,
+                    description: loginItemStatus.detail
+                ) {
                     loginItemStatusValue
                 }
 
                 // Section-scoped: inside the box, as its own last row.
                 SettingsActionRow {
-                    Button("Open Login Items Settings") {
+                    Button(SettingsCopy.Startup.openLoginItemsSettings) {
                         SystemSettings.open()
                     }
                 }
             }
         } header: {
-            Text("Startup")
+            Text(SettingsCopy.Startup.sectionTitle)
         }
     }
 
     var updatesSection: some View {
         Section {
-            Toggle(
+            SettingsToggleRow(
+                title: SettingsCopy.Updates.automaticTitle,
+                description: SettingsCopy.Updates.description(isUpdaterAvailable: appState.isUpdaterAvailable),
                 isOn: Binding(
                     get: { appState.automaticallyChecksForUpdates },
                     set: { appState.setAutomaticallyChecksForUpdates($0) }
                 )
-            ) {
-                SettingsRowLabel(
-                    title: "Automatically check for updates",
-                    description: updatesDescription
-                )
-            }
+            )
             .disabled(!appState.isUpdaterAvailable)
 
-            SettingsRow(title: "Installed version") {
+            SettingsRow(title: SettingsCopy.Updates.installedVersionTitle) {
                 Text(appVersionText)
                     .textSelection(.enabled)
             }
 
             SettingsActionRow {
-                Button("Check for Updates…") {
+                Button(SettingsCopy.Updates.checkNow) {
                     appState.checkForUpdates()
                 }
                 .disabled(!appState.isUpdaterAvailable)
             }
         } header: {
-            Text("Updates")
+            Text(SettingsCopy.Updates.sectionTitle)
         } footer: {
             // Pane-scoped: below every box, the way "Advanced…" sits at the
             // bottom of Privacy & Security.
-            settingsFooter(restoreDefaultsFooterText) {
-                Button("Restore Defaults…", role: .destructive) {
+            settingsFooter(SettingsCopy.RestoreDefaults.footer) {
+                Button(SettingsCopy.RestoreDefaults.action, role: .destructive) {
                     showsRestoreDefaultsConfirmation = true
                 }
                 .confirmationDialog(
-                    "Restore all settings to their defaults?",
+                    SettingsCopy.RestoreDefaults.confirmTitle,
                     isPresented: $showsRestoreDefaultsConfirmation
                 ) {
-                    Button("Restore Defaults", role: .destructive) {
+                    Button(SettingsCopy.RestoreDefaults.confirmAction, role: .destructive) {
                         appState.restoreDefaults()
                     }
-                    Button("Cancel", role: .cancel) {}
+                    Button(SettingsCopy.RestoreDefaults.cancel, role: .cancel) {}
                 } message: {
-                    Text(
-                        "The menu bar count and watched mailboxes return to their defaults. "
-                            + "Your Gmail accounts, sign-ins, login item, and notification permission "
-                            + "are not affected."
-                    )
+                    Text(SettingsCopy.RestoreDefaults.confirmMessage)
                 }
             }
         }
-    }
-
-    var updatesDescription: String {
-        guard appState.isUpdaterAvailable else {
-            return "Updates apply to an installed release of Mailbell, not to development builds."
-        }
-        return "Updates come from GitHub Releases and are checked against Mailbell's signature before "
-            + "they replace the app. Update checks never include Gmail data."
-    }
-
-    var restoreDefaultsFooterText: String {
-        "Restoring defaults resets Mailbell's own preferences only. Nothing is removed from Gmail and "
-            + "no account is disconnected."
     }
 }

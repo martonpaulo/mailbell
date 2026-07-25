@@ -83,20 +83,17 @@ struct SettingsView: View {
             isPresented: accountRemovalBinding,
             titleVisibility: .visible
         ) {
-            Button("Remove Account", role: .destructive) {
+            Button(SettingsCopy.Accounts.confirmRemoveAction, role: .destructive) {
                 if let account = accountPendingRemoval {
                     appState.removeAccount(accountID: account.id)
                     accountPendingRemoval = nil
                 }
             }
-            Button("Cancel", role: .cancel) {
+            Button(SettingsCopy.Accounts.cancel, role: .cancel) {
                 accountPendingRemoval = nil
             }
         } message: {
-            Text(
-                "Mailbell deletes this account's sign-in from your Keychain and stops watching it. "
-                    + "Nothing in Gmail changes, and no mail is deleted."
-            )
+            Text(SettingsCopy.Accounts.removeMessage)
         }
     }
 

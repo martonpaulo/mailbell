@@ -107,6 +107,53 @@ for page in docs/index.html docs/privacy.html docs/terms.html; do
         || note "$page must identify the current page"
 done
 
+# Settings control semantics. These are source-shape invariants, not behavior,
+# so they live here rather than masquerading as unit tests. Panes are discovered
+# so a new one cannot skip the rules.
+panes=$(ls Sources/Mailbell/App/Settings*Pane.swift 2>/dev/null || true)
+[ -n "$panes" ] || note "no Settings pane sources found"
+for pane in $panes; do
+    # Comments are stripped first, so prose naming a banned pattern never trips.
+    code=$(grep -vE '^[[:space:]]*//' "$pane")
+
+    # A toggle labelled with the inverse action ("Disable Account") reads as its
+    # own opposite the moment it is on.
+    if grep -q '"Disable ' <<< "$code"; then
+        note "$pane: a toggle must not be labelled with the inverse action"
+    fi
+    if grep -E 'Toggle\(' <<< "$code" | grep -qE 'Title\(for:|accountEnabledTitle'; then
+        note "$pane: toggle labels must be fixed strings, not derived from their own value"
+    fi
+
+    # LabeledContent means label to value; wrapping a button in one produces
+    # rows like "Remove Account: Remove".
+    if grep -A2 'LabeledContent(' <<< "$code" | grep -q 'Button('; then
+        note "$pane: use a plain Button; LabeledContent is for label to value"
+    fi
+
+    # Destructive intent comes from the role, not a hand-applied colour.
+    if grep -q 'foregroundStyle(\.red)' <<< "$code"; then
+        note "$pane: use Button(role: .destructive) instead of colouring a control red"
+    fi
+
+    # Actions must go through the shared row so alignment has one definition.
+    if grep -q 'Button(' <<< "$code" && ! grep -q 'SettingsActionRow\|LabeledContent\|confirmationDialog' <<< "$code"; then
+        note "$pane: place actions with SettingsActionRow"
+    fi
+done
+
+# A section header that repeats the tab it lives in is wasted space.
+if grep -q 'Text("About")' Sources/Mailbell/App/SettingsAboutPane.swift; then
+    note "SettingsAboutPane.swift: drop the section header that repeats the tab name"
+fi
+
+# Settings copy has one home.
+for pane in $panes; do
+    stray=$(grep -vE '^[[:space:]]*//' "$pane" \
+        | grep -oE '(Text|Button|Link)\("[^"]{16,}"' | head -1 || true)
+    [ -z "$stray" ] || note "$pane: move user-facing copy into SettingsCopy ($stray)"
+done
+
 # Public-facing copy must not tell end users to create their own OAuth client.
 if grep -qi 'create your own google' Sources/Mailbell/App/*.swift; then
     note "Settings must report a build error, not ask users to create an OAuth client"

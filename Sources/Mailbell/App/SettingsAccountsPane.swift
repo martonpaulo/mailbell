@@ -1,6 +1,5 @@
 import AppKit
 import SwiftUI
-import UserNotifications
 
 /// Everything about connected Gmail accounts: which mailboxes are watched,
 /// each account's status and recovery actions, where its mail opens, and
@@ -15,7 +14,10 @@ extension SettingsView {
                 OAuthSetupPanel(details: setupMessage)
             }
 
-            SettingsRow(title: "Connected", description: signInGuidanceText) {
+            SettingsRow(
+                title: SettingsCopy.Accounts.connectedTitle,
+                description: signInGuidanceText
+            ) {
                 connectedAccountsValue
             }
 
@@ -23,21 +25,21 @@ extension SettingsView {
                 if appState.isAuthorizing {
                     ProgressView()
                         .controlSize(.small)
-                        .accessibilityLabel("Waiting for Google sign-in")
+                        .accessibilityLabel(SettingsCopy.Accounts.waitingForSignInAccessibilityLabel)
                 }
 
-                Button("Check for New Mail") {
+                Button(SettingsCopy.Accounts.checkForNewMail) {
                     appState.refreshMailNow()
                 }
                 .disabled(!appState.canRequestManualRefresh)
 
-                Button("Add Gmail Account…") {
+                Button(SettingsCopy.Accounts.addAccount) {
                     appState.addGoogleAccount()
                 }
                 .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
             }
         } header: {
-            Text("Gmail")
+            Text(SettingsCopy.Accounts.sectionTitle)
         } footer: {
             settingsFooter(accountOverviewFooterText)
         }
@@ -47,25 +49,24 @@ extension SettingsView {
     /// rather than hiding behind an "Advanced" pane.
     var watchedMailboxesSection: some View {
         Section {
-            SettingsRow(title: "Inbox") {
-                SettingsStatusValue("Always watched", tone: .success, context: "Inbox")
+            SettingsRow(title: SettingsCopy.WatchedMailboxes.inboxTitle) {
+                SettingsStatusValue(
+                    SettingsCopy.WatchedMailboxes.inboxValue,
+                    tone: .success,
+                    context: SettingsCopy.WatchedMailboxes.inboxTitle
+                )
             }
 
-            Toggle(
+            SettingsToggleRow(
+                title: SettingsCopy.WatchedMailboxes.spamTitle,
+                description: SettingsCopy.WatchedMailboxes.spamDescription,
                 isOn: Binding(
                     get: { appState.includeSpam },
                     set: { appState.setIncludeSpam($0) }
                 )
-            ) {
-                SettingsRowLabel(
-                    title: "Also watch the Spam folder",
-                    description: "Unread Spam can then reach notifications and the review count. "
-                        + "Turning this off also clears any Spam already awaiting review. "
-                        + "Nothing in Gmail changes either way."
-                )
-            }
+            )
         } header: {
-            Text("Watched Mailboxes")
+            Text(SettingsCopy.WatchedMailboxes.sectionTitle)
         }
     }
 
@@ -79,19 +80,16 @@ extension SettingsView {
         Section {
             // The label states what being on means, so it never reads inverted
             // the way an action label would.
-            Toggle(
+            SettingsToggleRow(
+                title: SettingsCopy.Accounts.watchAccountTitle,
+                description: accountDetailText(for: state),
                 isOn: Binding(
                     get: { state.account.isEnabled },
                     set: { appState.setAccountEnabled($0, accountID: state.account.id) }
                 )
-            ) {
-                SettingsRowLabel(
-                    title: "Watch this account for new mail",
-                    description: accountDetailText(for: state)
-                )
-            }
+            )
 
-            SettingsRow(title: "Status", description: state.lastError) {
+            SettingsRow(title: SettingsCopy.Accounts.statusTitle, description: state.lastError) {
                 accountStatusValue(for: state)
             }
 
@@ -117,16 +115,19 @@ extension SettingsView {
     var connectedAccountsValue: some View {
         Group {
             if appState.hasAccounts {
-                Text(accountCountText)
+                Text(SettingsCopy.Accounts.accountCount(appState.accounts.count))
             } else {
-                SettingsStatusValue("No account yet", tone: .inactive, context: "Connected")
+                SettingsStatusValue(
+                    SettingsCopy.Accounts.noAccountValue,
+                    tone: .inactive,
+                    context: SettingsCopy.Accounts.connectedTitle
+                )
             }
         }
     }
 
     var accountRemovalTitle: String {
-        guard let accountPendingRemoval else { return "Remove this account?" }
-        return "Remove \(accountPendingRemoval.email)?"
+        SettingsCopy.Accounts.removeTitle(email: accountPendingRemoval?.email)
     }
 
     var accountRemovalBinding: Binding<Bool> {
@@ -140,34 +141,34 @@ extension SettingsView {
         )
     }
 
-    /// One action row per account: recovery first, then the everyday action,
-    /// with the destructive one last, the way System Settings orders a group.
+    /// One action row per account, ordered the way System Settings orders a
+    /// group: the destructive action first, then recovery, then the everyday one.
     func accountActionRow(for state: AccountRuntimeState) -> some View {
         let needsSignIn = AccountRecoveryAction.needed(for: state) == .signInAgain
         return SettingsActionRow {
             if needsSignIn, appState.isAuthorizing {
                 ProgressView()
                     .controlSize(.small)
-                    .accessibilityLabel("Waiting for Google sign-in")
+                    .accessibilityLabel(SettingsCopy.Accounts.waitingForSignInAccessibilityLabel)
             }
 
-            Button("Remove Account…", role: .destructive) {
+            Button(SettingsCopy.Accounts.removeAccount, role: .destructive) {
                 accountPendingRemoval = state.account
             }
 
             if needsSignIn {
-                Button("Sign in Again…") {
+                Button(SettingsCopy.Accounts.signInAgain) {
                     appState.reauthenticate(accountID: state.account.id)
                 }
                 .disabled(appState.isAuthorizing)
             } else {
-                Button("Reconnect") {
+                Button(SettingsCopy.Accounts.reconnect) {
                     appState.reconnect(accountID: state.account.id)
                 }
                 .disabled(!state.account.isEnabled || appState.isAuthorizing)
             }
 
-            Button("Open Gmail") {
+            Button(SettingsCopy.Accounts.openGmail) {
                 appState.openGmail(accountID: state.account.id)
             }
         }
@@ -176,53 +177,40 @@ extension SettingsView {
     @ViewBuilder
     func accountStatusValue(for state: AccountRuntimeState) -> some View {
         let title = AccountPresentation.statusText(for: state)
+        let context = SettingsCopy.Accounts.statusTitle
         if !state.account.isEnabled {
-            SettingsStatusValue(title, tone: .inactive, context: "Account status")
+            SettingsStatusValue(title, tone: .inactive, context: context)
         } else {
             switch state.status {
             case .connected:
-                SettingsStatusValue(title, tone: .success, context: "Account status")
+                SettingsStatusValue(title, tone: .success, context: context)
             case .connecting, .reconnecting:
-                SettingsProgressValue(title, context: "Account status")
+                SettingsProgressValue(title, context: context)
             case .signedOut:
-                SettingsStatusValue(title, tone: .inactive, context: "Account status")
+                SettingsStatusValue(title, tone: .inactive, context: context)
             case .reauthRequired, .error:
-                SettingsStatusValue(title, tone: .error, context: "Account status")
+                SettingsStatusValue(title, tone: .error, context: context)
             }
         }
     }
 
-    var accountCountText: String {
-        "\(appState.accounts.count) \(appState.accounts.count == 1 ? "account" : "accounts")"
-    }
-
     var accountOverviewFooterText: String {
-        joined([appState.manualRefreshMessage, appState.lastError])
+        [appState.manualRefreshMessage, appState.lastError]
+            .compactMap { $0 }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n")
     }
 
-    /// Google's unverified-app screen is the most surprising moment in setup.
-    /// Saying so before the user meets it costs one line and prevents a scare.
     var signInGuidanceText: String {
-        if appState.isAuthorizing {
-            return "Finish signing in to Google in your browser."
-        }
-        if !appState.hasAccounts {
-            return "Sign-in opens in your browser. Google has not verified Mailbell yet, so it shows an "
-                + "\"unverified app\" warning: choose Advanced, then continue."
-        }
-        if appState.canRequestManualRefresh {
-            return "Mailbell is notified as mail arrives. Checking manually is only useful after a "
-                + "connection problem."
-        }
-        return "Turn an account back on to watch it for new mail."
+        SettingsCopy.Accounts.signInGuidance(
+            isAuthorizing: appState.isAuthorizing,
+            hasAccounts: appState.hasAccounts,
+            canRefresh: appState.canRequestManualRefresh
+        )
     }
 
     func accountDetailText(for state: AccountRuntimeState) -> String {
         AccountPresentation.detailText(for: state, includeSpam: appState.includeSpam)
-    }
-
-    private func joined(_ lines: [String?]) -> String {
-        lines.compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "\n")
     }
 
     /// Browser and Chrome-profile discovery touches the filesystem, so it runs

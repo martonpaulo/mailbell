@@ -84,39 +84,51 @@ struct SettingsActionRow<Content: View>: View {
     }
 }
 
-/// A row whose explanation sits **under its own label**, the way System
-/// Settings explains FileVault, AirDrop, and AirPlay Receiver.
+/// A settings row: a title, an optional explanation, and a trailing control.
 ///
-/// Apple reserves the section footer for text about the group as a whole; text
-/// that explains one control belongs in that control's row, where it cannot be
-/// mistaken for something else.
+/// The two Text views are handed straight to `LabeledContent`, which is how
+/// SwiftUI is told "this label has a subtitle". The framework then supplies the
+/// secondary styling, spacing, and Dynamic Type behavior that System Settings
+/// uses for FileVault, AirDrop, and AirPlay Receiver, so none of it is
+/// hand-rolled here.
 struct SettingsRow<Control: View>: View {
     let title: String
     var description: String?
     @ViewBuilder let control: Control
 
     var body: some View {
-        LabeledContent {
-            control
-        } label: {
-            SettingsRowLabel(title: title, description: description)
+        if let description, !description.isEmpty {
+            LabeledContent {
+                control
+            } label: {
+                Text(title)
+                Text(description)
+            }
+        } else {
+            LabeledContent {
+                control
+            } label: {
+                Text(title)
+            }
         }
     }
 }
 
-/// The label half of a settings row: title, with an optional explanation below.
-struct SettingsRowLabel: View {
+/// A toggle carrying the same native title-and-subtitle label.
+struct SettingsToggleRow: View {
     let title: String
     var description: String?
+    @Binding var isOn: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Token.Space.xxs) {
-            Text(title)
-            if let description, !description.isEmpty {
+        if let description, !description.isEmpty {
+            Toggle(isOn: $isOn) {
+                Text(title)
                 Text(description)
-                    .font(Token.Font.footnote)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            }
+        } else {
+            Toggle(isOn: $isOn) {
+                Text(title)
             }
         }
     }

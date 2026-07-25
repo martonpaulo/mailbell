@@ -27,11 +27,6 @@ enum PendingCopy {
     static let markingAllAsReadActionTitle = "Marking All as Read…"
     static let dismissAllActionTitle = "Dismiss All"
     static let reviewSectionTitle = "Awaiting Review"
-    static let attentionMenuTitle = "Sign in needed"
-
-    static func countText(_ count: Int) -> String {
-        reviewCountText(count)
-    }
 
     static func reviewCountText(_ count: Int) -> String {
         switch count {

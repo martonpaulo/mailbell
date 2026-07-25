@@ -8,18 +8,16 @@ extension SettingsView {
         Section {
             aboutAppIdentityRow
 
-            LabeledContent("Version") {
+            SettingsRow(title: SettingsCopy.About.versionTitle) {
                 Text(appVersionText)
             }
 
-            LabeledContent("Bundle ID") {
+            SettingsRow(title: SettingsCopy.About.bundleIdentifierTitle) {
                 Text(AppIdentity.bundleIdentifier)
                     .textSelection(.enabled)
             }
         } footer: {
-            settingsFooter(
-                "Mailbell runs entirely on this Mac. There is no Mailbell server, and Gmail data never leaves your Mac."
-            )
+            settingsFooter(SettingsCopy.About.identityFooter)
         }
     }
 
@@ -35,10 +33,10 @@ extension SettingsView {
                     .font(Token.Font.aboutTitle)
                     .fontWeight(.semibold)
 
-                Text("Menu bar notifier for Gmail")
+                Text(SettingsCopy.About.tagline)
                     .foregroundStyle(.secondary)
 
-                Text("Developed by Marton Paulo")
+                Text(SettingsCopy.About.developer)
                     .font(Token.Font.secondary)
                     .foregroundStyle(.secondary)
                     .padding(.top, Token.Space.xxs)
@@ -50,33 +48,29 @@ extension SettingsView {
 
     var aboutLinksSection: some View {
         Section {
-            Link("Mailbell Website", destination: ProjectLinks.website)
-            Link("Mailbell on GitHub", destination: ProjectLinks.repository)
-            Link("Report an Issue", destination: ProjectLinks.issues)
-            Link("Latest Release", destination: ProjectLinks.latestRelease)
+            Link(SettingsCopy.About.website, destination: ProjectLinks.website)
+            Link(SettingsCopy.About.repository, destination: ProjectLinks.repository)
+            Link(SettingsCopy.About.issues, destination: ProjectLinks.issues)
+            Link(SettingsCopy.About.latestRelease, destination: ProjectLinks.latestRelease)
         } header: {
-            Text("Support")
+            Text(SettingsCopy.About.supportSectionTitle)
         } footer: {
-            settingsFooter("The website explains setup, the Google review status, and what Mailbell can access.")
+            settingsFooter(SettingsCopy.About.supportFooter)
         }
     }
 
     var aboutLegalSection: some View {
         Section {
-            Link("Privacy Policy", destination: ProjectLinks.privacyPolicy)
-            Link("Terms of Service", destination: ProjectLinks.termsOfService)
-            Link("Manage Google Access", destination: ProjectLinks.googleAccountPermissions)
-            LabeledContent("License") {
-                Text("MIT")
+            Link(SettingsCopy.About.privacyPolicy, destination: ProjectLinks.privacyPolicy)
+            Link(SettingsCopy.About.termsOfService, destination: ProjectLinks.termsOfService)
+            Link(SettingsCopy.About.manageGoogleAccess, destination: ProjectLinks.googleAccountPermissions)
+            SettingsRow(title: SettingsCopy.About.licenseTitle) {
+                Text(SettingsCopy.About.licenseValue)
             }
         } header: {
-            Text("Legal")
+            Text(SettingsCopy.About.legalSectionTitle)
         } footer: {
-            settingsFooter(
-                "Mailbell is in public beta and its Google OAuth client is not verified by Google yet, "
-                    + "so Google shows an \"unverified app\" screen during sign-in. "
-                    + "Revoke access at any time in your Google Account."
-            )
+            settingsFooter(SettingsCopy.About.legalFooter)
         }
     }
 

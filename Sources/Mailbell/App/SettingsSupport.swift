@@ -10,7 +10,7 @@ struct OAuthSetupPanel: View {
     @State private var showsDetails = false
 
     var body: some View {
-        Label("This build is missing its Google OAuth configuration", systemImage: "exclamationmark.triangle.fill")
+        Label(SettingsCopy.BuildProblem.headline, systemImage: SettingsStatusTone.warning.systemImage)
 
         Text(
             "Mailbell releases ship with the Google Desktop OAuth client already configured. "
@@ -26,9 +26,9 @@ struct OAuthSetupPanel: View {
         .foregroundStyle(.secondary)
         .textSelection(.enabled)
 
-        Link("Report a Packaging Issue", destination: ProjectLinks.issues)
+        Link(SettingsCopy.BuildProblem.reportAction, destination: ProjectLinks.issues)
 
-        DisclosureGroup("Build Details", isExpanded: $showsDetails) {
+        DisclosureGroup(SettingsCopy.BuildProblem.detailsDisclosure, isExpanded: $showsDetails) {
             Text(details)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
