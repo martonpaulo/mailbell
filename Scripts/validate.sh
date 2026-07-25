@@ -36,7 +36,9 @@ if git ls-files 2>/dev/null | grep -qiE '\.(p12|pem)$|_priv$|^\.env$'; then
     note "credentials and signing material must not be committed"
 fi
 # Google installed-app secrets carry a fixed prefix; nothing tracked may hold one.
-if git ls-files -z 2>/dev/null | xargs -0 grep -l 'GOCSPX-' 2>/dev/null | grep -q .; then
+# This script is excluded because it necessarily names the prefix it looks for.
+if git ls-files -z 2>/dev/null | xargs -0 grep -l 'GOCSPX-' 2>/dev/null \
+    | grep -v '^Scripts/validate.sh$' | grep -q .; then
     note "a Google OAuth client secret must never be committed"
 fi
 # The credentials this machine actually builds with must not appear in git.
@@ -86,6 +88,24 @@ if grep -hiE 'unlimited' README.md docs/*.html 2>/dev/null \
     | grep -viE '\b(no|not|never|without|cannot)\b' | grep -q .; then
     note "public copy must not promise unlimited use before Google verification"
 fi
+
+# Every website page shares one navigation and one footer. A visitor must never
+# see the site's structure change from page to page.
+expected_navigation="Features|Download|Privacy|Terms|GitHub"
+expected_footer="Privacy|Terms|Source|Issues|Releases"
+for page in docs/index.html docs/privacy.html docs/terms.html; do
+    [ -f "$page" ] || continue
+    navigation=$(sed -n '/<nav aria-label="Page sections">/,/<\/nav>/p' "$page" \
+        | sed -E -n 's/.*>([^<]+)<\/a>.*/\1/p' | paste -sd '|' -)
+    [ "$navigation" = "$expected_navigation" ] \
+        || note "$page navigation must be $expected_navigation (got $navigation)"
+    footer=$(sed -n '/<footer class="site-footer">/,/<\/footer>/p' "$page" \
+        | sed -E -n 's/.*>([^<]+)<\/a>.*/\1/p' | paste -sd '|' -)
+    [ "$footer" = "$expected_footer" ] \
+        || note "$page footer must be $expected_footer (got $footer)"
+    grep -q 'aria-current="page"' "$page" \
+        || note "$page must identify the current page"
+done
 
 # Public-facing copy must not tell end users to create their own OAuth client.
 if grep -qi 'create your own google' Sources/Mailbell/App/*.swift; then
