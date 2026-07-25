@@ -4,6 +4,47 @@ All notable changes to Mailbell are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and
 [Keep a Changelog](https://keepachangelog.com/).
 
+## 0.1.1 — 2026-07-25
+
+Settings now follows macOS System Settings conventions, and a preview defect
+that reached real notifications is fixed.
+
+> **Google OAuth unverified beta.** Unchanged from 0.1.0: Google shows an
+> "unverified app" screen during sign-in and limits unverified clients to
+> **100 new users**.
+
+### Fixed
+
+- **Notification previews no longer leak Markdown.** A message whose plain-text
+  alternative was Markdown could reach the notification as
+  `[![]( [IMG] broadcast\_body\_warning`. Escaped punctuation is now unescaped,
+  image and link scaffolding is unwrapped, and heading, quote, and rule markers
+  are stripped.
+- **The account toggle no longer reads as its own opposite.** It was labelled
+  "Disable Account" while switched on; it now says "Watch this account for new
+  mail".
+
+### Changed
+
+- **Settings is four panes instead of six.** Everything about an account —
+  status, review count, where its mail opens, reconnecting, removal — now lives
+  in that account's own section, instead of being split between Accounts and
+  Advanced. Spam moved to a "Watched Mailboxes" section that states plainly that
+  Inbox is always watched, and Updates folded into General.
+- **Controls follow the platform.** Action buttons are sized to their content
+  and trailing-aligned, placed by scope the way System Settings places them:
+  in the row for a row-scoped action, as the box's last row for a section-scoped
+  one, and below every box for a pane-scoped one such as Restore Defaults.
+  Explanations sit under their own control's label rather than in a footer.
+- Sign-in now warns about Google's unverified-app screen *before* you meet it.
+- The review count per account no longer hides behind the menu bar count
+  preference.
+
+### Internal
+
+- One build number derivation shared by the local and CI release paths.
+- Settings control-semantics rules moved into repository validation.
+
 ## 0.1.0 — 2026-07-25
 
 First public beta.
