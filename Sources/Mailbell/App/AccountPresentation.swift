@@ -1,12 +1,33 @@
 import Foundation
 
+/// The single owner of the menu bar symbol. An account that needs the user to
+/// act outranks unread mail, so the bell is replaced by an alert glyph instead
+/// of silently looking idle while nothing is being monitored.
+enum MenuBarIcon {
+    static let idle = "bell"
+    static let pending = "bell.fill"
+    static let attention = "exclamationmark.triangle.fill"
+
+    static func systemImage(needsAttention: Bool, hasPendingItems: Bool) -> String {
+        if needsAttention {
+            return attention
+        }
+        return hasPendingItems ? pending : idle
+    }
+}
+
 enum PendingCopy {
     static let menuSectionTitle = "Awaiting Review"
     static let emptyMenuTitle = "No messages"
     static let openActionTitle = "Open"
     static let markAsReadActionTitle = "Mark as Read"
     static let dismissActionTitle = "Dismiss"
+    static let bulkActionsMenuTitle = "All Messages"
+    static let markAllAsReadActionTitle = "Mark All as Read"
+    static let markingAllAsReadActionTitle = "Marking All as Read…"
+    static let dismissAllActionTitle = "Dismiss All"
     static let reviewSectionTitle = "Awaiting Review"
+    static let attentionMenuTitle = "Sign in needed"
 
     static func countText(_ count: Int) -> String {
         reviewCountText(count)
@@ -23,7 +44,14 @@ enum PendingCopy {
         }
     }
 
-    static func menuBarAccessibilityLabel(count: Int, showsCount: Bool = true) -> String {
+    static func menuBarAccessibilityLabel(
+        count: Int,
+        showsCount: Bool = true,
+        needsAttention: Bool = false
+    ) -> String {
+        if needsAttention {
+            return "Mailbell, sign in needed"
+        }
         guard showsCount, count > 0 else { return "Mailbell" }
         return "Mailbell, \(count) \(count == 1 ? "message" : "messages") awaiting review"
     }
@@ -124,5 +152,4 @@ enum AccountPresentation {
             return "Check the error and reconnect."
         }
     }
-
 }

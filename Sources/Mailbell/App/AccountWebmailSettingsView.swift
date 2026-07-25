@@ -53,7 +53,6 @@ struct AccountWebmailSettingsView: View {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
                     .textSelection(.enabled)
             }
-
         }
         .onAppear {
             syncFromAccount()

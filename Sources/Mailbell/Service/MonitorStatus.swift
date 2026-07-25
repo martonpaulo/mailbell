@@ -8,6 +8,17 @@ enum MonitorStatus: Equatable {
     case reauthRequired
     case error
 
+    /// The account cannot recover on its own: the user has to sign in again or
+    /// resolve a surfaced failure. Drives the menu bar alert icon.
+    var needsAttention: Bool {
+        switch self {
+        case .reauthRequired, .error:
+            true
+        case .signedOut, .connecting, .connected, .reconnecting:
+            false
+        }
+    }
+
     var sortPriority: Int {
         switch self {
         case .reauthRequired, .error:

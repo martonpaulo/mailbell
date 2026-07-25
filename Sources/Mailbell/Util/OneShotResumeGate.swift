@@ -8,7 +8,9 @@ final class OneShotResumeGate: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
 
-        if didClaim { return false }
+        if didClaim {
+            return false
+        }
         didClaim = true
         return true
     }

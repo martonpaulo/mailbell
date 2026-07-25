@@ -1,5 +1,5 @@
-@testable import mailbell
 import Foundation
+@testable import mailbell
 import XCTest
 
 final class LoopbackServerTests: XCTestCase {
@@ -61,9 +61,11 @@ final class LoopbackServerTests: XCTestCase {
         XCTAssertTrue(response.body.contains("The sign-in session expired"))
         XCTAssertTrue(response.body.contains("Start sign-in again from Mailbell"))
         XCTAssertFalse(response.body.contains("abc123"))
-        await assertAsyncThrows({ try await waitTask.value }, validate: { error in
+        await assertAsyncThrows {
+            try await waitTask.value
+        } validate: { error in
             XCTAssertEqual(error as? LoopbackServer.LoopbackError, .missingState)
-        })
+        }
     }
 
     func testMismatchedStateFailsSecurely() async throws {
@@ -76,9 +78,11 @@ final class LoopbackServerTests: XCTestCase {
         XCTAssertTrue(response.body.contains("The sign-in session changed"))
         XCTAssertFalse(response.body.contains("abc123"))
         XCTAssertFalse(response.body.contains("raw-state-token"))
-        await assertAsyncThrows({ try await waitTask.value }, validate: { error in
+        await assertAsyncThrows {
+            try await waitTask.value
+        } validate: { error in
             XCTAssertEqual(error as? LoopbackServer.LoopbackError, .stateMismatch)
-        })
+        }
     }
 
     func testProviderErrorIsSanitizedAndTyped() async throws {
@@ -99,10 +103,12 @@ final class LoopbackServerTests: XCTestCase {
         XCTAssertFalse(response.body.contains("access_denied"))
         XCTAssertFalse(response.body.contains("Provider code"))
         XCTAssertFalse(response.body.contains("state-value"))
-        await assertAsyncThrows({ try await waitTask.value }, validate: { error in
+        await assertAsyncThrows {
+            try await waitTask.value
+        } validate: { error in
             XCTAssertEqual(error as? LoopbackServer.LoopbackError, .providerError("access_denied"))
             XCTAssertFalse(error.localizedDescription.contains("state-value"))
-        })
+        }
     }
 
     func testMissingCodeFailsAfterMatchingState() async throws {
@@ -114,9 +120,11 @@ final class LoopbackServerTests: XCTestCase {
         XCTAssertEqual(response.statusCode, 400)
         XCTAssertTrue(response.body.contains("Google sign-in did not finish"))
         XCTAssertFalse(response.body.contains("state-value"))
-        await assertAsyncThrows({ try await waitTask.value }, validate: { error in
+        await assertAsyncThrows {
+            try await waitTask.value
+        } validate: { error in
             XCTAssertEqual(error as? LoopbackServer.LoopbackError, .missingCode)
-        })
+        }
     }
 
     func testWrongPathAndMethodDoNotCompleteAuthorization() async throws {
@@ -133,9 +141,11 @@ final class LoopbackServerTests: XCTestCase {
         XCTAssertTrue(wrongMethod.body.contains("data-state=\"error\""))
         XCTAssertTrue(wrongPath.body.contains("This sign-in page is not available"))
         XCTAssertTrue(wrongMethod.body.contains("This sign-in request is not supported"))
-        await assertAsyncThrows({ try await waitTask.value }, validate: { error in
+        await assertAsyncThrows {
+            try await waitTask.value
+        } validate: { error in
             XCTAssertEqual(error as? LoopbackServer.LoopbackError, .cancelled)
-        })
+        }
     }
 
     func testDuplicateConcurrentCallbacksCannotResumeTwice() async throws {
@@ -175,9 +185,11 @@ final class LoopbackServerTests: XCTestCase {
 
         waitTask.cancel()
 
-        await assertAsyncThrows({ try await waitTask.value }, validate: { error in
+        await assertAsyncThrows {
+            try await waitTask.value
+        } validate: { error in
             XCTAssertEqual(error as? LoopbackServer.LoopbackError, .cancelled)
-        })
+        }
         try await assertRequestFailsAfterStop(redirectURI: redirectURI)
     }
 
@@ -188,10 +200,12 @@ final class LoopbackServerTests: XCTestCase {
 
         await server.stop()
 
-        await assertAsyncThrows({ try await waitTask.value }, validate: { error in
+        await assertAsyncThrows {
+            try await waitTask.value
+        } validate: { error in
             XCTAssertEqual(error as? LoopbackServer.LoopbackError, .cancelled)
             XCTAssertEqual(error.localizedDescription, "Google sign-in was cancelled.")
-        })
+        }
     }
 
     func testCanRestartAfterCallbackTimeout() async throws {
@@ -236,9 +250,11 @@ final class LoopbackServerTests: XCTestCase {
         await server.stop()
         try await server.start(expectedState: "state-value")
 
-        await assertAsyncThrows({ try await staleWaitTask.value }, validate: { error in
+        await assertAsyncThrows {
+            try await staleWaitTask.value
+        } validate: { error in
             XCTAssertEqual(error as? LoopbackServer.LoopbackError, .cancelled)
-        })
+        }
 
         let freshWaitTask = Task { try await server.waitForCallback(timeout: 2) }
         _ = try await request(server, query: "code=fresh-code&state=state-value")
@@ -296,8 +312,8 @@ final class LoopbackServerTests: XCTestCase {
         }
     }
 
-    private func assertAsyncThrows<T>(
-        _ operation: () async throws -> T,
+    private func assertAsyncThrows(
+        _ operation: () async throws -> some Any,
         validate: (Error) -> Void
     ) async {
         do {

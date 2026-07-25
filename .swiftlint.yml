@@ -1,0 +1,10 @@
+included:
+  - Sources
+  - Tests
+
+# Design-token scales are deliberately terse (xs, sm, md, lg, xl). The names are
+# the vocabulary; spelling them out would make every call site noisier.
+identifier_name:
+  min_length: 2
+  excluded:
+    - id

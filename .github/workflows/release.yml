@@ -1,0 +1,208 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Tests and validation
+        run: |
+          swift test
+          bash Scripts/validate.sh
+
+      - name: Derive version
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          IFS=. read -r MAJOR MINOR PATCH <<< "$VERSION"
+          BUILD=$((MAJOR * 10000 + MINOR * 100 + PATCH))
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+
+      - name: Enforce release source and version
+        run: |
+          git fetch origin main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" || {
+            echo "Official release tags must point at the current main commit." >&2
+            exit 1
+          }
+          PLIST_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Resources/Info.plist)
+          test "$PLIST_VERSION" = "${{ steps.version.outputs.version }}" || {
+            echo "Tag version does not match Resources/Info.plist ($PLIST_VERSION)." >&2
+            exit 1
+          }
+
+      # Fail closed: a release without real credentials would ship an app that
+      # cannot sign in, or one Gatekeeper refuses to open.
+      - name: Require official release credentials
+        env:
+          CERT: ${{ secrets.DEVELOPER_ID_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_CERT_PASSWORD }}
+          NOTARY_APPLE_ID: ${{ secrets.NOTARIZATION_APPLE_ID }}
+          NOTARY_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
+          NOTARY_TEAM_ID: ${{ secrets.NOTARIZATION_TEAM_ID }}
+          SPARKLE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.MAILBELL_GOOGLE_CLIENT_ID }}
+        run: |
+          missing=()
+          [ -n "$CERT" ] || missing+=(DEVELOPER_ID_CERT_P12)
+          [ -n "$CERT_PASSWORD" ] || missing+=(DEVELOPER_ID_CERT_PASSWORD)
+          [ -n "$NOTARY_APPLE_ID" ] || missing+=(NOTARIZATION_APPLE_ID)
+          [ -n "$NOTARY_PASSWORD" ] || missing+=(NOTARIZATION_PASSWORD)
+          [ -n "$NOTARY_TEAM_ID" ] || missing+=(NOTARIZATION_TEAM_ID)
+          [ -n "$SPARKLE_KEY" ] || missing+=(SPARKLE_PRIVATE_KEY)
+          [ -n "$GOOGLE_CLIENT_ID" ] || missing+=(MAILBELL_GOOGLE_CLIENT_ID)
+          if [ "${#missing[@]}" -ne 0 ]; then
+            echo "Official release blocked: missing required secrets: ${missing[*]}" >&2
+            exit 1
+          fi
+
+      - name: Import Developer ID certificate
+        env:
+          CERT: ${{ secrets.DEVELOPER_ID_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_CERT_PASSWORD }}
+        run: |
+          umask 077
+          KEYCHAIN=build.keychain
+          security create-keychain -p ci "$KEYCHAIN"
+          security default-keychain -s "$KEYCHAIN"
+          security unlock-keychain -p ci "$KEYCHAIN"
+          echo "$CERT" | base64 --decode > cert.p12
+          trap 'rm -f cert.p12' EXIT
+          security import cert.p12 -k "$KEYCHAIN" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          rm -f cert.p12
+          trap - EXIT
+          security set-key-partition-list -S apple-tool:,apple: -s -k ci "$KEYCHAIN"
+          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN" \
+            | awk -F'"' '/Developer ID Application:/ {print $2; exit}')
+          case "$IDENTITY" in
+            "Developer ID Application:"*) ;;
+            *) echo "Official release blocked: no Developer ID Application identity in the P12." >&2; exit 1 ;;
+          esac
+          echo "MAILBELL_CODE_SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+
+      - name: Build and sign the app
+        env:
+          MAILBELL_GOOGLE_CLIENT_ID: ${{ secrets.MAILBELL_GOOGLE_CLIENT_ID }}
+          MAILBELL_GOOGLE_CLIENT_SECRET: ${{ secrets.MAILBELL_GOOGLE_CLIENT_SECRET }}
+          MAILBELL_BUNDLE_ID: com.perso.mailbell
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p build/release/staging artifacts
+          Scripts/build_app_bundle.sh \
+            --output "build/release/staging/Mailbell.app" \
+            --identity "$MAILBELL_CODE_SIGN_IDENTITY" --hardened \
+            --version "$VERSION" --build-number "${{ steps.version.outputs.build }}"
+          ditto -c -k --keepParent "build/release/staging/Mailbell.app" "artifacts/Mailbell-$VERSION.zip"
+
+      - name: Notarize, staple, and validate the app
+        env:
+          APPLE_ID: ${{ secrets.NOTARIZATION_APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.NOTARIZATION_TEAM_ID }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          APP="build/release/staging/Mailbell.app"
+          RESULT=$(xcrun notarytool submit "artifacts/Mailbell-$VERSION.zip" \
+            --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" \
+            --wait --output-format json)
+          STATUS=$(jq -r '.status' <<< "$RESULT")
+          SUBMISSION_ID=$(jq -r '.id' <<< "$RESULT")
+          if [ "$STATUS" != "Accepted" ]; then
+            echo "Apple notarization rejected the app (status: $STATUS, id: $SUBMISSION_ID)." >&2
+            xcrun notarytool log "$SUBMISSION_ID" \
+              --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" || true
+            exit 1
+          fi
+          xcrun stapler staple "$APP"
+          xcrun stapler validate "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          spctl --assess --type execute --verbose=2 "$APP"
+          # Re-archive so the Sparkle update carries the stapled ticket.
+          rm "artifacts/Mailbell-$VERSION.zip"
+          ditto -c -k --keepParent "$APP" "artifacts/Mailbell-$VERSION.zip"
+
+      - name: Sign the update for Sparkle
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          SIGN=$(find .build/artifacts -name sign_update -type f | head -1)
+          test -n "$SIGN" || { echo "sign_update not found" >&2; exit 1; }
+          SIG=$(echo "$SPARKLE_PRIVATE_KEY" | "$SIGN" --ed-key-file - "artifacts/Mailbell-$VERSION.zip")
+          echo "SPARKLE_SIG_ATTRS=$SIG" >> "$GITHUB_ENV"
+
+      - name: Build, sign, and notarize the DMG
+        env:
+          APPLE_ID: ${{ secrets.NOTARIZATION_APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.NOTARIZATION_TEAM_ID }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          DMG="artifacts/Mailbell-$VERSION.dmg"
+          ln -sfn /Applications build/release/staging/Applications
+          Scripts/create_dmg.sh "build/release/staging" "Mailbell" \
+            "Resources/AppInstallerIcon.icns" "Install Mailbell" "$DMG"
+          codesign --force --timestamp --sign "$MAILBELL_CODE_SIGN_IDENTITY" "$DMG"
+          codesign --verify --verbose=2 "$DMG"
+          RESULT=$(xcrun notarytool submit "$DMG" \
+            --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" \
+            --wait --output-format json)
+          STATUS=$(jq -r '.status' <<< "$RESULT")
+          SUBMISSION_ID=$(jq -r '.id' <<< "$RESULT")
+          if [ "$STATUS" != "Accepted" ]; then
+            echo "Apple notarization rejected the DMG (status: $STATUS, id: $SUBMISSION_ID)." >&2
+            xcrun notarytool log "$SUBMISSION_ID" \
+              --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" || true
+            exit 1
+          fi
+          xcrun stapler staple "$DMG"
+          xcrun stapler validate "$DMG"
+          spctl -a -t open --context context:primary-signature -vv "$DMG"
+          hdiutil verify "$DMG" >/dev/null
+
+      - name: Update the appcast on main
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+          Scripts/make_appcast.sh "$VERSION" "${{ steps.version.outputs.build }}" \
+            "artifacts/Mailbell-$VERSION.zip" "$SPARKLE_SIG_ATTRS"
+          if ! git diff --quiet appcast.xml; then
+            git add appcast.xml
+            git commit -m "chore(release): appcast entry for $VERSION"
+            git push origin main
+          fi
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "release $GITHUB_REF_NAME already exists; skipping creation"
+            exit 0
+          fi
+          awk -v version="$VERSION" '
+            $0 ~ "^## " version " " { printing=1; next }
+            printing && /^## / { exit }
+            printing { print }
+          ' CHANGELOG.md > release-notes.md
+          test -s release-notes.md || { echo "Missing CHANGELOG release notes for $VERSION" >&2; exit 1; }
+          gh release create "$GITHUB_REF_NAME" \
+            "artifacts/Mailbell-$VERSION.dmg" \
+            "artifacts/Mailbell-$VERSION.zip" \
+            --title "Mailbell $VERSION" \
+            --notes-file release-notes.md

@@ -1,0 +1,39 @@
+name: Bug report
+description: Something doesn't work the way it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not paste OAuth tokens, authorization codes, or full email
+        content into this issue.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version
+      placeholder: e.g. macOS 26.5
+    validations:
+      required: true
+  - type: input
+    id: mailbell-version
+    attributes:
+      label: Mailbell version
+      description: Shown in Settings under Updates.
+      placeholder: e.g. 0.1.0
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: Mailbell is installed in /Applications, not run from the DMG
+        - label: Notification permission is granted in System Settings
+        - label: The account shows as Connected in Settings → Accounts

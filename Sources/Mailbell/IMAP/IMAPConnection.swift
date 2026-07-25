@@ -32,11 +32,17 @@ final class IMAPConnection: IMAPClientTransport, @unchecked Sendable {
             connection.stateUpdateHandler = { state in
                 switch state {
                 case .ready:
-                    if resumeGate.claim() { cont.resume() }
+                    if resumeGate.claim() {
+                        cont.resume()
+                    }
                 case let .failed(error):
-                    if resumeGate.claim() { cont.resume(throwing: error) }
+                    if resumeGate.claim() {
+                        cont.resume(throwing: error)
+                    }
                 case .cancelled:
-                    if resumeGate.claim() { cont.resume(throwing: ConnectionError.closed) }
+                    if resumeGate.claim() {
+                        cont.resume(throwing: ConnectionError.closed)
+                    }
                 default:
                     break
                 }
@@ -57,7 +63,11 @@ final class IMAPConnection: IMAPClientTransport, @unchecked Sendable {
     func sendRaw(_ text: String) async throws {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             connection.send(content: Data(text.utf8), completion: .contentProcessed { error in
-                if let error { cont.resume(throwing: error) } else { cont.resume() }
+                if let error {
+                    cont.resume(throwing: error)
+                } else {
+                    cont.resume()
+                }
             })
         }
     }

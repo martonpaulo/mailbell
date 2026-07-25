@@ -8,7 +8,7 @@ protocol AccountSupervisorDelegate: AnyObject {
 }
 
 typealias AccountMonitorFactory = (MailAccount, OAuthConfig, Bool) -> any AccountMonitoring
-typealias EmailReadMarker = (MailAccount, OAuthConfig, IMAPMessageIdentity) async throws -> Void
+typealias EmailReadMarker = (MailAccount, OAuthConfig, [IMAPMessageIdentity]) async throws -> Void
 
 @MainActor
 final class AccountSupervisor {
@@ -105,8 +105,14 @@ final class AccountSupervisor {
         emailStore.items
     }
 
+    /// True while any enabled account cannot monitor Gmail without the user
+    /// acting (sign-in expired, or a surfaced connection failure).
+    var needsAttention: Bool {
+        accountStates.contains { $0.account.isEnabled && $0.status.needsAttention }
+    }
+
     var menuBarIconSystemImage: String {
-        emailStore.hasItems ? "bell.fill" : "bell"
+        MenuBarIcon.systemImage(needsAttention: needsAttention, hasPendingItems: emailStore.hasItems)
     }
 
     var aggregateStatus: MonitorStatus {
@@ -357,6 +363,13 @@ final class AccountSupervisor {
     }
 
     func handleEmailStorePersistenceFailure(_ error: Error, accountID: UUID?) {
+        applyEmailStorePersistenceFailure(error, accountID: accountID)
+        publish()
+    }
+
+    /// Records a persistence failure without publishing, so bulk callers can
+    /// batch a single update after every account has been processed.
+    func applyEmailStorePersistenceFailure(_ error: Error, accountID: UUID?) {
         let message = error.localizedDescription
         Log.error("Email store persistence failed: \(message)")
         if let accountID {
@@ -365,7 +378,6 @@ final class AccountSupervisor {
         } else {
             accountStoreError = message
         }
-        publish()
     }
 
     @discardableResult

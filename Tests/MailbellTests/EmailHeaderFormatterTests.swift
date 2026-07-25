@@ -172,10 +172,10 @@ final class EmailHeaderFormatterTests: XCTestCase {
         XCTAssertTrue(text.contains("Jun 26, 2024"), text)
     }
 
-    func testTimeTextConvertsUTCHeaderCommentToLocalTime() {
+    func testTimeTextConvertsUTCHeaderCommentToLocalTime() throws {
         let localTimeZone = TimeZone(secondsFromGMT: -3 * 60 * 60)!
         let calendar = gregorianCalendar(timeZone: localTimeZone)
-        let now = DateComponents(
+        let now = try XCTUnwrap(DateComponents(
             calendar: calendar,
             timeZone: localTimeZone,
             year: 2026,
@@ -183,7 +183,7 @@ final class EmailHeaderFormatterTests: XCTestCase {
             day: 26,
             hour: 10,
             minute: 30
-        ).date!
+        ).date)
         let text = EmailHeaderFormatter.timeText(
             for: MessageHeader(
                 uid: 1,

@@ -48,8 +48,12 @@ enum BrowserRegistry {
         }
 
         return candidates.sorted { left, right in
-            if left.id == BrowserCandidate.systemDefaultID { return true }
-            if right.id == BrowserCandidate.systemDefaultID { return false }
+            if left.id == BrowserCandidate.systemDefaultID {
+                return true
+            }
+            if right.id == BrowserCandidate.systemDefaultID {
+                return false
+            }
             return left.displayName.localizedCaseInsensitiveCompare(right.displayName) == .orderedAscending
         }
     }

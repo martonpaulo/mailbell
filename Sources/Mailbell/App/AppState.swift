@@ -17,16 +17,24 @@ final class AppState: ObservableObject {
     @Published private(set) var manualRefreshMessage: String?
     @Published private(set) var emailStoreItems: [EmailStoreItem] = []
     @Published private(set) var pendingCountsByAccountID: [UUID: Int] = [:]
-    @Published private(set) var menuBarIconSystemImage = "bell"
+    @Published private(set) var menuBarIconSystemImage = MenuBarIcon.idle
+    @Published private(set) var needsAttention = false
+    @Published private(set) var isMarkingAllAsRead = false
+    @Published private(set) var bulkActionMessage: String?
     @Published private(set) var showPendingCount: Bool
     @Published private(set) var includeSpam: Bool
 
     private let settingsStore: AppSettingsStore
     private let supervisor: AccountSupervisor
+    private let updateManager: UpdateManager
     private var notificationAuthorizationTask: Task<Void, Never>?
 
-    init(settingsStore: AppSettingsStore = AppSettingsStore()) {
+    init(
+        settingsStore: AppSettingsStore = AppSettingsStore(),
+        updateManager: UpdateManager = UpdateManager()
+    ) {
         self.settingsStore = settingsStore
+        self.updateManager = updateManager
         showPendingCount = settingsStore.showPendingCount
         includeSpam = settingsStore.includeSpam
         supervisor = AccountSupervisor(includeSpam: settingsStore.includeSpam)
@@ -36,6 +44,7 @@ final class AppState: ObservableObject {
         emailStoreItems = supervisor.emailStoreItems
         pendingCountsByAccountID = supervisor.emailStore.pendingCountsByAccountID
         menuBarIconSystemImage = supervisor.menuBarIconSystemImage
+        needsAttention = supervisor.needsAttention
         oauthSetupMessage = supervisor.oauthSetupMessage
         lastError = supervisor.accountStoreError
 
@@ -117,6 +126,7 @@ final class AppState: ObservableObject {
         emailStoreItems = supervisor.emailStoreItems
         pendingCountsByAccountID = supervisor.emailStore.pendingCountsByAccountID
         menuBarIconSystemImage = supervisor.menuBarIconSystemImage
+        needsAttention = supervisor.needsAttention
     }
 
     func pendingCount(accountID: UUID) -> Int {
@@ -155,6 +165,28 @@ final class AppState: ObservableObject {
 
     func dismissEmail(id: String) {
         supervisor.dismissEmail(id: id)
+    }
+
+    var hasPendingEmails: Bool {
+        !emailStoreItems.isEmpty
+    }
+
+    var canMarkAllAsRead: Bool {
+        supervisor.canMarkAllAsRead && !isMarkingAllAsRead
+    }
+
+    func markAllEmailsAsRead() {
+        guard !isMarkingAllAsRead else { return }
+        Task {
+            isMarkingAllAsRead = true
+            bulkActionMessage = nil
+            defer { isMarkingAllAsRead = false }
+            bulkActionMessage = await supervisor.markAllEmailsAsRead().message
+        }
+    }
+
+    func dismissAllEmails() {
+        bulkActionMessage = supervisor.dismissAllEmails().message
     }
 
     func refreshNotificationAuthorizationState(showStatusMessage: Bool = false) {
@@ -204,6 +236,39 @@ final class AppState: ObservableObject {
         }
     }
 
+    var isUpdaterAvailable: Bool {
+        updateManager.isAvailable
+    }
+
+    var automaticallyChecksForUpdates: Bool {
+        updateManager.automaticallyChecksForUpdates
+    }
+
+    func setAutomaticallyChecksForUpdates(_ isEnabled: Bool) {
+        updateManager.setAutomaticallyChecksForUpdates(isEnabled)
+        objectWillChange.send()
+    }
+
+    func checkForUpdates() {
+        updateManager.checkForUpdates()
+    }
+
+    /// Resets every configurable preference and re-reads it, so the UI and the
+    /// supervisor both reflect the stored defaults immediately.
+    func restoreDefaults() {
+        settingsStore.restoreDefaults()
+        showPendingCount = settingsStore.showPendingCount
+        let restoredIncludeSpam = settingsStore.includeSpam
+        if includeSpam != restoredIncludeSpam {
+            includeSpam = restoredIncludeSpam
+            supervisor.setIncludeSpam(restoredIncludeSpam)
+        }
+        emailStoreItems = supervisor.emailStoreItems
+        pendingCountsByAccountID = supervisor.emailStore.pendingCountsByAccountID
+        menuBarIconSystemImage = supervisor.menuBarIconSystemImage
+        needsAttention = supervisor.needsAttention
+    }
+
     func quit() {
         NSApplication.shared.terminate(nil)
     }
@@ -221,6 +286,7 @@ extension AppState: AccountSupervisorDelegate {
         emailStoreItems = supervisor.emailStoreItems
         pendingCountsByAccountID = supervisor.emailStore.pendingCountsByAccountID
         menuBarIconSystemImage = supervisor.menuBarIconSystemImage
+        needsAttention = supervisor.needsAttention
         oauthSetupMessage = supervisor.oauthSetupMessage
         if let accountStoreError = supervisor.accountStoreError {
             lastError = accountStoreError

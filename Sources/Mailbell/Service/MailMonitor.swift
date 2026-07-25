@@ -156,7 +156,9 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
                     notifyStatus(.reauthRequired, error: error.localizedDescription)
                     return
                 case .refreshUnavailable:
-                    if Task.isCancelled { break }
+                    if Task.isCancelled {
+                        break
+                    }
                     Log.error("Token refresh deferred: \(error.localizedDescription)")
                     notifyStatus(.reconnecting, error: error.localizedDescription)
                     client?.disconnect()
@@ -175,7 +177,9 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
                     client = nil
                     return
                 }
-                if Task.isCancelled { break }
+                if Task.isCancelled {
+                    break
+                }
                 Log.error("Connection dropped: \(error.localizedDescription)")
                 notifyStatus(.reconnecting, error: error.localizedDescription)
                 client?.disconnect()
@@ -183,7 +187,9 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
                 try? await Task.sleep(nanoseconds: UInt64(backoff * 1_000_000_000))
                 backoff = min(backoff * 2, 60)
             } catch {
-                if Task.isCancelled { break }
+                if Task.isCancelled {
+                    break
+                }
                 let userVisibleError = Self.userVisibleReconnectError(for: error)
                 if let userVisibleError {
                     Log.error("Connection dropped: \(userVisibleError)")
@@ -453,6 +459,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
         ]
     }
 }
+
 // swiftlint:enable type_body_length
 
 struct MonitoredMailbox: Equatable {

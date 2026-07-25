@@ -6,9 +6,9 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
     func testMarkAsReadRemovesEmailFromStoreAfterServerSuccess() async throws {
         var markedAccounts: [UUID] = []
         var markedIdentities: [IMAPMessageIdentity] = []
-        let (supervisor, account) = makeSupervisor(emailReadMarker: { account, _, identity in
+        let (supervisor, account) = makeSupervisor(emailReadMarker: { account, _, identities in
             markedAccounts.append(account.id)
-            markedIdentities.append(identity)
+            markedIdentities.append(contentsOf: identities)
         })
         let header = makeHeader(uid: 42, mailboxName: "INBOX", gmMessageId: "mark-read")
 
@@ -28,8 +28,8 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
     @MainActor
     func testMarkAsReadMarksEveryKnownMessageInThreadGroup() async throws {
         var markedIdentities: [IMAPMessageIdentity] = []
-        let (supervisor, account) = makeSupervisor(emailReadMarker: { _, _, identity in
-            markedIdentities.append(identity)
+        let (supervisor, account) = makeSupervisor(emailReadMarker: { _, _, identities in
+            markedIdentities.append(contentsOf: identities)
         })
         let firstHeader = makeHeader(uid: 41, mailboxName: "INBOX", gmMessageId: "message-1", gmThreadId: "thread-1")
         let secondHeader = makeHeader(uid: 42, mailboxName: "INBOX", gmMessageId: "message-2", gmThreadId: "thread-1")

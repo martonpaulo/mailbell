@@ -6,6 +6,10 @@
 build/
 *.app
 *.dmg
+*.zip
+
+# Task logs and generated release artifacts
+artifacts/
 
 # Xcode (if opened in Xcode)
 *.xcodeproj
@@ -21,9 +25,11 @@ DerivedData/
 .idea/
 *.swp
 
-# Local credentials
+# Local credentials and signing material
 .env
+*.p12
+*.pem
+*_priv
 
-# idoc site build
-dist/
-/idoc.yml
+# Disposable experiments and handoff notes
+.scratch/

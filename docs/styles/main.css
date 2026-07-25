@@ -1,0 +1,185 @@
+/* Mailbell website: self-contained, light/dark aware. */
+:root {
+  color-scheme: light dark;
+  --bg: #fbf9f4;
+  --surface: #ffffff;
+  --ink: #1a1710;
+  --muted: #625a4b;
+  --accent: #a35c00;
+  --accent-soft: rgba(163, 92, 0, 0.10);
+  --warning-bg: #fff8e6;
+  --warning-border: #e0a72a;
+  --warning-ink: #6b4a00;
+  --accent-ink: #ffffff;
+  --border: rgba(26, 23, 16, 0.12);
+  --shadow: 0 18px 48px rgba(26, 23, 16, 0.12);
+  --radius: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14110b;
+    --surface: #201b12;
+    --ink: #f6f1e6;
+    --muted: #b3a892;
+    --accent: #ffc53d;
+    --accent-soft: rgba(255, 197, 61, 0.12);
+    --warning-bg: #2a2110;
+    --warning-border: #b98a1c;
+    --warning-ink: #ffdf9a;
+    --accent-ink: #14110b;
+    --border: rgba(246, 241, 230, 0.14);
+    --shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+  }
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.55;
+}
+img { max-width: 100%; height: auto; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+:where(a, button, input, select):focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.skip-link {
+  position: absolute; left: -9999px; top: 0; background: var(--accent);
+  color: var(--accent-ink); padding: 0.5rem 1rem; border-radius: 8px; z-index: 10;
+}
+.skip-link:focus { left: 1rem; top: 1rem; }
+
+.site-header {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 0.5rem 1.2rem;
+  max-width: 980px; margin: 0 auto; padding: 1.1rem 1.5rem;
+}
+.brand { display: flex; align-items: center; gap: 0.6rem; font-weight: 700; color: var(--ink); flex-shrink: 0; }
+.brand img { border-radius: 8px; }
+.site-header nav { display: flex; gap: 1.4rem; }
+.site-header nav a { color: var(--muted); font-weight: 500; }
+.site-header nav a:hover { color: var(--accent); text-decoration: none; }
+.site-header [aria-current="page"] { color: var(--accent); }
+
+@media (max-width: 640px) {
+  .site-header { justify-content: center; padding-inline: 1rem; }
+  .site-header nav {
+    width: 100%; justify-content: center; flex-wrap: wrap;
+    gap: 0.5rem 1rem; text-align: center;
+  }
+}
+
+main { max-width: 980px; margin: 0 auto; padding: 0 1.5rem 4rem; }
+
+.hero { text-align: center; padding: 3.5rem 0 2rem; }
+.hero-icon { border-radius: 28px; box-shadow: var(--shadow); }
+.eyebrow {
+  text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.78rem;
+  font-weight: 700; color: var(--accent); margin: 1.6rem 0 0.4rem;
+}
+h1 { font-size: clamp(2.1rem, 5.5vw, 3.2rem); line-height: 1.12; margin: 0.2rem 0 0.8rem; letter-spacing: -0.02em; }
+h2 { font-size: clamp(1.5rem, 3.4vw, 2rem); line-height: 1.18; margin: 0.2rem 0 0.7rem; letter-spacing: -0.01em; }
+.hero-summary { font-size: 1.15rem; color: var(--muted); max-width: 34rem; margin: 0 auto 1.6rem; }
+
+.actions { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; }
+.button {
+  display: inline-block; padding: 0.72rem 1.5rem; border-radius: 999px;
+  font-weight: 600; transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.button:hover { text-decoration: none; transform: translateY(-1px); }
+.button.primary { background: var(--accent); color: var(--accent-ink); box-shadow: 0 8px 22px var(--accent-soft); }
+.button.secondary { border: 1px solid var(--border); color: var(--ink); background: var(--surface); }
+.compatibility { color: var(--muted); font-size: 0.9rem; margin-top: 1rem; }
+.actions + .compatibility { margin-top: 1.35rem; }
+
+/* The unverified-app disclosure. Prominent by design: users meet Google's
+   warning screen during sign-in and must not be surprised by it. */
+.notice {
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius);
+  color: var(--warning-ink);
+  padding: 1.1rem 1.3rem;
+  margin: 2rem auto 0;
+  max-width: 44rem;
+  text-align: left;
+}
+.notice h2, .notice h3 { margin: 0 0 0.4rem; font-size: 1.02rem; color: inherit; }
+.notice p { margin: 0.4rem 0 0; font-size: 0.95rem; }
+.notice p:first-of-type { margin-top: 0; }
+.notice a { color: inherit; text-decoration: underline; }
+.notice ul { margin: 0.5rem 0 0; padding-left: 1.2rem; font-size: 0.95rem; }
+
+.section { padding: 3.4rem 0 0; text-align: center; }
+.section > p:not(.eyebrow) { color: var(--muted); max-width: 40rem; margin: 0 auto 0.8rem; }
+.section h2 { margin-bottom: 1rem; }
+.section .actions { margin-top: 1.6rem; }
+
+.feature-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem; margin-top: 2rem; text-align: left;
+}
+.feature-grid article {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1.3rem 1.4rem;
+}
+.feature-grid span { font-size: 1.5rem; }
+.feature-grid h3 { margin: 0.5rem 0 0.3rem; font-size: 1.02rem; }
+.feature-grid p { margin: 0; color: var(--muted); font-size: 0.94rem; }
+
+.steps {
+  counter-reset: step; list-style: none; margin: 2rem auto 0; padding: 0;
+  max-width: 40rem; text-align: left;
+}
+.steps li {
+  counter-increment: step; position: relative; padding: 0 0 1.1rem 2.6rem;
+  color: var(--muted);
+}
+.steps li::before {
+  content: counter(step); position: absolute; left: 0; top: 0;
+  width: 1.8rem; height: 1.8rem; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent);
+  display: grid; place-items: center; font-weight: 700; font-size: 0.85rem;
+}
+.steps strong { color: var(--ink); }
+
+.download { padding-bottom: 0.5rem; }
+.download img { border-radius: 22px; box-shadow: var(--shadow); margin-bottom: 0.6rem; }
+.section.download > .compatibility { margin-top: 1.8rem; }
+
+/* Legal pages: long-form prose, left aligned and comfortable to read. */
+.legal { max-width: 46rem; margin: 0 auto; padding-top: 2.5rem; text-align: left; }
+.legal h1 { text-align: left; }
+.legal h2 { margin-top: 2.4rem; font-size: 1.3rem; }
+.legal h3 { margin-top: 1.6rem; font-size: 1.05rem; }
+.legal p, .legal li { color: var(--muted); }
+.legal strong { color: var(--ink); }
+.legal ul, .legal ol { padding-left: 1.3rem; }
+.legal li { margin-bottom: 0.4rem; }
+.legal .updated { font-size: 0.9rem; }
+.legal table {
+  width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.94rem;
+  display: block; overflow-x: auto;
+}
+.legal th, .legal td {
+  border: 1px solid var(--border); padding: 0.6rem 0.75rem;
+  text-align: left; vertical-align: top;
+}
+.legal th { background: var(--surface); color: var(--ink); font-weight: 650; }
+.legal td { color: var(--muted); }
+
+.back { display: inline-block; margin-top: 2.5rem; }
+
+.site-footer {
+  border-top: 1px solid var(--border); text-align: center;
+  color: var(--muted); font-size: 0.9rem; padding: 1.6rem 1rem 2.2rem;
+  margin-top: 3rem;
+}
+.site-footer a { color: var(--muted); text-decoration: underline; }
+.site-footer a:hover { color: var(--accent); }

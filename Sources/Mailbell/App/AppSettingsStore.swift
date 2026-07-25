@@ -1,9 +1,21 @@
 import Foundation
 
 struct AppSettingsStore {
-    private enum Key {
+    /// The single home for every configurable default. Views, tests, and
+    /// Restore Defaults all read from here; no fallback value is duplicated.
+    enum Defaults {
+        static let showPendingCount = true
+        static let includeSpam = false
+    }
+
+    enum Key {
         static let showPendingCount = "mailbell.settings.showPendingCount.v1"
         static let includeSpam = "mailbell.settings.includeSpam.v1"
+
+        /// Every preference Restore Defaults resets. Identity, tokens, account
+        /// metadata, IMAP checkpoints, and handled-message history are user
+        /// data, not preferences, and are deliberately absent.
+        static let configurable = [showPendingCount, includeSpam]
     }
 
     private let userDefaults: UserDefaults
@@ -14,8 +26,8 @@ struct AppSettingsStore {
 
     var showPendingCount: Bool {
         get {
-            if userDefaults.object(forKey: Key.showPendingCount) == nil {
-                return true
+            guard userDefaults.object(forKey: Key.showPendingCount) != nil else {
+                return Defaults.showPendingCount
             }
             return userDefaults.bool(forKey: Key.showPendingCount)
         }
@@ -26,10 +38,22 @@ struct AppSettingsStore {
 
     var includeSpam: Bool {
         get {
-            userDefaults.bool(forKey: Key.includeSpam)
+            guard userDefaults.object(forKey: Key.includeSpam) != nil else {
+                return Defaults.includeSpam
+            }
+            return userDefaults.bool(forKey: Key.includeSpam)
         }
         nonmutating set {
             userDefaults.set(newValue, forKey: Key.includeSpam)
+        }
+    }
+
+    /// Clears every configurable preference so the stored state falls back to
+    /// `Defaults`. Never touches accounts, Keychain tokens, or notification
+    /// permission.
+    func restoreDefaults() {
+        for key in Key.configurable {
+            userDefaults.removeObject(forKey: key)
         }
     }
 }

@@ -361,6 +361,17 @@ final class EmailStore {
         try removeGroup(containing: id, disposition: .markedRead)
     }
 
+    /// Dismisses every pending item in one persistence write and returns how
+    /// many groups (menu rows) were cleared.
+    @discardableResult
+    func dismissAll() throws -> Int {
+        guard !itemsByID.isEmpty else { return 0 }
+        let groupCount = Set(itemsByID.values.map(\.groupID)).count
+        try persistence.mark(Array(itemsByID.keys), disposition: .dismissed)
+        itemsByID = [:]
+        return groupCount
+    }
+
     func removeAccountRecords(accountID: UUID) throws {
         try persistence.removeRecords(accountID: accountID)
     }

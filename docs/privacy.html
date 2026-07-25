@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Privacy Policy | Mailbell</title>
+  <meta name="description" content="Mailbell runs entirely on your Mac. There is no Mailbell server, Gmail data never passes through one, and tokens stay in the macOS Keychain.">
+  <link rel="canonical" href="https://martonpaulo.github.io/mailbell/privacy.html">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/app-icon.png">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Mailbell">
+  <meta property="og:title" content="Privacy Policy | Mailbell">
+  <meta property="og:description" content="Mailbell runs entirely on your Mac. No server, no telemetry, no data sale.">
+  <meta property="og:url" content="https://martonpaulo.github.io/mailbell/privacy.html">
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header" aria-label="Primary navigation">
+    <a class="brand" href="index.html" aria-label="Mailbell home">
+      <img src="assets/app-icon.png" width="36" height="36" alt="">
+      <span>Mailbell</span>
+    </a>
+    <nav aria-label="Page sections">
+      <a href="index.html">Home</a>
+      <a href="privacy.html" aria-current="page">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="https://github.com/martonpaulo/mailbell">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="main" class="legal">
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: 25 July 2026 &middot; Applies to Mailbell for macOS, all versions.</p>
+
+    <p>Mailbell is a macOS menu bar app that notifies you about new Gmail messages. This policy explains exactly what it touches, because the honest answer is: less than you might expect, and none of it reaches me.</p>
+
+    <h2>The short version</h2>
+    <ul>
+      <li><strong>Mailbell runs entirely on your Mac.</strong> It is a normal Mac application, not a service you sign up for.</li>
+      <li><strong>There is no Mailbell server or backend.</strong> None exists. I operate no infrastructure that could receive your mail.</li>
+      <li><strong>Your Gmail data never passes through any server I control.</strong> Mailbell talks directly from your Mac to Google.</li>
+      <li><strong>Your Google tokens are stored in the macOS Keychain</strong> on your Mac, and nowhere else.</li>
+      <li><strong>I do not sell your data, show ads, train AI on your data, or share your Gmail data with anyone.</strong></li>
+    </ul>
+
+    <aside class="notice">
+      <h2>Public beta: unverified Google app</h2>
+      <p>Mailbell's Google OAuth client has not completed Google's verification review. Google shows an &ldquo;unverified app&rdquo; screen during sign-in, and limits unverified apps to <strong>100 new users</strong>. This affects the sign-in experience and how many people can connect, not how your data is handled. Everything in this policy applies today.</p>
+    </aside>
+
+    <h2>Who is responsible</h2>
+    <p>Mailbell is an independent open-source project by Marton Paulo. There is no company behind it and no data-processing operation to speak of, because no data is ever received. Questions and privacy reports go to the <a href="https://github.com/martonpaulo/mailbell/issues">issue tracker</a>.</p>
+
+    <h2>How Mailbell connects to Gmail</h2>
+    <p>You sign in through Google's own OAuth flow, in your own browser. Mailbell never sees or asks for your Google password. Google returns tokens directly to the app on your Mac.</p>
+    <p>Mailbell then connects to Gmail over IMAP (<code>imap.gmail.com</code>, TLS, port 993) using those tokens and holds an idle connection so it learns about new mail as it arrives.</p>
+    <p>Two parties are involved in this: you and Google. There is no third.</p>
+
+    <h2>What Mailbell accesses</h2>
+    <p>For each message that needs a notification, Mailbell reads the minimum that a useful notification requires:</p>
+    <table>
+      <thead>
+        <tr><th>Data</th><th>Why</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>The email address of the account you connected</td><td>To label the account and open the right mailbox</td></tr>
+        <tr><td>Sender name and address</td><td>To show who the message is from</td></tr>
+        <tr><td>Subject</td><td>To show what the message is about</td></tr>
+        <tr><td>Date the message was sent</td><td>To order and time-stamp the queue</td></tr>
+        <tr><td>Gmail and IMAP identifiers (UID, RFC Message-ID, Gmail message and thread IDs)</td><td>To avoid duplicate notifications, group a thread, and mark the right message read</td></tr>
+        <tr><td>A limited text preview of the message</td><td>To show a few lines so you can judge urgency without opening Gmail</td></tr>
+        <tr><td>Read or unread state</td><td>To remove items you already read elsewhere</td></tr>
+      </tbody>
+    </table>
+
+    <h3>What Mailbell does not fetch</h3>
+    <ul>
+      <li><strong>It does not fetch attachments.</strong> Ever, in any form.</li>
+      <li><strong>It does not fetch full message bodies.</strong> The preview is a bounded request capped at roughly 8&nbsp;KB of text, and it is read-only: fetching a preview does not mark anything read in Gmail.</li>
+      <li>It does not read your contacts, calendar, Drive, or any other Google service.</li>
+      <li>It does not send mail, reply, archive, delete, label, or move anything. The only change it ever makes to your mailbox is marking a message <em>read</em>, and only when you explicitly choose Mark as Read or Mark All as Read.</li>
+    </ul>
+
+    <h3>About the permission Google asks for</h3>
+    <p>Gmail's IMAP interface requires the broad <code>https://mail.google.com/</code> scope; Google has no narrower scope that permits IMAP access. So the consent screen will describe wide access even though Mailbell uses a small corner of it. Rather than claim otherwise, I will say it plainly: the permission you grant is broader than what the app does. What the app actually does is listed above, and the source code is public so you can check.</p>
+
+    <h2>Where things are stored</h2>
+    <p>Everything stays on your Mac:</p>
+    <ul>
+      <li><strong>macOS Keychain</strong> &mdash; your Google refresh token and cached access token. Nothing else is stored there, and nothing sensitive is stored anywhere else.</li>
+      <li><strong>App preferences on your Mac</strong> &mdash; the account address, your browser routing choice, connection checkpoints, your settings, and a short pruned list of which messages you already handled so they do not reappear. No message content is retained after an item leaves your queue.</li>
+    </ul>
+    <p>Nothing is uploaded, backed up to a service I run, or synced anywhere by Mailbell. Whatever your own Mac backups do with your disk is between you and your backup software.</p>
+
+    <h2>Analytics, advertising, and AI</h2>
+    <ul>
+      <li>Mailbell contains <strong>no analytics</strong>, no telemetry, no crash reporting, and no usage tracking of any kind.</li>
+      <li>There is <strong>no advertising</strong>, and no advertising identifier.</li>
+      <li>Your Gmail data is <strong>never used to train AI or machine-learning models</strong>, by me or anyone else through this app.</li>
+      <li>Your Gmail data is <strong>never sold, rented, shared, or transferred</strong> to any third party. There is no mechanism by which it could be: it never leaves your Mac.</li>
+    </ul>
+    <p>Mailbell's use of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including its Limited Use requirements.</p>
+
+    <h2>Update checks</h2>
+    <p>Mailbell checks for new versions using <a href="https://sparkle-project.org">Sparkle</a>. An update check requests an update feed hosted on GitHub, and downloads a release asset from GitHub when an update exists.</p>
+    <p>These requests <strong>contain no Gmail data</strong> and no account information. As with any web request, GitHub as the host can see the ordinary technical details of the connection, such as your IP address and the version of the file requested. I receive nothing from these requests and keep no logs of them.</p>
+    <p>You can turn automatic checks off in Settings &rarr; Updates. Apart from Gmail itself, this is the only network activity in the app.</p>
+
+    <h2>How to revoke access</h2>
+    <p>You are in control of the connection at both ends, and I recommend doing both:</p>
+    <ol>
+      <li><strong>Disconnect in the app.</strong> Open Mailbell &rarr; Settings &rarr; Accounts and choose <em>Remove</em> on the account. This deletes the stored tokens from your Keychain and stops all monitoring for that account. Your Gmail mail is not changed.</li>
+      <li><strong>Revoke access at Google.</strong> Go to <a href="https://myaccount.google.com/permissions">your Google Account's third-party access page</a>, find Mailbell, and remove its access. This invalidates the tokens at the source, regardless of what any app still holds.</li>
+    </ol>
+    <p>To remove the app entirely, quit Mailbell and drag it from Applications to the Trash.</p>
+
+    <h2>Children</h2>
+    <p>Mailbell is not directed at children and does not knowingly process any child's data. It processes whatever is in the Gmail account you choose to connect.</p>
+
+    <h2>Changes to this policy</h2>
+    <p>If this policy changes, the updated version will be published on this page with a new date, and material changes will be described in the <a href="https://github.com/martonpaulo/mailbell/blob/main/CHANGELOG.md">changelog</a>. Since the app is open source, you can also see the exact commit that changed it.</p>
+
+    <h2>Contact</h2>
+    <p>Open an issue at <a href="https://github.com/martonpaulo/mailbell/issues">github.com/martonpaulo/mailbell/issues</a>. For anything security-related, please use the private <a href="https://github.com/martonpaulo/mailbell/security/advisories/new">security advisory</a> form instead of a public issue, and never include tokens or message content.</p>
+
+    <a class="back" href="index.html">&larr; Back to Mailbell</a>
+  </main>
+
+  <footer class="site-footer">
+    <p>MIT licensed. &copy; 2026 Marton Paulo &middot;
+      <a href="index.html">Home</a> &middot;
+      <a href="terms.html">Terms</a> &middot;
+      <a href="https://github.com/martonpaulo/mailbell">Source</a>
+    </p>
+  </footer>
+</body>
+</html>

@@ -1,13 +1,13 @@
-@testable import mailbell
 import Foundation
+@testable import mailbell
 import XCTest
 
 final class MailMonitorReconciliationTests: XCTestCase {
-    func testClosedConnectionIsNotUserVisibleReconnectError() throws {
+    func testClosedConnectionIsNotUserVisibleReconnectError() {
         XCTAssertNil(MailMonitor.userVisibleReconnectError(for: IMAPConnection.ConnectionError.closed))
     }
 
-    func testUnexpectedReconnectErrorRemainsUserVisible() throws {
+    func testUnexpectedReconnectErrorRemainsUserVisible() {
         let error = IMAPConnection.ConnectionError.notReady("waiting")
 
         XCTAssertEqual(
@@ -227,7 +227,7 @@ private final class ReconciliationDelegate: MailMonitorDelegate {
         guard accountID == account.id else { return [] }
         var admittedIdentities = Set<IMAPMessageIdentity>()
         for header in headers {
-            if (try? await store.admit(header: header, account: account)) == true,
+            if await (try? store.admit(header: header, account: account)) == true,
                let identity = header.imapIdentity {
                 admittedIdentities.insert(identity)
             }

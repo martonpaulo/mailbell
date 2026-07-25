@@ -50,7 +50,9 @@ final class IMAPClient {
     private actor DoneGate {
         private var claimed = false
         func claim() -> Bool {
-            if claimed { return false }
+            if claimed {
+                return false
+            }
             claimed = true
             return true
         }
@@ -59,9 +61,9 @@ final class IMAPClient {
     private let connection: any IMAPClientTransport
     private var tagCounter = 0
     private static let headerFields = "BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)]"
-    private static let bodyPreviewBytes = 8_192
+    private static let bodyPreviewBytes = 8192
     private static let maximumUIDsPerFetchCommand = 100
-    private static let maximumUIDFetchSequenceSetLength = 1_500
+    private static let maximumUIDFetchSequenceSetLength = 1500
 
     init(host: String = "imap.gmail.com", port: UInt16 = 993) {
         connection = IMAPConnection(host: host, port: port)
@@ -102,7 +104,9 @@ final class IMAPClient {
                 try await connection.send("")
                 continue
             }
-            if line.hasPrefix("\(tag) OK") { return }
+            if line.hasPrefix("\(tag) OK") {
+                return
+            }
             if line.hasPrefix("\(tag) NO") || line.hasPrefix("\(tag) BAD") {
                 throw IMAPError.authFailed(line)
             }
@@ -133,7 +137,9 @@ final class IMAPClient {
             if let uidNext = IMAPParser.parseBracket(line, key: "UIDNEXT") {
                 state.uidNext = uidNext
             }
-            if line.hasPrefix("\(tag) OK") { return state }
+            if line.hasPrefix("\(tag) OK") {
+                return state
+            }
             if line.hasPrefix("\(tag) NO") || line.hasPrefix("\(tag) BAD") {
                 throw IMAPError.selectFailed(line)
             }
@@ -150,7 +156,9 @@ final class IMAPClient {
             if mailboxName == nil {
                 mailboxName = IMAPParser.parseSpecialUseMailbox(line, flag: specialUse.flag)
             }
-            if line.hasPrefix("\(tag) OK") { return mailboxName }
+            if line.hasPrefix("\(tag) OK") {
+                return mailboxName
+            }
             if line.hasPrefix("\(tag) NO") || line.hasPrefix("\(tag) BAD") {
                 throw IMAPError.unexpected(line)
             }
@@ -233,7 +241,9 @@ final class IMAPClient {
                 uids.append(contentsOf: searchedUIDs)
                 continue
             }
-            if line.hasPrefix("\(tag) OK") { return uids }
+            if line.hasPrefix("\(tag) OK") {
+                return uids
+            }
             if line.hasPrefix("\(tag) NO") || line.hasPrefix("\(tag) BAD") {
                 throw IMAPError.unexpected(line)
             }
@@ -268,7 +278,9 @@ final class IMAPClient {
                 }
                 continue
             }
-            if line.hasPrefix("\(tag) OK") { break }
+            if line.hasPrefix("\(tag) OK") {
+                break
+            }
             if line.hasPrefix("\(tag) NO") || line.hasPrefix("\(tag) BAD") {
                 throw IMAPError.unexpected(line)
             }
@@ -299,7 +311,9 @@ final class IMAPClient {
                 }
                 continue
             }
-            if line.hasPrefix("\(tag) OK") { break }
+            if line.hasPrefix("\(tag) OK") {
+                break
+            }
             if line.hasPrefix("\(tag) NO") || line.hasPrefix("\(tag) BAD") {
                 throw IMAPError.unexpected(line)
             }
@@ -309,15 +323,32 @@ final class IMAPClient {
 
     func markAsRead(uid: Int) async throws {
         guard uid > 0 else { throw IMAPError.invalidUID(uid) }
+        try await markAsRead(uids: [uid])
+    }
 
-        let tag = nextTag()
-        try await connection.send("\(tag) UID STORE \(uid) +FLAGS.SILENT (\\Seen)")
+    /// Marks every UID in the selected mailbox as read with one `UID STORE` per
+    /// batch, so a bulk action costs a handful of commands instead of one round
+    /// trip per message.
+    func markAsRead(uids: [Int]) async throws {
+        let validUIDs = uids.filter { $0 > 0 }
+        guard !validUIDs.isEmpty else {
+            throw IMAPError.invalidUID(uids.first ?? 0)
+        }
 
-        while true {
-            let line = try await connection.readLine()
-            if line.hasPrefix("\(tag) OK") { return }
-            if line.hasPrefix("\(tag) NO") || line.hasPrefix("\(tag) BAD") {
-                throw IMAPError.unexpected(line)
+        for batch in Self.uidFetchBatches(for: validUIDs) {
+            let sequenceSet = Self.uidSequenceSet(for: batch)
+            guard !sequenceSet.isEmpty else { continue }
+            let tag = nextTag()
+            try await connection.send("\(tag) UID STORE \(sequenceSet) +FLAGS.SILENT (\\Seen)")
+
+            while true {
+                let line = try await connection.readLine()
+                if line.hasPrefix("\(tag) OK") {
+                    break
+                }
+                if line.hasPrefix("\(tag) NO") || line.hasPrefix("\(tag) BAD") {
+                    throw IMAPError.unexpected(line)
+                }
             }
         }
     }
@@ -352,8 +383,8 @@ final class IMAPClient {
         for uid in sortedUIDs {
             let candidate = current + [uid]
             if !current.isEmpty,
-               (candidate.count > maximumUIDsPerFetchCommand
-                    || uidSequenceSet(for: candidate).count > maximumUIDFetchSequenceSetLength) {
+               candidate.count > maximumUIDsPerFetchCommand
+               || uidSequenceSet(for: candidate).count > maximumUIDFetchSequenceSetLength {
                 batches.append(current)
                 current = [uid]
             } else {

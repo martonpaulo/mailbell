@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Mailbell | Gmail notifications in your menu bar</title>
+  <meta name="description" content="A native macOS menu bar notifier for Gmail. Instant alerts over IMAP IDLE, a review queue you can clear in one click, and no server in between.">
+  <link rel="canonical" href="https://martonpaulo.github.io/mailbell/">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/app-icon.png">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Mailbell">
+  <meta property="og:title" content="Mailbell | Gmail notifications in your menu bar">
+  <meta property="og:description" content="A native macOS menu bar notifier for Gmail. No server, no telemetry.">
+  <meta property="og:url" content="https://martonpaulo.github.io/mailbell/">
+  <meta property="og:image" content="https://martonpaulo.github.io/mailbell/assets/app-icon.png">
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header" aria-label="Primary navigation">
+    <a class="brand" href="#top" aria-label="Mailbell home" aria-current="page">
+      <img src="assets/app-icon.png" width="36" height="36" alt="">
+      <span>Mailbell</span>
+    </a>
+    <nav aria-label="Page sections">
+      <a href="#features">Features</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#download">Download</a>
+      <a href="https://github.com/martonpaulo/mailbell">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <img class="hero-icon" src="assets/app-icon.png" width="140" height="140" alt="Mailbell application icon">
+      <p class="eyebrow">A native menu bar app for macOS</p>
+      <h1>Gmail notifications, without opening Gmail.</h1>
+      <p class="hero-summary">Mailbell sits in your menu bar, tells you the moment mail arrives, and lets you clear the whole queue in one click. It runs entirely on your Mac.</p>
+      <div class="actions">
+        <a class="button primary" href="https://github.com/martonpaulo/mailbell/releases/latest">Download Mailbell</a>
+        <a class="button secondary" href="https://github.com/martonpaulo/mailbell">View on GitHub</a>
+      </div>
+      <p class="compatibility">Open source &middot; Direct download &middot; macOS 26 or later</p>
+
+      <aside class="notice" aria-labelledby="beta-notice-title">
+        <h2 id="beta-notice-title">Public beta: Google has not verified this app yet</h2>
+        <p>Mailbell's Google sign-in is an <strong>unverified app</strong> while it goes through Google's review. Two things follow from that, and you should know both before installing:</p>
+        <ul>
+          <li>Google will show you an <strong>&ldquo;Google hasn't verified this app&rdquo;</strong> screen during sign-in. You have to choose <em>Advanced</em> and continue past it.</li>
+          <li>Google caps unverified apps at <strong>100 new users</strong>. Once that cap is reached, new sign-ins stop working until verification completes. No promises of unlimited use until then.</li>
+        </ul>
+        <p>This is a review status, not a security finding. Mailbell still runs only on your Mac, and your Gmail data never passes through any server this project operates. See the <a href="privacy.html">Privacy Policy</a>.</p>
+      </aside>
+    </section>
+
+    <section class="section" id="features" aria-labelledby="features-title">
+      <p class="eyebrow">Made for the Mac</p>
+      <h2 id="features-title">Know about mail. Then get on with your day.</h2>
+      <div class="feature-grid">
+        <article><span aria-hidden="true">&#128276;</span><h3>Instant, not polled</h3><p>Mailbell holds an IMAP IDLE connection to Gmail, so a new message shows up when it arrives instead of on a timer.</p></article>
+        <article><span aria-hidden="true">&#128233;</span><h3>A review queue</h3><p>Everything waiting sits in the menu with sender, time, and a short preview. A Gmail thread counts once, not once per reply.</p></article>
+        <article><span aria-hidden="true">&#9989;</span><h3>Clear it in one click</h3><p><strong>Mark All as Read</strong> marks everything read in Gmail itself. <strong>Dismiss All</strong> clears your queue and leaves Gmail untouched.</p></article>
+        <article><span aria-hidden="true">&#9888;&#65039;</span><h3>It tells you when it can't work</h3><p>If a sign-in expires, the menu bar switches from the bell to an alert icon. Mailbell never looks idle while it is monitoring nothing.</p></article>
+        <article><span aria-hidden="true">&#127760;</span><h3>Opens in the right place</h3><p>Send Gmail to your default browser, a specific browser, or the exact Chrome profile that is already signed in to that account.</p></article>
+        <article><span aria-hidden="true">&#128274;</span><h3>Nothing in between</h3><p>No accounts, no sync service, no analytics, no Mailbell server. Tokens live in your macOS Keychain.</p></article>
+      </div>
+    </section>
+
+    <section class="section" id="privacy" aria-labelledby="privacy-title">
+      <p class="eyebrow">What it can see</p>
+      <h2 id="privacy-title">Your mail stays between you and Google.</h2>
+      <p>Mailbell connects straight from your Mac to Gmail. There is no backend to intercept anything, because there is no backend at all.</p>
+      <p>It reads only what a notification needs: the account address, sender, subject, date, message identifiers, read state, and a short trimmed text preview. It never downloads attachments or full message bodies, never sells or shares your data, never shows ads, and never trains AI on anything.</p>
+      <div class="actions">
+        <a class="button secondary" href="privacy.html">Read the Privacy Policy</a>
+        <a class="button secondary" href="terms.html">Read the Terms</a>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="install-title">
+      <p class="eyebrow">Two minutes</p>
+      <h2 id="install-title">Installing</h2>
+      <ol class="steps">
+        <li><strong>Download the DMG</strong> from GitHub Releases and drag Mailbell to Applications. The app is signed with an Apple Developer ID, notarized by Apple, and stapled.</li>
+        <li><strong>Open Mailbell</strong> from Applications and add your Gmail account. Sign-in happens in your browser.</li>
+        <li><strong>Pass the unverified-app screen.</strong> Google will warn you; choose <em>Advanced</em>, then continue. This goes away once Google finishes verification.</li>
+        <li><strong>Allow notifications</strong> when macOS asks. That is the whole setup: Mailbell keeps itself up to date from then on.</li>
+      </ol>
+    </section>
+
+    <section class="section download" id="download" aria-labelledby="download-title">
+      <img src="assets/app-icon.png" alt="" width="96" height="96">
+      <p class="eyebrow">Latest beta release</p>
+      <h2 id="download-title">Get Mailbell</h2>
+      <div class="actions">
+        <a class="button primary" href="https://github.com/martonpaulo/mailbell/releases/latest">Download the DMG</a>
+      </div>
+      <p class="compatibility">macOS 26 or later. Updates arrive automatically through Sparkle.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>MIT licensed. &copy; 2026 Marton Paulo &middot;
+      <a href="privacy.html">Privacy</a> &middot;
+      <a href="terms.html">Terms</a> &middot;
+      <a href="https://github.com/martonpaulo/mailbell">Source</a> &middot;
+      <a href="https://github.com/martonpaulo/mailbell/issues">Issues</a> &middot;
+      <a href="https://github.com/martonpaulo/mailbell/releases">Releases</a>
+    </p>
+  </footer>
+</body>
+</html>

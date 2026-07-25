@@ -1,428 +1,199 @@
+<div align="center">
+
+<img src="docs/assets/app-icon.png" width="128" alt="Mailbell app icon">
+
 # Mailbell
 
-<p align="center">
-  <img src="Resources/logo.png" alt="Mailbell logo" width="128">
-</p>
+**Gmail notifications in your macOS menu bar.**
 
-## What Mailbell Is
+[![CI](https://github.com/martonpaulo/mailbell/actions/workflows/ci.yml/badge.svg)](https://github.com/martonpaulo/mailbell/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/martonpaulo/mailbell?include_prereleases)](https://github.com/martonpaulo/mailbell/releases/latest)
+[![macOS 26+](https://img.shields.io/badge/macOS-26%2B-blue)](#-install)
+[![MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Mailbell is a local, notification-first Gmail companion for macOS. It sits in the menu bar, signs in with a Google OAuth Desktop client you own, stores tokens in Keychain, connects to Gmail IMAP with XOAUTH2, watches `INBOX` with IMAP `IDLE`, fetches minimal headers plus bounded sanitized previews, posts native notifications, and opens Gmail Web for reading and mail management.
+**[Visit the Mailbell website](https://martonpaulo.github.io/mailbell/)**
 
-Current implemented scope:
+</div>
 
-- New Gmail inbox notifications.
-- Pending menu-bar review with sender, subject, sent date, account, Gmail identifiers when available, and bounded sanitized preview text.
-- Gmail Web opening for notifications, pending items, and account actions.
-- Server-backed `Mark as Read` for pending items Mailbell already surfaced, using IMAP `UID STORE +FLAGS.SILENT (\\Seen)`.
+You do not want Gmail open all day. You also do not want to find out about a
+message three hours late. **Mailbell sits in your menu bar, tells you the moment
+mail arrives, and lets you clear the whole queue in one click.**
 
-Not implemented today: full body viewing, reply, archive, delete, move, labels, compose, attachments, a hosted backend, public website, gh-pages flow, Sparkle auto-update, App Store flow, analytics relay, or content polling as the primary new-mail mechanism.
+It runs entirely on your Mac. There is no Mailbell server.
 
-## Privacy And OAuth Scope
+## ⚠️ Public beta: Google has not verified this app yet
 
-Mailbell uses the Gmail IMAP XOAUTH2 transport. Google documents `https://mail.google.com/` as the scope for IMAP, POP, and SMTP OAuth access, and that scope is broad even though Mailbell intentionally fetches only the smallest useful notification/menu data.
+Mailbell's Google OAuth client is still going through Google's review, so it is
+an **unverified app**. Before you install, know both consequences:
 
-Requested OAuth scopes:
+- **You will see a warning screen during sign-in.** Google shows
+  *"Google hasn't verified this app"*. You have to choose **Advanced**, then
+  continue. This is expected, and it goes away once verification completes.
+- **Google caps unverified apps at 100 new users.** Once 100 people have
+  connected an account, new sign-ins stop working until verification completes.
+  **No unlimited use is promised while the app is unverified.**
 
-| Scope | Why Mailbell requests it |
-| --- | --- |
-| `https://mail.google.com/` | Required for Gmail IMAP XOAUTH2 and the server-backed mark-as-read command. Narrower Gmail API scopes do not authenticate this IMAP transport. |
-| `openid` | Required for the OpenID Connect user info call after sign-in. |
-| `email` | Lets Mailbell read the signed-in Gmail address and authenticate IMAP as that user. |
+This is a review status, not a security problem. Your Gmail data still never
+passes through any server this project operates, because none exists. See the
+[Privacy Policy](https://martonpaulo.github.io/mailbell/privacy.html) and the
+[Terms](https://martonpaulo.github.io/mailbell/terms.html).
 
-Privacy rules:
+If your account belongs to a Google Workspace organization, your administrator
+may block unverified apps entirely. That is their policy to change, not
+something the app can work around.
 
-- Use your own Google Cloud project and OAuth Desktop client.
-- Real OAuth config lives only in `.env`, shell environment, or the copied app bundle generated on your Mac.
-- `.env` is ignored by git and must stay untracked.
-- Refresh tokens and access-token cache are stored in macOS Keychain only.
-- Mailbell does not fetch attachments or full message bodies. Preview fetches are bounded to `BODY.PEEK[TEXT]<0.8192>` and sanitized locally before display.
-- For private/local use, you own the Cloud project and OAuth client. For broader public distribution, Google verification requirements may apply because `https://mail.google.com/` is a restricted Gmail scope.
+## ⚡ Install
 
-Current official references:
+**[Download the latest DMG →](https://github.com/martonpaulo/mailbell/releases/latest)**
 
-- [Google OAuth 2.0 for iOS & Desktop Apps](https://developers.google.com/identity/protocols/oauth2/native-app)
-- [Gmail XOAUTH2 protocol for IMAP, POP, and SMTP](https://developers.google.com/workspace/gmail/imap/xoauth2-protocol)
-- [Gmail API scope classifications](https://developers.google.com/workspace/gmail/api/auth/scopes)
+1. Open the DMG and drag **Mailbell** to Applications. Releases are signed with
+   an Apple Developer ID, notarized by Apple, and stapled.
+2. Launch Mailbell from Applications and add your Gmail account. Sign-in happens
+   in your own browser; Mailbell never sees your Google password.
+3. Get past Google's unverified-app screen (**Advanced** → continue).
+4. Allow notifications when macOS asks.
 
-## Requirements
+That is the whole setup. Mailbell keeps itself up to date through
+[Sparkle](https://sparkle-project.org), verifying each update's signature before
+replacing the app. Automatic checks can be turned off in Settings → Updates.
 
-- macOS 26 or newer.
-- Xcode Command Line Tools or a Swift toolchain that can build this SwiftPM package.
-- `make`, `python3` with `pip`, `xcrun`, `codesign`, `hdiutil`, and `spctl` from the macOS toolchain.
-- Optional for `make check`: `swiftlint` and `swiftformat`.
-- Optional for public release outside the Mac App Store: Apple Developer Program membership, a Developer ID Application certificate, and `notarytool` credentials stored in Keychain.
+> Open source · direct download · macOS 26 or later
 
-Local development, `make install`, and local `make dmg` do not require an Apple Developer account; they use ad-hoc signing by default.
+## ✨ What it does
 
-## One-Time Setup
+| | |
+|---|---|
+| 🔔 **Instant, not polled** | Holds an IMAP IDLE connection, so mail shows up when it arrives instead of on a timer |
+| 📨 **A review queue** | Sender, time, and a short preview in the menu. A Gmail thread counts once, not once per reply |
+| ✅ **Mark All as Read** | Clears the queue *and* marks everything read in Gmail, over one authenticated session per account |
+| 🧹 **Dismiss All** | Clears your queue and leaves Gmail untouched. Dismissed mail stays unread and does not come back |
+| ⚠️ **Honest menu bar icon** | When a sign-in expires, the bell becomes an alert icon. Mailbell never looks idle while monitoring nothing |
+| 🌐 **Opens in the right place** | Default browser, a specific browser, or the exact Chrome profile already signed in to that account |
+| 🗑️ **Optional Spam** | Off by default; turn it on and unread Spam joins the queue |
+| 🚀 **Start at login** | Set it once, forget it |
 
-### Google Cloud OAuth Desktop Client
+## 🔒 What Mailbell can see
 
-Create or select a Google Cloud project you control.
+Mailbell connects straight from your Mac to Gmail over IMAP. It reads only what
+a notification needs:
 
-1. Configure the OAuth consent screen.
-2. For personal Gmail or non-Workspace use, choose `External`; for a Workspace-owned project, choose `Internal` only if all sign-ins are from that organization.
-3. For day-to-day personal use, publish the consent screen to `In production` after setup. Use `Testing` only for short validation.
-4. Add only the scopes Mailbell requests: `https://mail.google.com/`, `openid`, and `email`.
-5. Create an OAuth Client ID with application type `Desktop app`.
-6. Copy the Desktop client ID. It should end with `.apps.googleusercontent.com`.
+- the address of the account you connected
+- sender, subject, and sent date
+- Gmail and IMAP identifiers, to avoid duplicates and group threads
+- read/unread state
+- a **bounded** text preview, capped at roughly 8 KB and fetched read-only
 
-Mailbell uses Google's installed-app flow with PKCE and a temporary `http://127.0.0.1:<port>/oauth/callback` loopback redirect. The callback server binds only to IPv4 loopback with an OS-assigned dynamic port. Do not create a Web app client, hosted redirect site, or OAuth domain website for this fork.
+**It never fetches attachments or full message bodies.** The only change it ever
+makes to your mailbox is marking a message read, and only when you ask.
 
-`MAILBELL_GOOGLE_CLIENT_SECRET` is optional. Leave it blank unless Google shows a Desktop client secret or token exchange fails without it; if you do set it, use the secret from the same Desktop OAuth client.
+Tokens live in the **macOS Keychain**. There is no analytics, no telemetry, and
+no advertising, and your data is never sold, shared, or used to train AI.
 
-### Local .env
+### About the scope Google asks for
 
-Create the private local configuration file:
+| Scope | Why |
+|---|---|
+| `https://mail.google.com/` | Required for Gmail IMAP XOAUTH2 and the server-side mark-as-read command. Narrower Gmail API scopes do not authenticate the IMAP transport |
+| `openid` | The OpenID Connect user-info call after sign-in |
+| `email` | Reads the signed-in address so IMAP can authenticate as that user |
 
-```bash
-cp .env.example .env
-$EDITOR .env
-```
+Gmail offers no narrower scope that permits IMAP, so the consent screen
+describes wider access than the app uses. That is worth stating plainly rather
+than hiding: what it actually does is the list above, and the source is here.
 
-Supported `.env` keys:
+**Revoking access:** remove the account in Settings → Accounts (this deletes the
+local tokens), then revoke at your
+[Google Account permissions page](https://myaccount.google.com/permissions).
 
-```bash
-MAILBELL_GOOGLE_CLIENT_ID=123456789012-abcde12345mailbellxyz.apps.googleusercontent.com
-MAILBELL_GOOGLE_CLIENT_SECRET=
-MAILBELL_BUNDLE_ID=com.johndoe.mailbell
-MAILBELL_CODE_SIGN_IDENTITY=Developer ID Application: John Doe (9A1B2C3D4E)
-MAILBELL_NOTARY_KEYCHAIN_PROFILE=mailbell-notary
-```
+References:
+[OAuth for desktop apps](https://developers.google.com/identity/protocols/oauth2/native-app) ·
+[Gmail XOAUTH2](https://developers.google.com/workspace/gmail/imap/xoauth2-protocol) ·
+[Gmail scopes](https://developers.google.com/workspace/gmail/api/auth/scopes)
 
-Only the first three are needed for normal local development and local packaging. `MAILBELL_BUNDLE_ID` controls the packaged app identity and Keychain namespace; changing it after signing in means you may need to sign in again.
+## 🖼️ Settings
 
-Mailbell is always named `Mailbell`. The product name, DMG volume name, version, build number, and release DMG filename are repo/release metadata, not user-specific `.env` config.
+Six native panes: **General** (menu bar count, start at login, Restore
+Defaults), **Notifications** (permission state and a test notification),
+**Accounts** (connect, status, reconnect, remove), **Advanced** (Spam and
+per-account browser routing), **Updates**, and **About**.
 
-### Optional Apple Developer ID Signing Setup
+Every default and the reasoning behind it is in
+[docs/feature-defaults.md](docs/feature-defaults.md).
 
-Run this once on the Mac used for public release builds:
+## 🛠 Build from source
 
-```bash
-make setup-release-signing
-```
-
-The helper lists available `Developer ID Application` certificates, lets you choose or confirm the exact `MAILBELL_CODE_SIGN_IDENTITY`, and creates or updates the `notarytool` Keychain profile. The notary profile stores Apple notarization credentials in Keychain; `.env` stores only the profile name.
-
-Apple signing/notarization references:
-
-- [Signing Mac software with Developer ID](https://developer.apple.com/developer-id/)
-- [Notarizing macOS software before distribution](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)
-- [Customizing the notarization workflow](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow)
-- [Resolving common notarization issues](https://developer.apple.com/documentation/security/resolving-common-notarization-issues)
-
-Important distinction: ad-hoc signing is enough for local dev on your Mac. Developer ID signing plus notarization is the modern flow for distributing macOS software outside the Mac App Store. `notarytool` submits the signed DMG to Apple, and `stapler` attaches the accepted notarization ticket to the DMG. Apple supports notarizing distributed file types including DMG.
-
-## Daily Development Flow
-
-Use `main` for this personal fork unless you intentionally create a focused branch for a separate task.
-
-```bash
-git status --short --branch
-make build
-make test
-# edit code
-make check
-git status --short --branch
-git add ...
-git commit -m "feat: ..."
-git push origin main
-```
-
-Useful targets:
-
-```bash
-make help
-make build
-make test
-make check
-make run
-make icons
-```
-
-`make run` launches the unbundled SwiftPM executable. Use `make install` for normal local use because notifications, login item behavior, app identity, and bundle resources require an installed app bundle.
-
-`make icons` regenerates icon PNGs and `Resources/AppIcon.icns` from `Resources/logo.png` into `.build/icon-gen` first, then overwrites tracked icon files only when bytes differ. Running it repeatedly should not dirty the repo unless generated icon content actually changed.
-
-## Local Install Flow
-
-Generate and install a local ad-hoc signed app bundle:
-
-```bash
-make install
-open /Applications/Mailbell.app
-```
-
-`make install` builds the release executable for the selected architecture, copies it into `/Applications/Mailbell.app`, injects OAuth and bundle config into the copied `Info.plist`, compiles resources, ad-hoc signs the app, and registers it with LaunchServices.
-
-Packaging defaults to `ARCH=arm64`. On Intel Macs:
-
-```bash
-ARCH=x86_64 make install
-```
-
-After changing `.env`, rerun `make install` so the installed bundle receives the updated copied config.
-
-## Local DMG Flow
-
-Build a local/test drag-to-Applications DMG:
-
-```bash
-make dmg
-```
-
-`make dmg` is for local packaging validation. It uses ad-hoc signing by default and writes:
-
-```text
-.build/Install Mailbell.dmg
-```
-
-This local DMG is not the public notarized release artifact. It mounts as `Install Mailbell`, contains `Mailbell.app` plus an `Applications` shortcut, and may install the pinned build-only `dmgbuild==1.6.5` helper into `.build/dmg-python-tools` for deterministic Finder layout. That helper is not bundled into Mailbell.
-
-## Release Flow
-
-`make release` is the public distribution flow for this fork. It requires:
-
-- clean worktree
-- `HEAD` exactly on one release tag matching `vX.Y.Z`
-- OAuth config in `.env` or shell
-- `MAILBELL_CODE_SIGN_IDENTITY`
-- `MAILBELL_NOTARY_KEYCHAIN_PROFILE`
-- Developer ID certificate available in the signing keychain
-- notarytool profile already stored in Keychain
-
-Release metadata is resolved from the exact tag and CI environment:
-
-- `v1.0.0` becomes `VERSION=1.0.0`
-- build number comes from common CI build-number variables when present, otherwise `git rev-list --count HEAD`
-- output DMG name is `Mailbell-<VERSION>.dmg`
-- DMG volume name is `Install Mailbell`
-
-Release commands:
-
-```bash
-git status --short --branch
-make check
-git tag -a v1.0.0 -m "Release v1.0.0"
-make release
-git push origin main
-git push origin v1.0.0
-```
-
-Output:
-
-```text
-.build/Mailbell-1.0.0.dmg
-```
-
-`make release` builds the app, injects OAuth config plus `CFBundleShortVersionString` and `CFBundleVersion`, compiles resources, Developer ID signs the `.app`, verifies the app signature, creates the DMG, Developer ID signs the DMG, verifies the DMG signature, submits the DMG with `xcrun notarytool submit --wait`, staples it with `xcrun stapler staple`, validates the stapled DMG, and prints the final artifact path.
-
-A DMG does not provide automatic updates by itself. Users must install a new DMG manually unless a separate updater system is designed and implemented in a future explicit task.
-
-### Practical Example: Feature To Release
-
-Assume the one-time Google OAuth, `.env`, Developer ID certificate, and notarytool Keychain profile setup already exists. This example adds a feature, installs it locally for a quick manual check, then ships version `1.1.0`.
-
-Start clean and update local `main`:
-
-```bash
-git status --short --branch
-git pull --ff-only origin main
-make build
-make test
-```
-
-Edit the feature and its tests. During the edit loop, use the smallest useful validation:
-
-```bash
-make build
-make test
-make install
-open /Applications/Mailbell.app
-```
-
-If the feature changed `Resources/logo.png` or icon inputs, regenerate icons and prove the second run is stable:
-
-```bash
-make icons
-git status --short -- Resources/Assets.xcassets/AppIcon.appiconset Resources/AppIcon.icns
-make icons
-git status --short -- Resources/Assets.xcassets/AppIcon.appiconset Resources/AppIcon.icns
-```
-
-Finish the feature commit:
+Requires macOS 26+ and a current Xcode toolchain. Optional: `swiftlint` and
+`swiftformat` for `make check`.
 
 ```bash
 make check
-git status --short --branch
-git add -p
-git diff --cached --stat
-git commit -m "feat: describe the feature"
-git push origin main
 ```
 
-Create the tagged, signed, notarized release DMG:
+That runs the build (warning-free), SwiftLint, the tests, and repository
+invariants. Other useful targets:
 
 ```bash
-git status --short --branch
-git tag -a v1.1.0 -m "Release v1.1.0"
-make release
-git push origin main
-git push origin v1.1.0
+make install   # ad-hoc signed bundle in /Applications (needed to test notifications)
+make dmg       # ad-hoc signed installer DMG
+make run       # unbundled debug run
 ```
 
-The release artifact is:
+`make` with no target lists everything.
 
-```text
-.build/Mailbell-1.1.0.dmg
-```
+Local builds need your **own** Google Desktop OAuth client, because the release
+credentials are not in this repository. Copy `.env.example` to `.env` and set
+`MAILBELL_GOOGLE_CLIENT_ID`; the secret is optional for Desktop clients. Create
+the client in the
+[Google Cloud Console](https://console.cloud.google.com/apis/credentials) under
+*Create Credentials → OAuth client ID → Desktop app*, with the Gmail API
+enabled and IMAP turned on in Gmail settings.
 
-If publishing through GitHub Releases with `gh` installed:
+Docs: [architecture](docs/architecture.md) ·
+[feature defaults](docs/feature-defaults.md) ·
+[contributing](CONTRIBUTING.md) · [security](SECURITY.md) ·
+[agent policy](AGENTS.md)
+
+## 📦 Releasing (maintainers)
+
+One-time on the release Mac:
 
 ```bash
-gh release create v1.1.0 .build/Mailbell-1.1.0.dmg \
-  --target main \
-  --title "Mailbell 1.1.0" \
-  --notes "Describe the feature and any manual upgrade notes."
+make setup-release-signing   # Developer ID identity + notarytool Keychain profile
+make sparkle-keys            # Sparkle EdDSA key into the login Keychain
 ```
 
-If `make release` finds a code problem after the tag is created, fix the code, commit the fix, delete the local bad tag, and create the tag again on the corrected commit:
+Per release: bump `CFBundleShortVersionString` in `Resources/Info.plist`, add a
+`CHANGELOG.md` entry, commit, then
 
 ```bash
-git tag -d v1.1.0
-make check
-git add -p
-git commit -m "fix: address release issue"
-git tag -a v1.1.0 -m "Release v1.1.0"
-make release
+git tag v0.1.0 && make release
 ```
 
-## Publishing Checklist
+`make release` refuses a dirty worktree or a tag that disagrees with the plist.
+It builds, signs with Developer ID, notarizes and staples both the app archive
+and the DMG, signs the update for Sparkle, and writes the `appcast.xml` entry.
+Commit the appcast, push the tag, and attach the DMG and ZIP to the GitHub
+Release. Pushing a `v*.*.*` tag runs the same flow in CI when the release
+secrets are configured.
 
-Before publishing a DMG:
+## 🐛 Troubleshooting
 
-- `git status --short --branch` is clean.
-- `.env` contains only local/private values and is ignored by git.
-- `make check` passes.
-- `make icons` does not dirty `Resources/Assets.xcassets/AppIcon.appiconset` or `Resources/AppIcon.icns`.
-- The release tag matches `vX.Y.Z` and points at the intended commit.
-- `make release` completed successfully.
-- The final DMG path is `.build/Mailbell-<VERSION>.dmg`.
-- Push `main` and the tag only after the release build succeeds.
-- Do not commit `.env`, secrets, tokens, logs with secrets, `.app` bundles, `.dmg` files, or release artifacts.
+- **No notifications** — macOS only delivers notifications to a real app bundle.
+  Install to `/Applications` instead of running the copy inside the DMG, and
+  check Settings → Notifications.
+- **The menu bar shows an alert triangle** — an account needs you. Open
+  Settings → Accounts and use *Sign in Again* or *Reconnect*.
+- **Sign-in fails immediately** — IMAP must be enabled in
+  [Gmail settings](https://mail.google.com/mail/u/0/#settings/fwdandpop), and a
+  Workspace administrator may be blocking unverified apps.
+- **"This build is missing its Google OAuth configuration"** — the build was
+  packaged without credentials. If you downloaded it from Releases, please
+  [report it](https://github.com/martonpaulo/mailbell/issues).
+- **Sign-in stopped working for new people** — the 100-user cap for unverified
+  apps may have been reached.
 
-## Troubleshooting
+## 📄 License
 
-### Missing OAuth Credentials
-
-Symptoms:
-
-- `make install`, `make dmg`, or `make release` prints `set MAILBELL_GOOGLE_CLIENT_ID`.
-- The app shows `Google OAuth setup required`.
-
-Fix:
-
-- Fill `.env` or export `MAILBELL_GOOGLE_CLIENT_ID`.
-- Reinstall or rebuild the app bundle after changing packaged credentials.
-
-### Invalid Client ID Or Optional Secret
-
-Symptoms:
-
-- The packaging script says the client ID must end in `.apps.googleusercontent.com`.
-- Google token exchange fails after browser sign-in.
-
-Fix:
-
-- Use an OAuth client of type `Desktop app`.
-- Do not use a Web, iOS, Android, Chrome, or service-account credential.
-- Leave `MAILBELL_GOOGLE_CLIENT_SECRET` blank unless your Desktop client requires it.
-
-### Redirect Or Loopback Errors
-
-Mailbell starts a temporary local loopback listener and sends Google a `http://127.0.0.1:<port>/oauth/callback` redirect URI.
-
-Fix:
-
-- Let Mailbell open the system browser.
-- Avoid VPN/firewall rules that block local loopback traffic.
-- Recreate the OAuth client as `Desktop app` if you used another client type.
-
-### Gmail IMAP Disabled Or Blocked
-
-Mailbell uses Gmail IMAP at `imap.gmail.com:993` over SSL.
-
-Fix:
-
-- In Gmail Web, check `Settings > See all settings > Forwarding and POP/IMAP` and enable IMAP if needed.
-- For Google Workspace accounts, check admin policies for IMAP, third-party app access, and restricted OAuth scopes.
-
-### Token Revoked Or Reauth Required
-
-Symptoms:
-
-- Account status becomes `Reconnect needed`.
-- Refresh returns `invalid_grant`.
-
-Fix:
-
-- In `Settings > Accounts > <email>`, choose `Sign in again`.
-- If the account is stale or wrong, choose `Remove Account` and add it again.
-- If your OAuth consent screen is still in `Testing`, move it to `In production` for day-to-day personal use or expect periodic reauth depending on Google policy.
-
-### Signing Or Notarization Fails
-
-Fix:
-
-- Run `make setup-release-signing` again and confirm the exact Developer ID Application identity.
-- Confirm the certificate appears in `security find-identity -v -p codesigning`.
-- Confirm `MAILBELL_NOTARY_KEYCHAIN_PROFILE` matches the profile stored by `xcrun notarytool store-credentials`.
-- Read the notary log path printed under `artifacts/notarization/` if notarization fails. Successful notarization removes the temporary log.
-- Use `xcrun stapler validate <dmg>` and `spctl -a -t open --context context:primary-signature -vv <dmg>` to inspect the final DMG.
-
-### Notifications Do Not Appear
-
-Fix:
-
-- Use `make install` and run `/Applications/Mailbell.app`.
-- Check `System Settings > Notifications > Mailbell`.
-- Keep Mailbell running in the menu bar.
-
-### Start At Login Does Not Work
-
-The `Start at login` toggle uses `SMAppService` and requires a bundled app.
-
-Fix:
-
-- Install with `make install`.
-- Toggle `Start at login` in `Settings > Behavior`.
-- If macOS asks for approval, check `System Settings > General > Login Items`.
-
-## Maintenance Notes
-
-Important paths:
-
-- `Package.swift`: SwiftPM package and macOS 26 minimum.
-- `Sources/Mailbell/App/`: menu bar app, Settings, login item, app state.
-- `Sources/Mailbell/Auth/`: OAuth config/client, loopback redirect, Keychain token storage.
-- `Sources/Mailbell/IMAP/`: Gmail IMAP XOAUTH2, mailbox selection, IDLE, metadata/body-preview fetches, parser, preview sanitizer, and read marker command.
-- `Sources/Mailbell/Service/`: account supervision, monitor state machine, UID checkpoints, pending store, unread reconciliation, and mark-as-read orchestration.
-- `Sources/Mailbell/Notify/`: native notification authorization and posting.
-- `Sources/Mailbell/Webmail/`: browser/profile routing for Gmail Web.
-- `Resources/`: app icon and base `Info.plist`.
-- `Scripts/` and `Makefile`: local build, install, DMG, icon, bundle injection, signing, notarization, and release paths.
-- `Tests/MailbellTests/`: focused tests for stores, OAuth config, scripts, IMAP parsing, notifications, providers, and webmail routing.
-
-Keep the standard SwiftPM shape: one executable target under `Sources/Mailbell`, one test target under `Tests/MailbellTests`, and domain folders below `Sources/Mailbell`. Do not add a website, gh-pages flow, hosted OAuth domain site, public marketing site, Sparkle updater, App Store flow, hosted backend, or broad Gmail API abstraction unless that is the explicit task.
-
-To remove local app access:
-
-```bash
-make uninstall
-```
-
-Then remove each account in Mailbell settings and revoke the OAuth grant from your Google Account security settings if desired. Manual Keychain cleanup should be a last resort; search Keychain Access for the bundle id configured with `MAILBELL_BUNDLE_ID`.
-
-## License
-
-MIT. See [LICENSE](LICENSE). Attribution and third-party notices are in [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
+[MIT](LICENSE) © 2026 Marton Paulo, forked from
+[samzong/mailbell](https://github.com/samzong/mailbell) · third-party notices in
+[ATTRIBUTIONS.md](ATTRIBUTIONS.md)

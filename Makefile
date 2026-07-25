@@ -8,9 +8,7 @@ APP_NAME   := Mailbell
 BUILD_DIR  := .build
 APP_BUNDLE := /Applications/$(APP_NAME).app
 INFO_PLIST := Resources/Info.plist
-APP_ICON   := Resources/AppIcon.icns
 INSTALLER_ICON := Resources/AppInstallerIcon.icns
-ASSETS     := Resources/Assets.xcassets
 ARCH       ?= arm64
 
 DMG_DIR     := $(BUILD_DIR)/dmg
@@ -21,9 +19,8 @@ RELEASE_DIR := $(BUILD_DIR)/release
 RELEASE_STAGING := $(RELEASE_DIR)/staging
 
 # Ad-hoc signing by default (identity "-"); no Apple Developer account needed.
-# Override CODE_SIGN_IDENTITY only if you later get a Developer ID certificate.
+# Release builds require MAILBELL_CODE_SIGN_IDENTITY (a Developer ID identity).
 CODE_SIGN_IDENTITY    ?= -
-CODE_SIGN             := $(CODESIGN) --force --sign $(CODE_SIGN_IDENTITY)
 PLISTBUDDY            := /usr/libexec/PlistBuddy
 LSREGISTER            := /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
@@ -44,7 +41,7 @@ RESET := \033[0m
 
 # -- Development --------------------------------------------------------------
 
-.PHONY: build app run test lint format check
+.PHONY: build app run test lint format validate check
 
 build: ## Build debug artifacts
 	@$(SWIFT) build -c debug
@@ -64,29 +61,37 @@ lint: ## Run SwiftLint
 format: ## Format sources
 	@$(SWIFTFORMAT) Sources Tests
 
-check: ## Run build, lint, and tests
-	@printf '\n$(BOLD)[1/3] Building$(RESET)\n'
+validate: ## Check repository invariants
+	@bash Scripts/validate.sh
+
+check: ## Run build, lint, tests, and repository validation
+	@printf '\n$(BOLD)[1/4] Building$(RESET)\n'
 	@$(MAKE) --no-print-directory build
-	@printf '\n$(BOLD)[2/3] Running lint$(RESET)\n'
+	@printf '\n$(BOLD)[2/4] Running lint$(RESET)\n'
 	@$(MAKE) --no-print-directory lint
-	@printf '\n$(BOLD)[3/3] Running tests$(RESET)\n'
+	@printf '\n$(BOLD)[3/4] Running tests$(RESET)\n'
 	@$(MAKE) --no-print-directory test
+	@printf '\n$(BOLD)[4/4] Validating$(RESET)\n'
+	@$(MAKE) --no-print-directory validate
 	@printf '\n$(GREEN)[ok] All checks passed$(RESET)\n\n'
 
 # -- Packaging ----------------------------------------------------------------
 
-.PHONY: icons require-oauth-config setup-release-signing release dmg install uninstall refresh-icons
+.PHONY: icons require-oauth-config setup-release-signing sparkle-keys release dmg install uninstall refresh-icons
 
 icons: ## Regenerate AppIcon PNGs and AppIcon.icns from Resources/logo.png
 	@printf "$(BOLD)[icons]$(RESET) Regenerating app icons\n"
 	@chmod +x Scripts/generate_app_icon.sh
 	@Scripts/generate_app_icon.sh
 
-require-oauth-config: ## Verify local Google OAuth credentials are available
+require-oauth-config: ## Verify the release Google OAuth credentials are available
 	@Scripts/inject_bundle_config.sh --check
 
 setup-release-signing: ## Configure Developer ID identity and notarytool Keychain profile
 	@Scripts/configure_release_signing.sh
+
+sparkle-keys: ## Generate the Sparkle EdDSA key (Keychain) and write the public key
+	@bash Scripts/make_sparkle_keys.sh
 
 release: icons ## Build, sign, notarize, and staple a tagged release DMG
 	@bash -euo pipefail -c '\
@@ -109,50 +114,55 @@ release: icons ## Build, sign, notarize, and staple a tagged release DMG
 			echo "hint: run make setup-release-signing once on the release Mac" >&2; \
 			exit 1; \
 		fi; \
+		plist_version="$$($(PLISTBUDDY) -c "Print :CFBundleShortVersionString" $(INFO_PLIST))"; \
+		if [[ "$${plist_version}" != "$${VERSION}" ]]; then \
+			echo "error: tag v$${VERSION} does not match $(INFO_PLIST) ($${plist_version})" >&2; \
+			exit 1; \
+		fi; \
 		final_dmg="$(BUILD_DIR)/$${DMG_NAME}"; \
+		update_zip="artifacts/$(APP_NAME)-$${VERSION}.zip"; \
 		app_bundle="$(RELEASE_STAGING)/$(APP_NAME).app"; \
-		printf "\n$(BOLD)[1/14]$(RESET) Building release app for $(ARCH)\n"; \
-		$(SWIFT) build -c release --arch $(ARCH) --product $(PRODUCT); \
-		printf "$(BOLD)[2/14]$(RESET) Preparing release app bundle\n"; \
-		rm -rf "$(RELEASE_STAGING)"; \
-		mkdir -p "$${app_bundle}/Contents/MacOS" "$${app_bundle}/Contents/Resources"; \
-		cp "$$($(SWIFT) build -c release --arch $(ARCH) --product $(PRODUCT) --show-bin-path)/$(PRODUCT)" "$${app_bundle}/Contents/MacOS/$(APP_NAME)"; \
-		cp "$(INFO_PLIST)" "$${app_bundle}/Contents/Info.plist"; \
-		printf "$(BOLD)[3/14]$(RESET) Injecting bundle, OAuth, and release metadata\n"; \
-		Scripts/inject_bundle_config.sh --version "$${VERSION}" --build-number "$${BUILD_NUMBER}" "$${app_bundle}/Contents/Info.plist" >/dev/null; \
-		printf "$(BOLD)[4/14]$(RESET) Compiling app resources\n"; \
-		xcrun actool --compile "$${app_bundle}/Contents/Resources" --platform macosx --minimum-deployment-target 26.0 --app-icon AppIcon --output-partial-info-plist /dev/null "$(ASSETS)" >/dev/null; \
-		printf "$(BOLD)[5/14]$(RESET) Signing app bundle with Developer ID\n"; \
-		$(CODESIGN) --force --options runtime --timestamp --sign "$${MAILBELL_CODE_SIGN_IDENTITY}" "$${app_bundle}"; \
-		printf "$(BOLD)[6/14]$(RESET) Verifying app signature\n"; \
-		$(CODESIGN) --verify --strict --verbose=2 "$${app_bundle}"; \
-		printf "$(BOLD)[7/14]$(RESET) Adding Applications shortcut\n"; \
-		ln -s /Applications "$(RELEASE_STAGING)/Applications"; \
-		printf "$(BOLD)[8/14]$(RESET) Creating release DMG\n"; \
+		printf "\n$(BOLD)[1/13]$(RESET) Building signed release app for $(ARCH)\n"; \
+		mkdir -p "$(RELEASE_STAGING)" artifacts; \
+		Scripts/build_app_bundle.sh --output "$${app_bundle}" \
+			--identity "$${MAILBELL_CODE_SIGN_IDENTITY}" --hardened \
+			--version "$${VERSION}" --build-number "$${BUILD_NUMBER}" --arch $(ARCH); \
+		printf "$(BOLD)[2/13]$(RESET) Verifying app signature\n"; \
+		$(CODESIGN) --verify --deep --strict --verbose=2 "$${app_bundle}"; \
+		printf "$(BOLD)[3/13]$(RESET) Creating the Sparkle update archive\n"; \
+		rm -f "$${update_zip}"; \
+		ditto -c -k --keepParent "$${app_bundle}" "$${update_zip}"; \
+		printf "$(BOLD)[4/13]$(RESET) Notarizing the update archive\n"; \
+		Scripts/notarize_release.sh "$${update_zip}"; \
+		printf "$(BOLD)[5/13]$(RESET) Stapling and re-archiving the app\n"; \
+		xcrun stapler staple "$${app_bundle}"; \
+		xcrun stapler validate "$${app_bundle}"; \
+		rm -f "$${update_zip}"; \
+		ditto -c -k --keepParent "$${app_bundle}" "$${update_zip}"; \
+		printf "$(BOLD)[6/13]$(RESET) Adding Applications shortcut\n"; \
+		ln -sfn /Applications "$(RELEASE_STAGING)/Applications"; \
+		printf "$(BOLD)[7/13]$(RESET) Creating release DMG\n"; \
+		rm -f "$${final_dmg}"; \
 		Scripts/create_dmg.sh "$(RELEASE_STAGING)" "$(APP_NAME)" "$(INSTALLER_ICON)" "$${DMG_VOLUME_NAME}" "$${final_dmg}"; \
-		printf "$(BOLD)[9/14]$(RESET) Cleaning release staging files\n"; \
+		printf "$(BOLD)[8/13]$(RESET) Cleaning release staging files\n"; \
 		rm -rf "$(RELEASE_DIR)"; \
-		printf "$(BOLD)[10/14]$(RESET) Signing DMG with Developer ID\n"; \
+		printf "$(BOLD)[9/13]$(RESET) Signing DMG with Developer ID\n"; \
 		$(CODESIGN) --force --timestamp --sign "$${MAILBELL_CODE_SIGN_IDENTITY}" "$${final_dmg}"; \
-		printf "$(BOLD)[11/14]$(RESET) Verifying DMG signature\n"; \
 		$(CODESIGN) --verify --verbose=2 "$${final_dmg}"; \
-		printf "$(BOLD)[12/14]$(RESET) Notarizing DMG\n"; \
+		printf "$(BOLD)[10/13]$(RESET) Notarizing DMG\n"; \
 		Scripts/notarize_release.sh "$${final_dmg}"; \
-		printf "$(BOLD)[13/14]$(RESET) Verifying final DMG\n"; \
+		printf "$(BOLD)[11/13]$(RESET) Verifying final DMG\n"; \
 		hdiutil verify "$${final_dmg}" >/dev/null; \
 		spctl -a -t open --context context:primary-signature -vv "$${final_dmg}"; \
-		printf "$(BOLD)[14/14]$(RESET) Release artifact ready\n"; \
-		printf "$(GREEN)[ok]$(RESET) Release DMG: %s\n" "$${final_dmg}"; \
+		printf "$(BOLD)[12/13]$(RESET) Signing the update archive for Sparkle\n"; \
+		sig="$$(Scripts/sign_sparkle_update.sh "$${update_zip}")"; \
+		Scripts/make_appcast.sh "$${VERSION}" "$${BUILD_NUMBER}" "$${update_zip}" "$${sig}"; \
+		printf "$(BOLD)[13/13]$(RESET) Release artifacts ready\n"; \
+		cp -f "$${final_dmg}" "artifacts/$$(basename "$${final_dmg}")"; \
+		printf "$(GREEN)[ok]$(RESET) DMG: artifacts/%s\n" "$$(basename "$${final_dmg}")"; \
+		printf "$(GREEN)[ok]$(RESET) Update archive: %s\n" "$${update_zip}"; \
+		printf "$(GREEN)[ok]$(RESET) appcast.xml updated; commit it before publishing the release\n"; \
 	'
-
-define compile-app-resources
-	@xcrun actool --compile $(1)/Contents/Resources \
-		--platform macosx \
-		--minimum-deployment-target 26.0 \
-		--app-icon AppIcon \
-		--output-partial-info-plist /dev/null \
-		$(ASSETS) >/dev/null
-endef
 
 refresh-icons: install ## Reinstall and flush macOS icon caches for Mailbell
 	@printf "$(BOLD)[icons]$(RESET) Refreshing macOS icon caches\n"
@@ -164,44 +174,25 @@ refresh-icons: install ## Reinstall and flush macOS icon caches for Mailbell
 	@printf "$(GREEN)[ok]$(RESET) Icon cache refreshed for %s\n" "$(APP_BUNDLE)"
 
 dmg: require-oauth-config icons ## Build an ad-hoc signed drag-and-drop DMG
-	@printf "\n$(BOLD)[1/8]$(RESET) Building local packaged app for $(ARCH)\n"
-	@$(SWIFT) build -c release --arch $(ARCH) --product $(PRODUCT)
-	@printf "$(BOLD)[2/8]$(RESET) Preparing DMG staging directory\n"
+	@printf "\n$(BOLD)[1/4]$(RESET) Building local packaged app for $(ARCH)\n"
 	@rm -rf $(DMG_STAGING)
-	@mkdir -p $(DMG_STAGING)/$(APP_NAME).app/Contents/MacOS
-	@mkdir -p $(DMG_STAGING)/$(APP_NAME).app/Contents/Resources
-	@cp $$($(SWIFT) build -c release --arch $(ARCH) --product $(PRODUCT) --show-bin-path)/$(PRODUCT) $(DMG_STAGING)/$(APP_NAME).app/Contents/MacOS/$(APP_NAME)
-	@cp $(INFO_PLIST) $(DMG_STAGING)/$(APP_NAME).app/Contents/Info.plist
-	@printf "$(BOLD)[3/8]$(RESET) Injecting local bundle/OAuth configuration\n"
-	@Scripts/inject_bundle_config.sh $(DMG_STAGING)/$(APP_NAME).app/Contents/Info.plist
-	@printf "$(BOLD)[4/8]$(RESET) Compiling app resources\n"
-	$(call compile-app-resources,$(DMG_STAGING)/$(APP_NAME).app)
-	@printf "$(BOLD)[5/8]$(RESET) Signing app bundle\n"
-	@$(CODE_SIGN) $(DMG_STAGING)/$(APP_NAME).app
-	@printf "$(BOLD)[6/8]$(RESET) Adding Applications shortcut\n"
-	@ln -s /Applications $(DMG_STAGING)/Applications
-	@printf "$(BOLD)[7/8]$(RESET) Creating standard macOS installer DMG\n"
+	@mkdir -p $(DMG_STAGING)
+	@Scripts/build_app_bundle.sh --output $(DMG_STAGING)/$(APP_NAME).app \
+		--identity "$(CODE_SIGN_IDENTITY)" --arch $(ARCH)
+	@printf "$(BOLD)[2/4]$(RESET) Adding Applications shortcut\n"
+	@ln -sfn /Applications $(DMG_STAGING)/Applications
+	@printf "$(BOLD)[3/4]$(RESET) Creating standard macOS installer DMG\n"
+	@rm -f "$(DMG_PATH)"
 	@Scripts/create_dmg.sh "$(DMG_STAGING)" "$(APP_NAME)" "$(INSTALLER_ICON)" "$(DMG_VOLUME_NAME)" "$(DMG_PATH)"
-	@printf "$(BOLD)[8/8]$(RESET) Cleaning temporary DMG staging files\n"
+	@printf "$(BOLD)[4/4]$(RESET) Cleaning temporary DMG staging files\n"
 	@rm -rf $(DMG_DIR)
 	@printf "$(GREEN)[ok]$(RESET) DMG created: %s\n" "$(DMG_PATH)"
 
 install: require-oauth-config icons ## Install an ad-hoc signed app bundle to /Applications
-	@printf "\n$(BOLD)[1/6]$(RESET) Building local packaged app for $(ARCH)\n"
-	@$(SWIFT) build -c release --arch $(ARCH) --product $(PRODUCT)
-	@printf "$(BOLD)[2/6]$(RESET) Installing app bundle to %s\n" "$(APP_BUNDLE)"
-	@rm -rf $(APP_BUNDLE)
-	@mkdir -p $(APP_BUNDLE)/Contents/MacOS
-	@mkdir -p $(APP_BUNDLE)/Contents/Resources
-	@cp $$($(SWIFT) build -c release --arch $(ARCH) --product $(PRODUCT) --show-bin-path)/$(PRODUCT) $(APP_BUNDLE)/Contents/MacOS/$(APP_NAME)
-	@cp $(INFO_PLIST) $(APP_BUNDLE)/Contents/Info.plist
-	@printf "$(BOLD)[3/6]$(RESET) Injecting local bundle/OAuth configuration\n"
-	@Scripts/inject_bundle_config.sh $(APP_BUNDLE)/Contents/Info.plist
-	@printf "$(BOLD)[4/6]$(RESET) Compiling app resources\n"
-	$(call compile-app-resources,$(APP_BUNDLE))
-	@printf "$(BOLD)[5/6]$(RESET) Signing app bundle\n"
-	@$(CODE_SIGN) $(APP_BUNDLE)
-	@printf "$(BOLD)[6/6]$(RESET) Registering app with LaunchServices\n"
+	@printf "\n$(BOLD)[1/2]$(RESET) Building local packaged app for $(ARCH)\n"
+	@Scripts/build_app_bundle.sh --output $(APP_BUNDLE) \
+		--identity "$(CODE_SIGN_IDENTITY)" --arch $(ARCH)
+	@printf "$(BOLD)[2/2]$(RESET) Registering app with LaunchServices\n"
 	@-$(LSREGISTER) -f $(APP_BUNDLE) >/dev/null 2>&1
 	@printf "$(GREEN)[ok]$(RESET) Installed to %s\n" "$(APP_BUNDLE)"
 	@printf "Open with: open %s\n" "$(APP_BUNDLE)"
@@ -225,5 +216,5 @@ clean: ## Remove SwiftPM build artifacts
 help: ## Show available targets
 	@awk 'BEGIN {FS = ":.*## "; printf "\n$(BOLD)mailbell$(RESET) - macOS menu bar Gmail notifier\n"} \
 		/^# -- / {n = $$0; gsub(/(^# -- | -+$$)/, "", n); printf "\n$(BOLD)%s$(RESET)\n", n} \
-		/^[a-zA-Z_-]+:.*## / {printf "  $(CYAN)make %-10s$(RESET) %s\n", $$1, $$2} \
+		/^[a-zA-Z_-]+:.*## / {printf "  $(CYAN)make %-22s$(RESET) %s\n", $$1, $$2} \
 		END {printf "\n"}' $(MAKEFILE_LIST)

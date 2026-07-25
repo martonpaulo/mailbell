@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Terms of Service | Mailbell</title>
+  <meta name="description" content="Mailbell is provided as is, under the MIT license, as an unverified Google OAuth public beta with a 100-new-user cap.">
+  <link rel="canonical" href="https://martonpaulo.github.io/mailbell/terms.html">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/app-icon.png">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Mailbell">
+  <meta property="og:title" content="Terms of Service | Mailbell">
+  <meta property="og:description" content="Mailbell is provided as is, under the MIT license.">
+  <meta property="og:url" content="https://martonpaulo.github.io/mailbell/terms.html">
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header" aria-label="Primary navigation">
+    <a class="brand" href="index.html" aria-label="Mailbell home">
+      <img src="assets/app-icon.png" width="36" height="36" alt="">
+      <span>Mailbell</span>
+    </a>
+    <nav aria-label="Page sections">
+      <a href="index.html">Home</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html" aria-current="page">Terms</a>
+      <a href="https://github.com/martonpaulo/mailbell">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="main" class="legal">
+    <h1>Terms of Service</h1>
+    <p class="updated">Last updated: 25 July 2026 &middot; Applies to Mailbell for macOS, all versions.</p>
+
+    <p>Mailbell is a free, open-source macOS application by Marton Paulo. By downloading or using it, you agree to what follows. If you do not agree, do not install it.</p>
+
+    <h2>1. The software is provided &ldquo;as is&rdquo;</h2>
+    <p>Mailbell is provided <strong>&ldquo;as is&rdquo;, without warranty of any kind</strong>, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and non-infringement. In no event shall the author be liable for any claim, damages, or other liability arising from the software or its use.</p>
+    <p>Concretely: Mailbell is a notifier, not a guarantee. It can miss a message, be delayed, or stop working because a connection dropped, a token expired, macOS suppressed a notification, or Google changed something. <strong>Do not rely on it for messages you cannot afford to miss.</strong> It supplements Gmail; it does not replace checking Gmail.</p>
+
+    <h2>2. Public beta and Google's review status</h2>
+    <p>Mailbell is currently in <strong>public beta</strong>, and its Google OAuth client <strong>has not been verified by Google</strong>. As a result:</p>
+    <ul>
+      <li>Google will display an <strong>&ldquo;unverified app&rdquo;</strong> warning screen during sign-in. You must choose to continue past it yourself.</li>
+      <li>Google limits unverified apps to <strong>100 new users</strong>. Once that cap is reached, new users cannot connect an account until verification completes. <strong>No unlimited or guaranteed availability is promised while the app is unverified.</strong></li>
+      <li>Google may change, restrict, suspend, or revoke the app's API access at any time, at its sole discretion and without notice to you or to me. That would stop Mailbell from working, and it is outside my control.</li>
+    </ul>
+
+    <h2>3. Google Workspace and managed accounts</h2>
+    <p>If your Gmail account belongs to a Google Workspace organization, <strong>your administrator can block Mailbell</strong> from connecting, either specifically or through a policy that blocks unverified third-party apps. Sign-in will simply fail, and there is nothing the app can do about it. Requesting an exception is between you and your administrator.</p>
+    <p>You are responsible for making sure your use of Mailbell complies with any policies that apply to your account.</p>
+
+    <h2>4. Your Google account and access</h2>
+    <p>You are responsible for granting and revoking Mailbell's access to your Google account. You grant it through Google's own consent screen, and you can revoke it at any time at <a href="https://myaccount.google.com/permissions">your Google Account's third-party access page</a> or by removing the account in Mailbell's Settings.</p>
+    <p>You are responsible for your own Google account security and for the consequences of connecting an account you do not control.</p>
+
+    <h2>5. No backend, no service</h2>
+    <p>Mailbell is software you run, not a service I operate. <strong>There is no Mailbell server processing your Gmail.</strong> No component of this project receives, stores, or processes your mail. Consequently there is no uptime commitment, no support-level agreement, and no account with me to suspend or terminate.</p>
+    <p>What the app does access is described in the <a href="privacy.html">Privacy Policy</a>, which forms part of these terms.</p>
+
+    <h2>6. Updates</h2>
+    <p>Mailbell can update itself using Sparkle, and automatic checks are on by default. Updates are signed and verified before they are installed. You can disable automatic checks in Settings &rarr; Updates. Older versions may stop working if Google or Apple changes something, and no support is provided for versions other than the latest release.</p>
+
+    <h2>7. Acceptable use</h2>
+    <p>Do not use Mailbell to access an account you are not authorized to access, and do not use it in a way that violates Google's terms, your organization's policies, or applicable law.</p>
+
+    <h2>8. License and attribution</h2>
+    <p>Mailbell is released under the <strong>MIT License</strong>. You may use, copy, modify, and redistribute it under that license's terms, which include preserving the copyright notice and the &ldquo;as is&rdquo; disclaimer.</p>
+    <p>Mailbell is a fork of <a href="https://github.com/samzong/mailbell">samzong/mailbell</a>, and includes third-party components: <a href="https://sparkle-project.org">Sparkle</a> for updates, <a href="https://github.com/scinfu/SwiftSoup">SwiftSoup</a> for HTML parsing, and <a href="https://github.com/swhitty/FlyingFox">FlyingFox</a> for the local sign-in callback. Full notices and licenses are in <a href="https://github.com/martonpaulo/mailbell/blob/main/ATTRIBUTIONS.md">ATTRIBUTIONS.md</a>.</p>
+    <p>&ldquo;Gmail&rdquo;, &ldquo;Google&rdquo;, and &ldquo;Google Workspace&rdquo; are trademarks of Google LLC. Mailbell is an independent project and is not affiliated with, endorsed by, or sponsored by Google.</p>
+
+    <h2>9. Changes to these terms</h2>
+    <p>These terms may change as the project moves out of beta. The current version is always on this page with its date, and the history is public in the repository. Continuing to use Mailbell after a change means you accept the updated terms.</p>
+
+    <h2>10. Contact</h2>
+    <p>Open an issue at <a href="https://github.com/martonpaulo/mailbell/issues">github.com/martonpaulo/mailbell/issues</a>.</p>
+
+    <a class="back" href="index.html">&larr; Back to Mailbell</a>
+  </main>
+
+  <footer class="site-footer">
+    <p>MIT licensed. &copy; 2026 Marton Paulo &middot;
+      <a href="index.html">Home</a> &middot;
+      <a href="privacy.html">Privacy</a> &middot;
+      <a href="https://github.com/martonpaulo/mailbell">Source</a>
+    </p>
+  </footer>
+</body>
+</html>

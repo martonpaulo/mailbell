@@ -8,7 +8,10 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/swhitty/FlyingFox.git", .upToNextMinor(from: "0.26.2")),
-        .package(url: "https://github.com/scinfu/SwiftSoup.git", .upToNextMajor(from: "2.13.5"))
+        .package(url: "https://github.com/scinfu/SwiftSoup.git", .upToNextMajor(from: "2.13.5")),
+        // Automatic updates for the direct-download build. Update checks are the
+        // only network activity Mailbell performs outside Gmail itself.
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.6.0")
     ],
     targets: [
         .executableTarget(
@@ -16,9 +19,14 @@ let package = Package(
             dependencies: [
                 "FlyingFox",
                 .product(name: "FlyingSocks", package: "FlyingFox"),
-                "SwiftSoup"
+                "SwiftSoup",
+                .product(name: "Sparkle", package: "Sparkle")
             ],
-            path: "Sources/Mailbell"
+            path: "Sources/Mailbell",
+            linkerSettings: [
+                // The packaged .app embeds Sparkle.framework in Contents/Frameworks.
+                .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])
+            ]
         ),
         .testTarget(
             name: "MailbellTests",

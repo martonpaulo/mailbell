@@ -256,7 +256,7 @@ enum Base64PreviewDecoder {
             || bytes.starts(with: [0xFF, 0xD8, 0xFF])
             || bytes.starts(with: [0x47, 0x49, 0x46, 0x38])
             || bytes.starts(with: [0x52, 0x49, 0x46, 0x46])
-                && bytes.dropFirst(8).starts(with: [0x57, 0x45, 0x42, 0x50])
+            && bytes.dropFirst(8).starts(with: [0x57, 0x45, 0x42, 0x50])
     }
 
     private static func isMostlyPrintableText(_ data: Data) -> Bool {

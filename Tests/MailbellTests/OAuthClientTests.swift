@@ -376,7 +376,7 @@ private final class OAuthURLProtocolMock: URLProtocol {
     override func stopLoading() {}
 }
 
-// Test-only shared URLProtocol state; all reads and writes are serialized by `lock`.
+/// Test-only shared URLProtocol state; all reads and writes are serialized by `lock`.
 private final class OAuthURLProtocolHandlerBox<Response>: @unchecked Sendable {
     private let lock = NSLock()
     private var requestHandler: ((URLRequest) throws -> Response)?

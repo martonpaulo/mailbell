@@ -320,7 +320,7 @@ final class EmailStoreTests: XCTestCase {
         XCTAssertEqual(firstItem.title, "First")
     }
 
-    func testStableIdentityPrefersProviderIDsOverSubject() throws {
+    func testStableIdentityPrefersProviderIDsOverSubject() {
         let account = makeAccount()
         let first = makeHeader(uid: 1, subject: "First", gmMessageId: "provider-id")
         let second = makeHeader(uid: 2, subject: "Second", gmMessageId: "provider-id")
@@ -331,7 +331,7 @@ final class EmailStoreTests: XCTestCase {
         )
     }
 
-    func testStableIdentitySeparatesUIDFallbackByMailbox() throws {
+    func testStableIdentitySeparatesUIDFallbackByMailbox() {
         let account = makeAccount()
         let inbox = makeHeader(uid: 1, mailbox: .inbox)
         let spam = makeHeader(uid: 1, mailbox: .spam)

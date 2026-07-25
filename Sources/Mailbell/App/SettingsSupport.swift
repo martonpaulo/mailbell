@@ -1,51 +1,38 @@
 import AppKit
 import SwiftUI
 
+/// Shown when the running build has no usable Google OAuth client. In a public
+/// release this is a packaging defect, not something an end user can fix, so the
+/// copy names it as a build problem and points at the issue tracker instead of
+/// asking the user to create their own Google Cloud client.
 struct OAuthSetupPanel: View {
     let details: String
     @State private var showsDetails = false
 
     var body: some View {
-        Group {
-            Label("Google OAuth setup required", systemImage: "key.fill")
+        Label("This build is missing its Google OAuth configuration", systemImage: "exclamationmark.triangle.fill")
 
-            Text(
-                "Create your own Google Desktop OAuth client, set `MAILBELL_GOOGLE_CLIENT_ID`, "
-                    + "then rebuild or reinstall Mailbell. `MAILBELL_GOOGLE_CLIENT_SECRET` is optional."
-            )
-            .foregroundStyle(.secondary)
-            .textSelection(.enabled)
+        Text(
+            "Mailbell releases ship with the Google Desktop OAuth client already configured. "
+                + "Seeing this means the build was packaged without it, which no setting can fix."
+        )
+        .foregroundStyle(.secondary)
+        .textSelection(.enabled)
 
-            if let readmeURL = SetupGuide.readmeURL {
-                Button("Open Setup Guide") {
-                    NSWorkspace.shared.open(readmeURL)
-                }
-            }
+        Text(
+            "If you downloaded this build from GitHub Releases, please report it. "
+                + "If you built Mailbell yourself, set MAILBELL_GOOGLE_CLIENT_ID in .env and reinstall."
+        )
+        .foregroundStyle(.secondary)
+        .textSelection(.enabled)
 
-            Text("See the Google Cloud Setup section in README.")
+        Link("Report a Packaging Issue", destination: ProjectLinks.issues)
+
+        DisclosureGroup("Build Details", isExpanded: $showsDetails) {
+            Text(details)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
-
-            DisclosureGroup("Setup Details", isExpanded: $showsDetails) {
-                Text(details)
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-            }
         }
-    }
-}
-
-enum SetupGuide {
-    static var readmeURL: URL? {
-        var candidates = [
-            URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("README.md"),
-            Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent("README.md")
-        ]
-        if let bundledURL = Bundle.main.url(forResource: "README", withExtension: "md") {
-            candidates.append(bundledURL)
-        }
-
-        return candidates.first { FileManager.default.fileExists(atPath: $0.path) }
     }
 }
 

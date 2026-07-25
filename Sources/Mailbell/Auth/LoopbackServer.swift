@@ -67,7 +67,7 @@ actor LoopbackServer {
 
         beginNewCallbackRun()
         self.expectedState = trimmedState
-        let callbackRunID = self.callbackRunID
+        let callbackRunID = callbackRunID
 
         do {
             let address = try sockaddr_in.inet(ip4: "127.0.0.1", port: 0)
@@ -75,7 +75,7 @@ actor LoopbackServer {
                 guard let self else {
                     return Self.htmlResponse(status: .serviceUnavailable, state: .error(.serverUnavailable))
                 }
-                return await self.handle(request, callbackRunID: callbackRunID)
+                return await handle(request, callbackRunID: callbackRunID)
             }
             let config = HTTPServer.Configuration(address: address, logger: .disabled)
             let server = HTTPServer(config: config, handler: handler)
@@ -104,7 +104,7 @@ actor LoopbackServer {
 
     /// Waits for the browser to hit the redirect URI and returns the code once.
     func waitForCallback(timeout: TimeInterval = LoopbackServer.callbackTimeout) async throws -> Callback {
-        let callbackRunID = self.callbackRunID
+        let callbackRunID = callbackRunID
         do {
             let callback = try await waitForCallbackResult(timeout: timeout, callbackRunID: callbackRunID)
             await stop(callbackRunID: callbackRunID)
@@ -138,8 +138,8 @@ actor LoopbackServer {
         }
         completedResult = nil
 
-        let server = self.server
-        let serverTask = self.serverTask
+        let server = server
+        let serverTask = serverTask
         self.server = nil
         self.serverTask = nil
         port = 0

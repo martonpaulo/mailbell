@@ -4,7 +4,7 @@ import XCTest
 // swiftlint:disable:next type_body_length
 final class AccountSupervisorTests: XCTestCase {
     @MainActor
-    func testConnectedStatusClearsPreviousAccountError() async throws {
+    func testConnectedStatusClearsPreviousAccountError() async {
         let (supervisor, account) = makeSupervisor()
 
         supervisor.monitor(
@@ -26,7 +26,7 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
-    func testConnectingStatusDoesNotClearPreviousAccountError() async throws {
+    func testConnectingStatusDoesNotClearPreviousAccountError() async {
         let (supervisor, account) = makeSupervisor()
 
         supervisor.monitor(
@@ -46,7 +46,7 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
-    func testConnectedStatusDoesNotClearNotificationError() async throws {
+    func testConnectedStatusDoesNotClearNotificationError() async {
         let (supervisor, account) = makeSupervisor()
 
         supervisor.monitor(
@@ -66,7 +66,7 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
-    func testPostedNotificationClearsPreviousNotificationError() async throws {
+    func testPostedNotificationClearsPreviousNotificationError() async {
         let (supervisor, account) = makeSupervisor()
 
         supervisor.monitor(
@@ -83,7 +83,7 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
-    func testOAuthSetupMessageUsesConfigProviderError() throws {
+    func testOAuthSetupMessageUsesConfigProviderError() {
         let (supervisor, _) = makeSupervisor(configProvider: { throw OAuthConfigIssue.missingCredentials })
 
         XCTAssertEqual(
@@ -93,7 +93,7 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
-    func testManualRefreshUsesExistingMonitorWithoutStartingDuplicateLoop() throws {
+    func testManualRefreshUsesExistingMonitorWithoutStartingDuplicateLoop() {
         var monitors: [SpyMonitor] = []
         let (supervisor, _) = makeSupervisor(monitorFactory: { account, _, includeSpam in
             let monitor = SpyMonitor(account: account, hasSession: true, includeSpam: includeSpam)
@@ -112,7 +112,7 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
-    func testManualRefreshReportsNoEnabledAccountsWhenAccountListIsEmpty() throws {
+    func testManualRefreshReportsNoEnabledAccountsWhenAccountListIsEmpty() {
         let supervisor = makeSupervisor(accounts: [])
 
         XCTAssertFalse(AccountPresentation.canRefresh(supervisor.accountStates))
@@ -120,7 +120,7 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
-    func testManualRefreshReportsNoEnabledAccounts() throws {
+    func testManualRefreshReportsNoEnabledAccounts() {
         let disabledAccount = MailAccount(providerID: .gmail, email: "test@example.com", isEnabled: false)
         let (supervisor, _) = makeSupervisor(account: disabledAccount)
 
@@ -129,7 +129,7 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
-    func testManualRefreshIsAvailableWhenAnyAccountIsEnabled() throws {
+    func testManualRefreshIsAvailableWhenAnyAccountIsEnabled() {
         let enabledAccount = MailAccount(providerID: .gmail, email: "enabled@example.com")
         let disabledAccount = MailAccount(providerID: .gmail, email: "disabled@example.com", isEnabled: false)
         let supervisor = makeSupervisor(accounts: [disabledAccount, enabledAccount])
@@ -138,7 +138,7 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
-    func testManualRefreshReportsSignInRequiredWhenSessionIsMissing() throws {
+    func testManualRefreshReportsSignInRequiredWhenSessionIsMissing() {
         let (supervisor, _) = makeSupervisor(monitorFactory: { account, _, includeSpam in
             SpyMonitor(account: account, hasSession: false, includeSpam: includeSpam)
         })
@@ -151,7 +151,7 @@ final class AccountSupervisorTests: XCTestCase {
     func testAccountSaveFailureDoesNotApplyEnabledStateChange() throws {
         let account = MailAccount(providerID: .gmail, email: "test@example.com")
         let suiteName = "mailbell.AccountSupervisorTests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)!
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defaults.removePersistentDomain(forName: suiteName)
         try AccountStore(userDefaults: defaults).saveAccounts([account])
         let failingStore = AccountStore(
@@ -190,7 +190,7 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
-    func testUnreadSyncPopulatesEmailStoreWithoutPostingNotification() async throws {
+    func testUnreadSyncPopulatesEmailStoreWithoutPostingNotification() async {
         let (supervisor, account) = makeSupervisor()
 
         await supervisor.monitor(
@@ -207,7 +207,7 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
-    func testUnreadSyncRemovesExternallyReadPendingAndUpdatesMenuIcon() async throws {
+    func testUnreadSyncRemovesExternallyReadPendingAndUpdatesMenuIcon() async {
         let (supervisor, account) = makeSupervisor()
         let header = makeHeader(uid: 1, subject: "Read in Gmail", gmMessageId: "read-in-gmail")
 
@@ -247,7 +247,7 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
-    func testOpenGmailPassesSelectedAccountToWebmailOpener() async throws {
+    func testOpenGmailPassesSelectedAccountToWebmailOpener() async {
         let first = MailAccount(providerID: .gmail, email: "first@example.com")
         let second = MailAccount(providerID: .gmail, email: "second@example.com")
         var openedURLs: [URL] = []
@@ -348,7 +348,7 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
-    func testSpamHeaderIsIgnoredWhenIncludeSpamIsDisabled() async throws {
+    func testSpamHeaderIsIgnoredWhenIncludeSpamIsDisabled() async {
         let (supervisor, account) = makeSupervisor(includeSpam: false)
 
         let didAdmit = await admit(
@@ -377,7 +377,7 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
-    func testDisablingSpamRemovesSpamItemsAndUpdatesMonitors() async throws {
+    func testDisablingSpamRemovesSpamItemsAndUpdatesMonitors() async {
         var monitors: [SpyMonitor] = []
         let (supervisor, account) = makeSupervisor(includeSpam: true, monitorFactory: { account, _, includeSpam in
             let monitor = SpyMonitor(account: account, hasSession: true, includeSpam: includeSpam)

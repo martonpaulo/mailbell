@@ -36,8 +36,12 @@ enum ChromeProfileStore {
             return ChromeProfileCandidate(directory: directory, displayName: displayName, userName: userName)
         }
         .sorted { left, right in
-            if left.directory == "Default" { return true }
-            if right.directory == "Default" { return false }
+            if left.directory == "Default" {
+                return true
+            }
+            if right.directory == "Default" {
+                return false
+            }
             return left.displayName.localizedCaseInsensitiveCompare(right.displayName) == .orderedAscending
         }
     }
