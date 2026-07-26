@@ -6,6 +6,15 @@
     <description>Most recent updates to Mailbell</description>
     <language>en</language>
     <item>
+      <title>0.1.2</title>
+      <pubDate>Sun, 26 Jul 2026 11:24:35 +0000</pubDate>
+      <sparkle:releaseNotesLink>https://github.com/martonpaulo/mailbell/releases/tag/v0.1.2</sparkle:releaseNotesLink>
+      <sparkle:version>102</sparkle:version>
+      <sparkle:shortVersionString>0.1.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/martonpaulo/mailbell/releases/download/v0.1.2/Mailbell-0.1.2.zip" sparkle:edSignature="CqmV7QQcPbHonmobMcNrV0Cqd261pwAEXOk8P4arPI1EEVMKuJ94GU2V7A5/+66Efr2m/uFmjaxjxbmkJQhPBQ==" length="3987311" type="application/octet-stream"/>
+    </item>
+    <item>
       <title>0.1.1</title>
       <pubDate>Sat, 25 Jul 2026 19:38:23 +0000</pubDate>
       <sparkle:releaseNotesLink>https://github.com/martonpaulo/mailbell/releases/tag/v0.1.1</sparkle:releaseNotesLink>
