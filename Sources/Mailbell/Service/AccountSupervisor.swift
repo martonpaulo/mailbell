@@ -20,10 +20,13 @@ final class AccountSupervisor {
     private let monitorFactory: AccountMonitorFactory
     let emailReadMarker: EmailReadMarker
     let webmailOpen: @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome
+    let signInNeededNotifier: SignInNeededNotifier
     var accounts: [MailAccount]
     private var includeSpam: Bool
     private var monitors: [UUID: any AccountMonitoring] = [:]
-    var statuses: [UUID: MonitorStatus] = [:]
+    var statuses: [UUID: MonitorStatus] = [:] {
+        didSet { notifyAccountsNeedingSignIn(previous: oldValue) }
+    }
     var connectionErrors: [UUID: String] = [:]
     private var notificationErrors: [UUID: String] = [:]
     var webmailOpenErrors: [UUID: String] = [:]
@@ -47,6 +50,9 @@ final class AccountSupervisor {
         emailReadMarker: @escaping EmailReadMarker = IMAPMessageReadMarker.markAsRead,
         webmailOpen: @escaping @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome = { url, account in
             await WebmailOpener.open(url: url, account: account)
+        },
+        signInNeededNotifier: @escaping SignInNeededNotifier = { account in
+            Task { await NotificationManager.shared.notifySignInNeeded(account: account) }
         }
     ) {
         self.configProvider = configProvider
@@ -56,6 +62,7 @@ final class AccountSupervisor {
         self.monitorFactory = monitorFactory
         self.emailReadMarker = emailReadMarker
         self.webmailOpen = webmailOpen
+        self.signInNeededNotifier = signInNeededNotifier
         do {
             accounts = try accountStore.loadAccounts()
         } catch {

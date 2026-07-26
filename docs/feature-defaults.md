@@ -32,6 +32,7 @@ A missing decision is a review failure.
 | Behavior | Why |
 |---|---|
 | Menu bar alert icon when sign-in is needed | Single valid outcome. An app that silently looks idle while monitoring nothing is a defect, not a preference. |
+| Notification when sign-in expires | Same rule as the alert icon, for a user who is not looking at the menu bar. It fires once per expiry, and only for an enabled account. |
 | Threads counting once in the menu | Product rule, not taste. Notifications remain per message. |
 | Preview length and `BODY.PEEK` bounds | Privacy and data-minimization contract. Not user-tunable. |
 | Accessory (no Dock icon) style | Defines what Mailbell is. |

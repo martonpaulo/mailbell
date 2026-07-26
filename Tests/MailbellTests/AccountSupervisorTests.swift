@@ -394,6 +394,41 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
+    func testSignInExpiryNotifiesOncePerTransition() async {
+        var notified: [String] = []
+        let (supervisor, account) = makeSupervisor(signInNeededNotifier: { notified.append($0.email) })
+
+        supervisor.monitor(account.id, didChangeStatus: .connected, error: nil)
+        await Task.yield()
+        XCTAssertTrue(notified.isEmpty)
+
+        supervisor.monitor(account.id, didChangeStatus: .reauthRequired, error: "Token revoked")
+        await Task.yield()
+        XCTAssertEqual(notified, [account.email])
+
+        // A later update while the account is still waiting must not alert again.
+        supervisor.monitor(account.id, didNotify: makeHeader(), result: .posted)
+        supervisor.monitor(account.id, didChangeStatus: .reauthRequired, error: "Token revoked")
+        await Task.yield()
+        XCTAssertEqual(notified, [account.email])
+    }
+
+    @MainActor
+    func testSignInExpiryDoesNotNotifyForDisabledAccount() async {
+        let disabledAccount = MailAccount(providerID: .gmail, email: "test@example.com", isEnabled: false)
+        var notified: [String] = []
+        let (supervisor, account) = makeSupervisor(
+            account: disabledAccount,
+            signInNeededNotifier: { notified.append($0.email) }
+        )
+
+        supervisor.monitor(account.id, didChangeStatus: .reauthRequired, error: "Token revoked")
+        await Task.yield()
+
+        XCTAssertTrue(notified.isEmpty)
+    }
+
+    @MainActor
     private func makeSupervisor(
         configProvider: @escaping () throws -> OAuthConfig = {
             OAuthConfig(
@@ -406,7 +441,8 @@ final class AccountSupervisorTests: XCTestCase {
         monitorFactory: @escaping AccountMonitorFactory = { account, _, includeSpam in
             SpyMonitor(account: account, hasSession: false, includeSpam: includeSpam)
         },
-        webmailOpen: @escaping @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome = { _, _ in .opened }
+        webmailOpen: @escaping @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome = { _, _ in .opened },
+        signInNeededNotifier: @escaping SignInNeededNotifier = { _ in }
     ) -> (AccountSupervisor, MailAccount) {
         (
             makeSupervisor(
@@ -414,7 +450,8 @@ final class AccountSupervisorTests: XCTestCase {
                 configProvider: configProvider,
                 includeSpam: includeSpam,
                 monitorFactory: monitorFactory,
-                webmailOpen: webmailOpen
+                webmailOpen: webmailOpen,
+                signInNeededNotifier: signInNeededNotifier
             ),
             account
         )
@@ -434,7 +471,8 @@ final class AccountSupervisorTests: XCTestCase {
             SpyMonitor(account: account, hasSession: false, includeSpam: includeSpam)
         },
         emailStore: EmailStore? = nil,
-        webmailOpen: @escaping @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome = { _, _ in .opened }
+        webmailOpen: @escaping @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome = { _, _ in .opened },
+        signInNeededNotifier: @escaping SignInNeededNotifier = { _ in }
     ) -> AccountSupervisor {
         let suiteName = "mailbell.AccountSupervisorTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
@@ -452,7 +490,8 @@ final class AccountSupervisorTests: XCTestCase {
             emailStore: emailStore,
             includeSpam: includeSpam,
             monitorFactory: monitorFactory,
-            webmailOpen: webmailOpen
+            webmailOpen: webmailOpen,
+            signInNeededNotifier: signInNeededNotifier
         )
     }
 

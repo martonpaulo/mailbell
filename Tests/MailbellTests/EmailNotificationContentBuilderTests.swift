@@ -149,4 +149,16 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
         XCTAssertNil(content.userInfo[notificationAccountIDKey])
         XCTAssertNotNil(content.userInfo[notificationWebmailURLKey])
     }
+
+    func testSignInNotificationNamesTheAccountAndCollapsesPerAccount() {
+        let account = MailAccount(providerID: .gmail, email: "account@example.com")
+        let content = SignInNotificationContentBuilder.build(account: account)
+
+        XCTAssertEqual(content.title, "Sign in needed")
+        XCTAssertTrue(content.body.contains(account.email))
+        XCTAssertEqual(
+            SignInNotificationContentBuilder.requestIdentifier(accountID: account.id),
+            "mailbell.signin.\(account.id.uuidString)"
+        )
+    }
 }

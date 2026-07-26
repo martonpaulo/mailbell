@@ -94,7 +94,11 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     var emailDismissHandler: (@MainActor (String?) async -> Void)?
     var webmailOpenHandler: (@MainActor (UUID?, URL) async -> Void)?
 
-    private let notificationCenter = UNUserNotificationCenter.current()
+    /// Resolved on demand: `UNUserNotificationCenter.current()` raises outside a
+    /// real app bundle, so every use sits behind `isBundled`.
+    private var notificationCenter: UNUserNotificationCenter {
+        UNUserNotificationCenter.current()
+    }
 
     private var isBundled: Bool {
         AppIdentity.isPackagedApp
@@ -174,29 +178,30 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     }
 
     func notify(_ header: MessageHeader, account: MailAccount) async -> NotificationPostResult {
-        guard isBundled else {
-            Log.info("Notifications unavailable outside app bundle; install Mailbell.app to post native notifications.")
-            return .unavailable("Notifications unavailable outside app bundle.")
-        }
-
-        let state = await requestAuthorizationIfNeeded()
-        guard state.canPostAlert else {
-            let message = state.detail
-            Log.error("Notification skipped: \(message)")
-            return .notAuthorized(state)
-        }
-
-        let content = Self.notificationContent(for: header, account: account)
-
-        let request = UNNotificationRequest(
-            identifier: "mailbell.\(account.id.uuidString).\(header.uid)",
-            content: content,
-            trigger: nil
+        await post(
+            Self.notificationContent(for: header, account: account),
+            identifier: "mailbell.\(account.id.uuidString).\(header.uid)"
         )
-        return await add(request)
     }
 
     func notifyTest(account: MailAccount?) async -> NotificationPostResult {
+        await post(
+            Self.testNotificationContent(account: account),
+            identifier: "mailbell.test.\(UUID().uuidString)"
+        )
+    }
+
+    @discardableResult
+    func notifySignInNeeded(account: MailAccount) async -> NotificationPostResult {
+        await post(
+            SignInNotificationContentBuilder.build(account: account),
+            identifier: SignInNotificationContentBuilder.requestIdentifier(accountID: account.id)
+        )
+    }
+
+    /// The single gate every notification passes through: bundled, authorized,
+    /// then posted.
+    private func post(_ content: UNNotificationContent, identifier: String) async -> NotificationPostResult {
         guard isBundled else {
             Log.info("Notifications unavailable outside app bundle; install Mailbell.app to post native notifications.")
             return .unavailable("Notifications unavailable outside app bundle.")
@@ -204,17 +209,11 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
         let state = await requestAuthorizationIfNeeded()
         guard state.canPostAlert else {
-            let message = state.detail
-            Log.error("Test notification skipped: \(message)")
+            Log.error("Notification skipped: \(state.detail)")
             return .notAuthorized(state)
         }
 
-        let request = UNNotificationRequest(
-            identifier: "mailbell.test.\(UUID().uuidString)",
-            content: Self.testNotificationContent(account: account),
-            trigger: nil
-        )
-        return await add(request)
+        return await add(UNNotificationRequest(identifier: identifier, content: content, trigger: nil))
     }
 
     private func add(_ request: UNNotificationRequest) async -> NotificationPostResult {

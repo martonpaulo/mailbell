@@ -67,7 +67,7 @@ replacing the app. Automatic checks can be turned off in Settings → Updates.
 | 📨 **A review queue** | Sender, time, and a short preview in the menu. A Gmail thread counts once, not once per reply |
 | ✅ **Mark All as Read** | Clears the queue *and* marks everything read in Gmail, over one authenticated session per account |
 | 🧹 **Dismiss All** | Clears your queue and leaves Gmail untouched. Dismissed mail stays unread and does not come back |
-| ⚠️ **Honest menu bar icon** | When a sign-in expires, the bell becomes an alert icon. Mailbell never looks idle while monitoring nothing |
+| ⚠️ **Honest menu bar icon** | When a sign-in expires, the bell becomes an alert icon and a notification tells you. Mailbell never looks idle while monitoring nothing |
 | 🌐 **Opens in the right place** | Default browser, a specific browser, or the exact Chrome profile already signed in to that account |
 | 🗑️ **Optional Spam** | Off by default; turn it on and unread Spam joins the queue |
 | 🚀 **Start at login** | Set it once, forget it |
