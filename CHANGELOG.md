@@ -4,6 +4,22 @@ All notable changes to Mailbell are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and
 [Keep a Changelog](https://keepachangelog.com/).
 
+## 0.1.2 — 2026-07-26
+
+An expired sign-in now reaches you instead of waiting to be noticed.
+
+> **Google OAuth unverified beta.** Unchanged from 0.1.0: Google shows an
+> "unverified app" screen during sign-in and limits unverified clients to
+> **100 new users**.
+
+### Added
+
+- **A notification when an account's sign-in expires.** Until now the only
+  signal was the menu bar alert icon, which helps only if you happen to look at
+  it — Mailbell could stop watching your mail quietly. The alert names the
+  account, fires once per expiry, and is not a preference, for the same reason
+  the alert icon is not.
+
 ## 0.1.1 — 2026-07-25
 
 Settings now follows macOS System Settings conventions, and a preview defect
