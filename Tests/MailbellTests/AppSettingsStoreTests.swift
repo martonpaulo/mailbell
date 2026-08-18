@@ -7,6 +7,7 @@ final class AppSettingsStoreTests: XCTestCase {
 
         XCTAssertTrue(store.showPendingCount)
         XCTAssertFalse(store.includeSpam)
+        XCTAssertTrue(store.playNotificationSounds)
     }
 
     func testPersistsSettings() {
@@ -15,10 +16,12 @@ final class AppSettingsStoreTests: XCTestCase {
 
         store.showPendingCount = false
         store.includeSpam = true
+        store.playNotificationSounds = false
 
         let reloaded = AppSettingsStore(userDefaults: defaults)
         XCTAssertFalse(reloaded.showPendingCount)
         XCTAssertTrue(reloaded.includeSpam)
+        XCTAssertFalse(reloaded.playNotificationSounds)
     }
 
     private func makeDefaults() -> UserDefaults {

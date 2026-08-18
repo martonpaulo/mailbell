@@ -108,6 +108,7 @@ struct SettingsView: View {
 
     var notificationsTab: some View {
         Form {
+            notificationSoundSection
             notificationStatusSection
         }
         .formStyle(.grouped)

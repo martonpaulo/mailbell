@@ -47,7 +47,7 @@ enum SettingsCopy {
         static let cancel = "Cancel"
         static let confirmTitle = "Restore all settings to their defaults?"
         static let confirmMessage =
-            "The menu bar count and watched mailboxes return to their defaults. "
+            "The menu bar count, notification sound, and watched mailboxes return to their defaults. "
                 + "Your Gmail accounts, sign-ins, login item, and notification permission are not affected."
         static let footer =
             "Restoring defaults resets Mailbell's own preferences only. Nothing is removed from Gmail "
@@ -57,6 +57,10 @@ enum SettingsCopy {
     // MARK: - Notifications
 
     enum Notifications {
+        static let soundSectionTitle = "Sound"
+        static let playSoundsTitle = "Play notification sounds"
+        static let playSoundsDescription =
+            "When off, notifications stay visual and the menu bar review queue keeps working."
         static let sectionTitle = "Permission"
         static let statusTitle = "Mailbell notifications"
         static let alertsTitle = "Alerts"
@@ -69,11 +73,11 @@ enum SettingsCopy {
         static let sendingTestAccessibilityLabel = "Sending test notification"
 
         static let healthyDescription =
-            "Alerts, sound, and badge follow whatever you set for Mailbell in System Settings."
+            "macOS controls whether Mailbell's alerts, sound, and badge get through."
         static let sendingTestFooter = "Sending a test notification…"
         static let defaultFooter =
-            "A test notification confirms macOS will actually show Mailbell's alerts. "
-                + "Refresh after changing anything in System Settings."
+            "A test notification confirms macOS will actually show Mailbell's alerts. Sound follows both "
+                + "the Mailbell setting above and macOS. Refresh after changing anything in System Settings."
 
         static func statusDescription(needsAttention: Bool, detail: String) -> String {
             needsAttention ? detail : healthyDescription

@@ -94,6 +94,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     var emailDismissHandler: (@MainActor (String?) async -> Void)?
     var webmailOpenHandler: (@MainActor (UUID?, URL) async -> Void)?
 
+    private let settingsStore = AppSettingsStore()
+
     /// Resolved on demand: `UNUserNotificationCenter.current()` raises outside a
     /// real app bundle, so every use sits behind `isBundled`.
     private var notificationCenter: UNUserNotificationCenter {
@@ -110,17 +112,22 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
     nonisolated static func notificationContent(
         for header: MessageHeader,
-        account: MailAccount
+        account: MailAccount,
+        playNotificationSounds: Bool
     ) -> UNMutableNotificationContent {
         EmailNotificationContentBuilder.build(
             header: header,
             webmailURL: webmailURL(for: header, account: account),
             accountID: account.id,
+            playNotificationSounds: playNotificationSounds,
             emailID: EmailStoreIdentity.id(accountID: account.id, header: header)
         )
     }
 
-    nonisolated static func testNotificationContent(account: MailAccount?) -> UNMutableNotificationContent {
+    nonisolated static func testNotificationContent(
+        account: MailAccount?,
+        playNotificationSounds: Bool
+    ) -> UNMutableNotificationContent {
         let header = MessageHeader(
             uid: 0,
             from: "Taylor Reed <taylor@example.com>",
@@ -133,7 +140,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         return EmailNotificationContentBuilder.build(
             header: header,
             webmailURL: url,
-            accountID: account?.id
+            accountID: account?.id,
+            playNotificationSounds: playNotificationSounds
         )
     }
 
@@ -179,14 +187,21 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
     func notify(_ header: MessageHeader, account: MailAccount) async -> NotificationPostResult {
         await post(
-            Self.notificationContent(for: header, account: account),
+            Self.notificationContent(
+                for: header,
+                account: account,
+                playNotificationSounds: settingsStore.playNotificationSounds
+            ),
             identifier: "mailbell.\(account.id.uuidString).\(header.uid)"
         )
     }
 
     func notifyTest(account: MailAccount?) async -> NotificationPostResult {
         await post(
-            Self.testNotificationContent(account: account),
+            Self.testNotificationContent(
+                account: account,
+                playNotificationSounds: settingsStore.playNotificationSounds
+            ),
             identifier: "mailbell.test.\(UUID().uuidString)"
         )
     }
@@ -194,7 +209,10 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     @discardableResult
     func notifySignInNeeded(account: MailAccount) async -> NotificationPostResult {
         await post(
-            SignInNotificationContentBuilder.build(account: account),
+            SignInNotificationContentBuilder.build(
+                account: account,
+                playNotificationSounds: settingsStore.playNotificationSounds
+            ),
             identifier: SignInNotificationContentBuilder.requestIdentifier(accountID: account.id)
         )
     }
@@ -264,12 +282,22 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         return .open(emailID: emailID, accountID: accountID, url: url)
     }
 
+    nonisolated static func presentationOptions(
+        for content: UNNotificationContent
+    ) -> UNNotificationPresentationOptions {
+        var options: UNNotificationPresentationOptions = [.banner]
+        if content.sound != nil {
+            options.insert(.sound)
+        }
+        return options
+    }
+
     nonisolated func userNotificationCenter(
         _: UNUserNotificationCenter,
-        willPresent _: UNNotification,
+        willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        completionHandler([.banner, .sound])
+        completionHandler(Self.presentationOptions(for: notification.request.content))
     }
 
     nonisolated func userNotificationCenter(

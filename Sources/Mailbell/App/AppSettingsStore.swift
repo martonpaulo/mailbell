@@ -6,16 +6,18 @@ struct AppSettingsStore {
     enum Defaults {
         static let showPendingCount = true
         static let includeSpam = false
+        static let playNotificationSounds = true
     }
 
     enum Key {
         static let showPendingCount = "mailbell.settings.showPendingCount.v1"
         static let includeSpam = "mailbell.settings.includeSpam.v1"
+        static let playNotificationSounds = "mailbell.settings.playNotificationSounds.v1"
 
         /// Every preference Restore Defaults resets. Identity, tokens, account
         /// metadata, IMAP checkpoints, and handled-message history are user
         /// data, not preferences, and are deliberately absent.
-        static let configurable = [showPendingCount, includeSpam]
+        static let configurable = [showPendingCount, includeSpam, playNotificationSounds]
     }
 
     private let userDefaults: UserDefaults
@@ -45,6 +47,18 @@ struct AppSettingsStore {
         }
         nonmutating set {
             userDefaults.set(newValue, forKey: Key.includeSpam)
+        }
+    }
+
+    var playNotificationSounds: Bool {
+        get {
+            guard userDefaults.object(forKey: Key.playNotificationSounds) != nil else {
+                return Defaults.playNotificationSounds
+            }
+            return userDefaults.bool(forKey: Key.playNotificationSounds)
+        }
+        nonmutating set {
+            userDefaults.set(newValue, forKey: Key.playNotificationSounds)
         }
     }
 

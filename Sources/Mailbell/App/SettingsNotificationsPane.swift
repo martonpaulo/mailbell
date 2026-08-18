@@ -5,6 +5,21 @@ import UserNotifications
 /// Whether macOS actually lets Mailbell's alerts through, and the controls that
 /// change that.
 extension SettingsView {
+    var notificationSoundSection: some View {
+        Section {
+            SettingsToggleRow(
+                title: SettingsCopy.Notifications.playSoundsTitle,
+                description: SettingsCopy.Notifications.playSoundsDescription,
+                isOn: Binding(
+                    get: { appState.playNotificationSounds },
+                    set: { appState.setPlayNotificationSounds($0) }
+                )
+            )
+        } header: {
+            Text(SettingsCopy.Notifications.soundSectionTitle)
+        }
+    }
+
     var notificationStatusSection: some View {
         Section {
             SettingsRow(

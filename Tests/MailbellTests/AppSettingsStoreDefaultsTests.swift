@@ -7,6 +7,7 @@ final class AppSettingsStoreDefaultsTests: XCTestCase {
 
         XCTAssertEqual(store.showPendingCount, AppSettingsStore.Defaults.showPendingCount)
         XCTAssertEqual(store.includeSpam, AppSettingsStore.Defaults.includeSpam)
+        XCTAssertEqual(store.playNotificationSounds, AppSettingsStore.Defaults.playNotificationSounds)
     }
 
     func testRestoreDefaultsResetsEveryConfigurablePreference() {
@@ -15,13 +16,16 @@ final class AppSettingsStoreDefaultsTests: XCTestCase {
 
         store.showPendingCount = !AppSettingsStore.Defaults.showPendingCount
         store.includeSpam = !AppSettingsStore.Defaults.includeSpam
+        store.playNotificationSounds = !AppSettingsStore.Defaults.playNotificationSounds
         XCTAssertNotEqual(store.showPendingCount, AppSettingsStore.Defaults.showPendingCount)
         XCTAssertNotEqual(store.includeSpam, AppSettingsStore.Defaults.includeSpam)
+        XCTAssertNotEqual(store.playNotificationSounds, AppSettingsStore.Defaults.playNotificationSounds)
 
         store.restoreDefaults()
 
         XCTAssertEqual(store.showPendingCount, AppSettingsStore.Defaults.showPendingCount)
         XCTAssertEqual(store.includeSpam, AppSettingsStore.Defaults.includeSpam)
+        XCTAssertEqual(store.playNotificationSounds, AppSettingsStore.Defaults.playNotificationSounds)
         for key in AppSettingsStore.Key.configurable {
             XCTAssertNil(defaults.object(forKey: key), "\(key) must be cleared, not rewritten")
         }

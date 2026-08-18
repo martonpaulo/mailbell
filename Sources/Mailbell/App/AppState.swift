@@ -23,6 +23,7 @@ final class AppState: ObservableObject {
     @Published private(set) var bulkActionMessage: String?
     @Published private(set) var showPendingCount: Bool
     @Published private(set) var includeSpam: Bool
+    @Published private(set) var playNotificationSounds: Bool
 
     private let settingsStore: AppSettingsStore
     private let supervisor: AccountSupervisor
@@ -37,6 +38,7 @@ final class AppState: ObservableObject {
         self.updateManager = updateManager
         showPendingCount = settingsStore.showPendingCount
         includeSpam = settingsStore.includeSpam
+        playNotificationSounds = settingsStore.playNotificationSounds
         supervisor = AccountSupervisor(includeSpam: settingsStore.includeSpam)
         supervisor.delegate = self
         accounts = supervisor.accountStates
@@ -127,6 +129,12 @@ final class AppState: ObservableObject {
         pendingCountsByAccountID = supervisor.emailStore.pendingCountsByAccountID
         menuBarIconSystemImage = supervisor.menuBarIconSystemImage
         needsAttention = supervisor.needsAttention
+    }
+
+    func setPlayNotificationSounds(_ isEnabled: Bool) {
+        guard playNotificationSounds != isEnabled else { return }
+        playNotificationSounds = isEnabled
+        settingsStore.playNotificationSounds = isEnabled
     }
 
     func pendingCount(accountID: UUID) -> Int {
@@ -258,6 +266,7 @@ final class AppState: ObservableObject {
     func restoreDefaults() {
         settingsStore.restoreDefaults()
         showPendingCount = settingsStore.showPendingCount
+        playNotificationSounds = settingsStore.playNotificationSounds
         let restoredIncludeSpam = settingsStore.includeSpam
         if includeSpam != restoredIncludeSpam {
             includeSpam = restoredIncludeSpam

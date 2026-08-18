@@ -22,6 +22,7 @@ A missing decision is a review failure.
 | Behavior | Default | Configurable | Notes |
 |---|---|---|---|
 | Show review count in the menu bar | **on** | Yes — General | Hiding it keeps the glyph alone |
+| Play notification sounds | **on** | Yes — Notifications | Turning it off keeps notifications and the review queue visual-only |
 | Start at login | **off** | Yes — General | Real system state, read back from the login item |
 | Include Spam | **off** | Yes — Advanced | Turning it off also removes pending Spam items |
 | Webmail routing | System default browser | Yes — Advanced, per account | Chrome profiles are offered when present |

@@ -12,11 +12,11 @@ enum SignInNotificationContentBuilder {
         "Mailbell stopped watching \(email). Open Mailbell settings to sign in again."
     }
 
-    static func build(account: MailAccount) -> UNMutableNotificationContent {
+    static func build(account: MailAccount, playNotificationSounds: Bool) -> UNMutableNotificationContent {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body(email: account.email)
-        content.sound = .default
+        content.sound = NotificationSoundPolicy.sound(playNotificationSounds: playNotificationSounds)
         return content
     }
 

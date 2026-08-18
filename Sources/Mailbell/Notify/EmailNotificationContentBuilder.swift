@@ -6,6 +6,7 @@ enum EmailNotificationContentBuilder {
         header: MessageHeader,
         webmailURL: URL,
         accountID: UUID?,
+        playNotificationSounds: Bool,
         emailID: String? = nil
     ) -> UNMutableNotificationContent {
         let content = UNMutableNotificationContent()
@@ -17,7 +18,7 @@ enum EmailNotificationContentBuilder {
         } else {
             content.body = subject
         }
-        content.sound = .default
+        content.sound = NotificationSoundPolicy.sound(playNotificationSounds: playNotificationSounds)
         if emailID != nil {
             content.categoryIdentifier = notificationEmailCategoryIdentifier
         }

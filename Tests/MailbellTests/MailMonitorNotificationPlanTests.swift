@@ -87,7 +87,10 @@ final class MailMonitorNotificationPlanTests: XCTestCase {
         checkpoint.storedUIDValidity = 99
         checkpoint.lastSeenUID = 10
 
-        _ = NotificationManager.testNotificationContent(account: account)
+        _ = NotificationManager.testNotificationContent(
+            account: account,
+            playNotificationSounds: true
+        )
 
         XCTAssertEqual(checkpoint.storedUIDValidity, 99)
         XCTAssertEqual(checkpoint.lastSeenUID, 10)

@@ -1,7 +1,81 @@
 @testable import mailbell
+import UserNotifications
 import XCTest
 
 final class EmailNotificationContentBuilderTests: XCTestCase {
+    func testEmailNotificationSoundFollowsPreference() throws {
+        let header = MessageHeader(
+            uid: 1,
+            from: "Ana Silva <ana@example.com>",
+            subject: "Status update",
+            date: "",
+            gmThreadId: nil
+        )
+        let url = try XCTUnwrap(URL(string: "https://mail.google.com/"))
+
+        let audible = EmailNotificationContentBuilder.build(
+            header: header,
+            webmailURL: url,
+            accountID: UUID(),
+            playNotificationSounds: true
+        )
+        let silent = EmailNotificationContentBuilder.build(
+            header: header,
+            webmailURL: url,
+            accountID: UUID(),
+            playNotificationSounds: false
+        )
+
+        XCTAssertEqual(audible.sound, UNNotificationSound.default)
+        XCTAssertNil(silent.sound)
+    }
+
+    func testTestNotificationSoundFollowsPreference() {
+        let account = MailAccount(providerID: .gmail, email: "account@example.com")
+
+        let audible = NotificationManager.testNotificationContent(
+            account: account,
+            playNotificationSounds: true
+        )
+        let silent = NotificationManager.testNotificationContent(
+            account: account,
+            playNotificationSounds: false
+        )
+
+        XCTAssertEqual(audible.sound, UNNotificationSound.default)
+        XCTAssertNil(silent.sound)
+    }
+
+    func testSignInNotificationSoundFollowsPreference() {
+        let account = MailAccount(providerID: .gmail, email: "account@example.com")
+
+        let audible = SignInNotificationContentBuilder.build(
+            account: account,
+            playNotificationSounds: true
+        )
+        let silent = SignInNotificationContentBuilder.build(
+            account: account,
+            playNotificationSounds: false
+        )
+
+        XCTAssertEqual(audible.sound, UNNotificationSound.default)
+        XCTAssertNil(silent.sound)
+    }
+
+    func testForegroundPresentationSoundFollowsNotificationContent() {
+        let audible = UNMutableNotificationContent()
+        audible.sound = .default
+        let silent = UNMutableNotificationContent()
+
+        let audibleOptions = NotificationManager.presentationOptions(for: audible)
+        let silentOptions = NotificationManager.presentationOptions(for: silent)
+
+        XCTAssertTrue(audibleOptions.contains(.banner))
+        XCTAssertTrue(audibleOptions.contains(.sound))
+        XCTAssertTrue(silentOptions.contains(.banner))
+        XCTAssertFalse(silentOptions.contains(.sound))
+    }
+
     func testSenderNameBecomesNotificationTitle() throws {
         let content = try EmailNotificationContentBuilder.build(
             header: MessageHeader(
@@ -12,7 +86,8 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
                 gmThreadId: nil
             ),
             webmailURL: XCTUnwrap(URL(string: "https://mail.google.com/")),
-            accountID: UUID()
+            accountID: UUID(),
+            playNotificationSounds: true
         )
 
         XCTAssertEqual(content.title, "Ana Silva")
@@ -30,7 +105,8 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
                 gmThreadId: nil
             ),
             webmailURL: XCTUnwrap(URL(string: "https://mail.google.com/")),
-            accountID: UUID()
+            accountID: UUID(),
+            playNotificationSounds: true
         )
 
         XCTAssertEqual(content.title, "ana@example.com")
@@ -49,7 +125,8 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
                 bodyPreview: "The contract is ready for review."
             ),
             webmailURL: XCTUnwrap(URL(string: "https://mail.google.com/")),
-            accountID: UUID()
+            accountID: UUID(),
+            playNotificationSounds: true
         )
 
         XCTAssertEqual(content.title, "Ana Silva")
@@ -69,7 +146,8 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
                 bodyPreview: "Act now."
             ),
             webmailURL: XCTUnwrap(URL(string: "https://mail.google.com/")),
-            accountID: UUID()
+            accountID: UUID(),
+            playNotificationSounds: true
         )
 
         XCTAssertEqual(content.title, "Promo")
@@ -88,7 +166,11 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
             gmMessageId: "123"
         )
 
-        let content = NotificationManager.notificationContent(for: header, account: account)
+        let content = NotificationManager.notificationContent(
+            for: header,
+            account: account,
+            playNotificationSounds: true
+        )
 
         XCTAssertEqual(content.title, "Ana Silva")
         XCTAssertEqual(content.subtitle, "")
@@ -122,7 +204,11 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
             bodyPreview: "Second preview"
         )
 
-        let content = NotificationManager.notificationContent(for: secondHeader, account: account)
+        let content = NotificationManager.notificationContent(
+            for: secondHeader,
+            account: account,
+            playNotificationSounds: true
+        )
 
         XCTAssertEqual(content.title, "Ana Silva")
         XCTAssertEqual(content.subtitle, "Second thread message")
@@ -135,7 +221,10 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
 
     func testTestNotificationUsesSharedEmailFormatterShape() {
         let account = MailAccount(providerID: .gmail, email: "account@example.com")
-        let content = NotificationManager.testNotificationContent(account: account)
+        let content = NotificationManager.testNotificationContent(
+            account: account,
+            playNotificationSounds: true
+        )
 
         XCTAssertEqual(content.title, "Taylor Reed")
         XCTAssertEqual(content.subtitle, "Contract review today")
@@ -144,7 +233,10 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
     }
 
     func testTestNotificationWithoutAccountDoesNotInventAccountIdentifier() {
-        let content = NotificationManager.testNotificationContent(account: nil)
+        let content = NotificationManager.testNotificationContent(
+            account: nil,
+            playNotificationSounds: true
+        )
 
         XCTAssertNil(content.userInfo[notificationAccountIDKey])
         XCTAssertNotNil(content.userInfo[notificationWebmailURLKey])
@@ -152,7 +244,10 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
 
     func testSignInNotificationNamesTheAccountAndCollapsesPerAccount() {
         let account = MailAccount(providerID: .gmail, email: "account@example.com")
-        let content = SignInNotificationContentBuilder.build(account: account)
+        let content = SignInNotificationContentBuilder.build(
+            account: account,
+            playNotificationSounds: true
+        )
 
         XCTAssertEqual(content.title, "Sign in needed")
         XCTAssertTrue(content.body.contains(account.email))
