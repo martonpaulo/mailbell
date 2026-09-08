@@ -39,4 +39,4 @@ Mailbell's Google OAuth client is **not yet verified by Google**. During sign-in
 Google shows an "unverified app" screen, and Google caps unverified clients at
 100 new users. This is a review status, not a compromise: the app still runs
 locally and no Gmail data passes through any server operated by this project.
-See the [Privacy Policy](https://martonpaulo.github.io/mailbell/privacy.html).
+See the [Privacy Policy](https://martonpaulo.com/mailbell/privacy.html).

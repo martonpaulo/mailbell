@@ -11,7 +11,7 @@
 [![macOS 26+](https://img.shields.io/badge/macOS-26%2B-blue)](#-install)
 [![MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-**[Visit the Mailbell website](https://martonpaulo.github.io/mailbell/)**
+**[Visit the Mailbell website](https://martonpaulo.com/mailbell/)**
 
 </div>
 
@@ -35,8 +35,8 @@ an **unverified app**. Before you install, know both consequences:
 
 This is a review status, not a security problem. Your Gmail data still never
 passes through any server this project operates, because none exists. See the
-[Privacy Policy](https://martonpaulo.github.io/mailbell/privacy.html) and the
-[Terms](https://martonpaulo.github.io/mailbell/terms.html).
+[Privacy Policy](https://martonpaulo.com/mailbell/privacy.html) and the
+[Terms](https://martonpaulo.com/mailbell/terms.html).
 
 If your account belongs to a Google Workspace organization, your administrator
 may block unverified apps entirely. That is their policy to change, not
