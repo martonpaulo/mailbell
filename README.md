@@ -55,7 +55,7 @@ something the app can work around.
 
 That is the whole setup. Mailbell keeps itself up to date through
 [Sparkle](https://sparkle-project.org), verifying each update's signature before
-replacing the app. Automatic checks can be turned off in Settings → Updates.
+replacing the app. Automatic checks can be turned off in Settings → General → Updates.
 
 > Open source · direct download · macOS 26 or later
 
@@ -66,7 +66,7 @@ replacing the app. Automatic checks can be turned off in Settings → Updates.
 | 🔔 **Instant, not polled** | Holds an IMAP IDLE connection, so mail shows up when it arrives instead of on a timer |
 | 📨 **A review queue** | Sender, time, and a short preview in the menu. A Gmail thread counts once, not once per reply |
 | ✅ **Mark All as Read** | Clears the queue *and* marks everything read in Gmail, over one authenticated session per account |
-| 🧹 **Dismiss All** | Clears your queue and leaves Gmail untouched. Dismissed mail stays unread and does not come back |
+| 🧹 **Dismiss All** | Clears your queue and leaves Gmail untouched. Dismissed mail stays unread and is suppressed from the queue; opened or marked-read items may reappear if still unread |
 | ⚠️ **Honest menu bar icon** | When a sign-in expires, the bell becomes an alert icon and a notification tells you. Mailbell never looks idle while monitoring nothing |
 | 🌐 **Opens in the right place** | Default browser, a specific browser, or the exact Chrome profile already signed in to that account |
 | 🗑️ **Optional Spam** | Off by default; turn it on and unread Spam joins the queue |
@@ -112,10 +112,10 @@ References:
 
 ## 🖼️ Settings
 
-Six native panes: **General** (menu bar count, start at login, Restore
-Defaults), **Notifications** (permission state and a test notification),
-**Accounts** (connect, status, reconnect, remove), **Advanced** (Spam and
-per-account browser routing), **Updates**, and **About**.
+Four native panes: **General** (menu bar count, start at login, Restore
+Defaults, updates), **Notifications** (permission state and a test notification),
+**Accounts** (connect, status, reconnect, remove, Spam and per-account browser
+routing), and **About**.
 
 Every default and the reasoning behind it is in
 [docs/feature-defaults.md](docs/feature-defaults.md).
