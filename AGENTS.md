@@ -8,6 +8,40 @@ specific `AGENTS.md` inside a subtree overrides this one for that subtree.
 > Describe responsibilities, not exact file or folder names — names drift, and
 > stale structure docs are worse than none.
 
+## Project identity and policy
+
+- Project name: `mailbell`
+- Public name: `Mailbell`
+- Repository: `martonpaulo/mailbell` (public); `origin` is the owner's fork.
+- Benefit-first description: Gmail notifications in your macOS menu bar — instant IMAP IDLE alerts, a review queue you can clear in one click, no server in between.
+- Public identifiers: app/bundle `com.perso.mailbell`; SwiftPM executable `mailbell`; installed app `Mailbell.app`.
+- Landing page: `https://martonpaulo.com/mailbell/`, owned by Marton Paulo; static files under `docs/`, hosted by this repository's GitHub Pages workflow. Domain or DNS changes require a separate explicit request.
+- License: MIT; preserve copyright 2026 samzong and 2026 Marton Paulo and all existing third-party notices.
+- Development language: English. Product copy: English only; English fallback, no additional locales or localization framework until explicitly requested.
+- Browser acceptance targets: Chromium and WebKit/Safari for the public site and OAuth callback HTML. Use existing compatible browser tooling; no new browser manager or CI matrix is implied. Verify native Safari behavior manually when tooling cannot establish it.
+- Branch policy: work on `main` unless the owner explicitly requests a branch. A branch workflow is an exception, not the default.
+- Commit policy: create a focused Conventional Commit when the authorized durable change is complete and validated. Commit only task files; a commit for one issue ends with `(#<issue number>)`.
+- Push policy: only on explicit owner request, to `origin`; never to `upstream`.
+- Merge policy: squash only for an explicitly authorized PR merge. An issue plan or review never authorizes merging.
+- Delete branches after merge: disabled; preserve the existing repository setting. Delete a branch only when separately authorized.
+- Product versioning: user-visible SemVer `X.Y.Z`, canonical in `Resources/Info.plist`; version/build changes occur only during an explicit release request. Tags use `vX.Y.Z`; the internal build derives from the version through the existing release metadata script.
+- Release policy: direct Developer ID signed, notarized, stapled DMG and Sparkle update archive. Signing/OAuth configuration stays private; tokens and private update keys stay in Keychain. Setup does not cut a release or change a version.
+- Agent automation: `disabled`
+- Agent clients: root `AGENTS.md` is canonical; retain `CLAUDE.md -> AGENTS.md`. No Gemini or Antigravity adapter is selected. Do not install automation, caller workflows, roles, hooks, or authentication prerequisites while automation is disabled.
+- GitHub controls: secret scanning and push protection enabled; no required approving-review or status-check ruleset selected. Preserve the existing unprotected `main` setting.
+- GitHub topics: `gmail`, `gmail-imap`, `gmail-notifier`, `imap`, `imap-idle`, `keychain`, `macos`, `menu-bar`, `menu-bar-app`, `notifications`, `oauth2`, `pkce`, `productivity`, `sparkle`, `swift`, `swiftui`.
+- Issue metadata: preserve this repository's `bug`, `enhancement`, and `documentation` types and existing `priority:`, `evidence:`, `effort:`, and `status:` dimensions. Whole-taxonomy renames/deletions require an approved grooming mapping. With agent automation disabled, orchestrator projection labels are not required; a decision issue remains unassigned and unestimated with `status: needs-decision`.
+- Skills baseline revision: `7cfc324fcded57145c36cc678977c070ed800692`
+- Skills baseline applied: `2026-09-09`
+- Skills baseline divergence `merge-template-superseded` at `7cfc324fcded57145c36cc678977c070ed800692`: The owner approved squash-only on 2026-09-09, following the delegated publishing-conventions owner whose 2026-09-03 rule supersedes the template's older merge-commit wording.
+
+## Skills ownership
+
+No repository-owned skills are currently installed. Do not copy personal skills
+into this repository. A future project skill owns its project-specific procedure;
+a general skill keeps the surrounding workflow. Unclaimed work follows normal
+skill triggering. `make` remains the owner of build and validation procedures.
+
 ## Product
 
 Mailbell is a notification-first Gmail companion for the macOS menu bar. It is a
@@ -274,8 +308,9 @@ A missing configurability decision is a review failure. See
 - Add or update focused tests only for changed behavior, regressions,
   persistence contracts, accessibility-critical flows, or validation-sensitive
   code. Avoid tests that mirror implementation details or duplicate coverage.
-- If documentation conflicts with code, treat code as truth, then update the
-  smallest relevant doc section.
+- Code establishes current behavior; this policy governs process; approved issue
+  specifications govern desired behavior. Surface contradictions explicitly, then
+  update the smallest canonical documentation section within the authorized scope.
 
 ## Pattern-break protocol
 
@@ -286,6 +321,17 @@ backend, or a broader OAuth scope — **stop and confirm with the user before
 either forcing the change into the old pattern or defining a new one.** Name the
 pattern in tension, the options, and the tradeoff. Silent divergence is a defect.
 When a genuinely new pattern is agreed, document it here in the same turn.
+
+## Long-running work and durable learning
+
+- Use bounded yields and observable progress for long operations. Inspect output
+  before interrupting or retrying; an unchanged failure is not a reason to rerun.
+- Keep progress updates at least once per minute during ongoing work when the
+  client supports them, and report actual failures and validation gaps.
+- Record only verified, recurring project constraints in an existing canonical
+  owner. Required task documentation belongs to the task; adjacent learning needs
+  an explicit owner-approved proposal before editing. Do not persist transcripts,
+  speculative conclusions, credentials, or machine-specific incident state.
 
 ## Git and completion
 
@@ -302,6 +348,7 @@ When a genuinely new pattern is agreed, document it here in the same turn.
 
 ## Agent skill paths
 
+- Product definition: `docs/product.md`
 - Domain glossary: `CONTEXT.md` (optional; create only when useful)
 - ADRs: `docs/adr/` (only for hard-to-reverse, non-obvious decisions)
 - Research notes: `docs/research/` (create only when persisting research)
