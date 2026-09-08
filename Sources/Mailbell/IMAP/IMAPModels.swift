@@ -38,6 +38,10 @@ struct MessageHeader: Identifiable, Equatable {
     let gmMessageId: String?
     let messageId: String?
     let bodyPreview: String?
+    /// Server receipt time (IMAP INTERNALDATE), the timestamp Gmail orders the
+    /// inbox by. Kept separate from `date`, which is the sender's own Date
+    /// header and can be wrong or absent.
+    let serverReceivedAt: Date?
 
     init(
         uid: Int,
@@ -49,7 +53,8 @@ struct MessageHeader: Identifiable, Equatable {
         gmThreadId: String?,
         gmMessageId: String? = nil,
         messageId: String? = nil,
-        bodyPreview: String? = nil
+        bodyPreview: String? = nil,
+        serverReceivedAt: Date? = nil
     ) {
         self.uid = uid
         self.mailbox = mailbox
@@ -61,6 +66,7 @@ struct MessageHeader: Identifiable, Equatable {
         self.gmMessageId = gmMessageId
         self.messageId = messageId
         self.bodyPreview = bodyPreview
+        self.serverReceivedAt = serverReceivedAt
     }
 
     var id: Int {
@@ -82,7 +88,8 @@ struct MessageHeader: Identifiable, Equatable {
             gmThreadId: gmThreadId,
             gmMessageId: gmMessageId,
             messageId: messageId,
-            bodyPreview: bodyPreview
+            bodyPreview: bodyPreview,
+            serverReceivedAt: serverReceivedAt
         )
     }
 
@@ -97,7 +104,8 @@ struct MessageHeader: Identifiable, Equatable {
             gmThreadId: gmThreadId,
             gmMessageId: gmMessageId,
             messageId: messageId,
-            bodyPreview: bodyPreview
+            bodyPreview: bodyPreview,
+            serverReceivedAt: serverReceivedAt
         )
     }
 

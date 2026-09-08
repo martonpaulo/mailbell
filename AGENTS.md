@@ -172,9 +172,10 @@ by Google**.
   secrets, or generated release artifacts.
 - Never log tokens, OAuth codes, client secrets, IMAP auth payloads, raw message
   bodies, attachments, or full provider responses.
-- Fetch only the smallest useful data: sender, subject, sent date, account, UID,
-  RFC message ID, Gmail thread/message identifiers when available, and a bounded
-  sanitized text preview.
+- Fetch only the smallest useful data: sender, subject, sent date, server
+  receipt time (`INTERNALDATE`), account, UID, RFC message ID, Gmail
+  thread/message identifiers when available, and a bounded sanitized text
+  preview.
 - Body preview fetches stay bounded and non-mutating (`BODY.PEEK[TEXT]<0.8192>`).
   Never fetch attachments or full bodies.
 - Sanitize previews before UI/notification use: SwiftSoup for generic HTML

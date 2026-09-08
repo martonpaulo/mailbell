@@ -12,7 +12,12 @@ struct EmailStoreItem: Identifiable, Equatable {
     let time: String
     let bodyPreview: String?
     let webmailURL: URL
+    /// When Mailbell admitted the item. Orders members inside a group, so the
+    /// first-admitted message stays the group's representative.
     let receivedAt: Date
+    /// When the server received the message (IMAP INTERNALDATE). Orders the
+    /// queue itself. Absent when the server did not answer a usable value.
+    let serverReceivedAt: Date?
     let admissionOrder: Int
 
     var canMarkAsRead: Bool {
@@ -246,11 +251,9 @@ final class EmailStore {
     }
 
     var items: [EmailStoreItem] {
-        groupedItems().sorted { left, right in
-            if left.receivedAt != right.receivedAt {
-                return left.receivedAt > right.receivedAt
-            }
-            return left.title.localizedCaseInsensitiveCompare(right.title) == .orderedAscending
+        let chronology = groupChronology()
+        return groupedItems().sorted { left, right in
+            isNewerInQueue(left, than: right, chronology: chronology)
         }
     }
 
@@ -413,6 +416,42 @@ final class EmailStore {
             }
     }
 
+    /// A conversation is as new as its newest pending member, so a reply lifts
+    /// the whole thread the way it does in Gmail. Members Mailbell no longer
+    /// holds do not count, which is what makes removal recompute the order.
+    private func groupChronology() -> [String: Date] {
+        itemsByID.values.reduce(into: [:]) { latest, item in
+            guard let serverReceivedAt = item.serverReceivedAt else { return }
+            guard let existing = latest[item.groupID], existing >= serverReceivedAt else {
+                latest[item.groupID] = serverReceivedAt
+                return
+            }
+        }
+    }
+
+    private func isNewerInQueue(
+        _ left: EmailStoreItem,
+        than right: EmailStoreItem,
+        chronology: [String: Date]
+    ) -> Bool {
+        switch (chronology[left.groupID], chronology[right.groupID]) {
+        case let (leftDate?, rightDate?) where leftDate != rightDate:
+            return leftDate > rightDate
+        case (.some, .none):
+            return true
+        case (.none, .some):
+            return false
+        default:
+            break
+        }
+        // Undated groups, and exact ties, fall back to the order Mailbell saw
+        // them so the queue never reshuffles on its own.
+        if left.admissionOrder != right.admissionOrder {
+            return left.admissionOrder < right.admissionOrder
+        }
+        return left.title.localizedCaseInsensitiveCompare(right.title) == .orderedAscending
+    }
+
     private func isEarlierInGroup(_ left: EmailStoreItem, than right: EmailStoreItem) -> Bool {
         if left.receivedAt != right.receivedAt {
             return left.receivedAt < right.receivedAt
@@ -478,6 +517,7 @@ final class EmailStore {
             webmailURL: MailProviderRegistry.provider(for: account.providerID)
                 .webmailURL(for: header, account: account),
             receivedAt: receivedAt ?? now(),
+            serverReceivedAt: header.serverReceivedAt,
             admissionOrder: resolvedAdmissionOrder
         )
     }

@@ -2,6 +2,55 @@
 import XCTest
 
 final class IMAPParserTests: XCTestCase {
+    func testParsesInternalDateFromEitherSideOfTheHeaderLiteral() {
+        let headerBlock = Data("From: a@example.com\r\nSubject: S\r\n\r\n".utf8)
+        let expected = Date(timeIntervalSince1970: 1_780_401_600) // 2026-06-02 12:00:00Z
+
+        let leading = IMAPParser.parseFetch(
+            firstLine: #"* 1 FETCH (UID 7 INTERNALDATE "02-Jun-2026 12:00:00 +0000" BODY[HEADER.FIELDS (FROM)] {40}"#,
+            headerBlock: headerBlock
+        )
+        XCTAssertEqual(leading?.serverReceivedAt, expected)
+
+        let trailing = IMAPParser.parseFetch(
+            firstLine: #"* 1 FETCH (UID 7 BODY[HEADER.FIELDS (FROM)] {40}"#,
+            trailingLine: #" INTERNALDATE "02-Jun-2026 12:00:00 +0000")"#,
+            headerBlock: headerBlock
+        )
+        XCTAssertEqual(trailing?.serverReceivedAt, expected)
+        XCTAssertEqual(trailing?.uid, 7)
+    }
+
+    func testParsesInternalDateWithSpacePaddedDayAndNonZeroOffset() {
+        // RFC 3501 space-pads single-digit days.
+        XCTAssertEqual(
+            IMAPParser.parseInternalDate(in: #"(INTERNALDATE " 2-Jun-2026 09:00:00 -0300")"#),
+            Date(timeIntervalSince1970: 1_780_401_600)
+        )
+        XCTAssertEqual(
+            IMAPParser.parseInternalDate(in: #"(INTERNALDATE "02-Jun-2026 14:30:00 +0230")"#),
+            Date(timeIntervalSince1970: 1_780_401_600)
+        )
+    }
+
+    func testRejectsMalformedOrAbsentInternalDate() {
+        XCTAssertNil(IMAPParser.parseInternalDate(in: #"(UID 7 FLAGS (\Seen))"#))
+        XCTAssertNil(IMAPParser.parseInternalDate(in: #"(INTERNALDATE "not a date")"#))
+        XCTAssertNil(IMAPParser.parseInternalDate(in: #"(INTERNALDATE "02-Jun-2026 12:00:00 +0000"#))
+    }
+
+    func testHeaderBodyCannotForgeFetchAttributes() {
+        // Text inside the message must never be read as server metadata.
+        let forged = Data(("From: a@example.com\r\n"
+            + "Subject: INTERNALDATE \"01-Jan-2000 00:00:00 +0000\"\r\n\r\n").utf8)
+        let header = IMAPParser.parseFetch(
+            firstLine: #"* 1 FETCH (UID 7 BODY[HEADER.FIELDS (FROM SUBJECT)] {70}"#,
+            headerBlock: forged
+        )
+
+        XCTAssertNil(header?.serverReceivedAt)
+    }
+
     func testParsesUntaggedCount() {
         XCTAssertEqual(IMAPParser.parseUntagged("* 12 EXISTS", suffix: "EXISTS"), 12)
         XCTAssertEqual(IMAPParser.parseUntagged("* 3 RECENT", suffix: "RECENT"), 3)

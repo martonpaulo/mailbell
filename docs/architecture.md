@@ -42,6 +42,12 @@ The runtime. One monitor per enabled account, supervised centrally.
 - **The review store** holds what is awaiting the user. Items are grouped by
   Gmail thread so a conversation counts once in the menu while notifications stay
   per message.
+- **Queue order** is Gmail's ordinary inbox chronology: newest server receipt
+  (`INTERNALDATE`) first. A conversation is as new as its newest *pending*
+  member, so a reply lifts the thread while the first-admitted message stays its
+  representative. Groups the server gave no usable timestamp for follow the
+  dated ones in admission order. The sender's own `Date` header is never
+  substituted for server receipt.
 - **Dispositions** (`opened`, `markedRead`, `dismissed`) persist in UserDefaults,
   pruned to a bounded history. Dismissed items are suppressed; opened or marked-read items may reappear if still unread.
 - **Reconciliation** removes items read directly in Gmail Web and may admit

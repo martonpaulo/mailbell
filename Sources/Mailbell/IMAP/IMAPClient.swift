@@ -266,7 +266,7 @@ final class IMAPClient {
 
         let tag = nextTag()
         try await connection.send(
-            "\(tag) UID FETCH \(sequenceSet) (UID X-GM-MSGID X-GM-THRID \(Self.headerFields))"
+            "\(tag) UID FETCH \(sequenceSet) (UID INTERNALDATE X-GM-MSGID X-GM-THRID \(Self.headerFields))"
         )
 
         var headers: [MessageHeader] = []
@@ -416,8 +416,8 @@ final class IMAPClient {
             return nil
         }
         let block = try await connection.readBytes(literalSize)
-        _ = try await connection.readLine()
-        return IMAPParser.parseFetch(firstLine: firstLine, headerBlock: block)
+        let trailingLine = try await connection.readLine()
+        return IMAPParser.parseFetch(firstLine: firstLine, trailingLine: trailingLine, headerBlock: block)
     }
 
     private func parseBodyPreviewFetch(_ firstLine: String) async throws -> (uid: Int, preview: String?)? {

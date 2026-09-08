@@ -84,8 +84,8 @@ final class IMAPClientTests: XCTestCase {
         XCTAssertEqual(
             connection.sentLines,
             [
-                "A0001 UID FETCH 1:100 (UID X-GM-MSGID X-GM-THRID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])",
-                "A0002 UID FETCH 101 (UID X-GM-MSGID X-GM-THRID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])"
+                "A0001 UID FETCH 1:100 (UID INTERNALDATE X-GM-MSGID X-GM-THRID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])",
+                "A0002 UID FETCH 101 (UID INTERNALDATE X-GM-MSGID X-GM-THRID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])"
             ]
         )
     }
@@ -120,7 +120,7 @@ final class IMAPClientTests: XCTestCase {
         XCTAssertEqual(
             connection.sentLines,
             [
-                "A0001 UID FETCH 42 (UID X-GM-MSGID X-GM-THRID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])",
+                "A0001 UID FETCH 42 (UID INTERNALDATE X-GM-MSGID X-GM-THRID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])",
                 "A0002 UID FETCH 42 (UID BODY.PEEK[TEXT]<0.8192>)"
             ]
         )

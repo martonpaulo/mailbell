@@ -1,12 +1,17 @@
 import Foundation
 
 enum IMAPParser {
-    static func parseFetch(firstLine: String, headerBlock: Data) -> MessageHeader? {
+    /// A server may place FETCH attributes on either side of the header
+    /// literal, so both protocol lines are read. The header bytes are never
+    /// searched for attributes: text inside a message must not be able to
+    /// masquerade as server metadata.
+    static func parseFetch(firstLine: String, trailingLine: String = "", headerBlock: Data) -> MessageHeader? {
         guard parseLiteralSize(firstLine) != nil else { return nil }
 
-        let uid = parseNumber(in: firstLine, key: "UID") ?? 0
-        let msgid = parseToken(in: firstLine, key: "X-GM-MSGID")
-        let thrid = parseToken(in: firstLine, key: "X-GM-THRID")
+        let attributes = firstLine + " " + trailingLine
+        let uid = parseNumber(in: attributes, key: "UID") ?? 0
+        let msgid = parseToken(in: attributes, key: "X-GM-MSGID")
+        let thrid = parseToken(in: attributes, key: "X-GM-THRID")
         let raw = String(bytes: headerBlock, encoding: .utf8) ?? ""
         let fields = parseHeaderFields(raw)
 
@@ -17,9 +22,28 @@ enum IMAPParser {
             date: fields["date"] ?? "",
             gmThreadId: thrid,
             gmMessageId: msgid,
-            messageId: fields["message-id"]
+            messageId: fields["message-id"],
+            serverReceivedAt: parseInternalDate(in: attributes)
         )
     }
+
+    /// `INTERNALDATE "02-Jun-2026 12:00:00 +0000"`. RFC 3501 space-pads
+    /// single-digit days, so " 2-Jun-2026" is legal and must parse.
+    static func parseInternalDate(in line: String) -> Date? {
+        guard let range = line.range(of: "INTERNALDATE \"") else { return nil }
+        let tail = line[range.upperBound...]
+        guard let end = tail.firstIndex(of: "\"") else { return nil }
+        let value = tail[tail.startIndex..<end].trimmingCharacters(in: .whitespaces)
+        return internalDateFormatter.date(from: value)
+    }
+
+    private static let internalDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "d-MMM-yyyy HH:mm:ss Z"
+        return formatter
+    }()
 
     static func parseUntagged(_ line: String, suffix: String) -> Int? {
         guard line.hasPrefix("* ") else { return nil }
