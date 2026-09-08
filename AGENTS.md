@@ -251,7 +251,7 @@ Preserve the IMAP IDLE reconnect model:
     anything irreversible confirms first.
   - A status row earns its space only when it can disagree with the control
     above it; otherwise it is noise.
-  These rules are enforced by `SettingsControlSemanticsTests`.
+  These rules are enforced by `Scripts/validate.sh` source-shape invariants.
 - Preserve native controls, keyboard navigation, focus, hover/pressed/disabled/
   loading/error states, Dynamic Type, contrast, validation feedback, and safe
   areas.
