@@ -7,8 +7,8 @@ Please report security issues privately through
 rather than a public issue.
 
 Include what you found, how to reproduce it, and the Mailbell version from
-Settings → Updates. Please do not include real tokens, OAuth codes, or email
-content in the report.
+Settings → General → Updates. Please do not include real tokens, OAuth
+codes, or email content in the report.
 
 ## Scope
 

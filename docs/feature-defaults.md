@@ -74,9 +74,9 @@ implemented; add no preference keys or Restore Defaults entries for them.
 | Show review count in the menu bar | **on** | Yes — General | Hiding it keeps the glyph alone |
 | Play notification sounds | **on** | Yes — Notifications | Turning it off keeps notifications and the review queue visual-only |
 | Start at login | **off** | Yes — General | Real system state, read back from the login item |
-| Include Spam | **off** | Yes — Advanced | Turning it off also removes pending Spam items |
-| Webmail routing | System default browser | Yes — Advanced, per account | Chrome profiles are offered when present |
-| Automatic update checks | **on** | Yes — Updates | Inert in development builds |
+| Include Spam | **off** | Yes — Accounts | Turning it off also removes pending Spam items |
+| Webmail routing | System default browser | Yes — Accounts, per account | Chrome profiles are offered when present |
+| Automatic update checks | **on** | Yes — General | Inert in development builds |
 
 ## Deliberately not configurable
 
