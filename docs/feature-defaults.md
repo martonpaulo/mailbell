@@ -17,6 +17,56 @@ A missing decision is a review failure.
 - Preserve existing user choices on upgrade; migrate a stored value only when the
   old representation is invalid.
 
+## Approved queue limits — pending implementation
+
+The owner delegated the retention decision on 2026-09-09. This is the desired
+contract in [issue #27](https://github.com/martonpaulo/mailbell/issues/27), not a
+claim that the current runtime enforces it.
+
+| Boundary | Approved value | Configurable | Reason |
+|---|---|---|---|
+| Retained message records | **500 per account**, shared by Inbox and optional Spam | No | Bound local mail state without making one busy account evict another account's items. |
+| Visible conversation rows | **50 per account** | No | Keep the native menu bounded; additional retained conversations remain part of the queue. |
+
+Retained messages and visible conversations are different units. All retained
+message identities count toward the message budget, including members of one
+long conversation. The visible-row limit is a projection of that one store,
+not a second queue. Total allowance scales with the connected accounts.
+
+Prefer recent conversations using the server-receipt chronology approved in
+issue #11. Preserve the first-admitted representative while its conversation is
+retained. At capacity, release older non-representative context from the
+least-recent conversation first; remove its row only when its representative is
+its sole remaining record. A single oversized conversation retains its
+representative and recent context within the same account budget.
+
+Capacity eviction releases reconstructible local data only. It never marks mail
+read, deletes mail, or records an explicit dismissal. Do not create a persistent
+overflow list, another content cache, or an unbounded shadow identity index.
+Fresh-mail notifications and successful-batch checkpoint guarantees continue
+independently of whether a message can stay in the retained window.
+
+Show the retained/shown scope and an account-specific overflow notice with an
+Open Gmail action; do not invent a total count of unknown Gmail mail. Existing
+Check Now explicitly refills the recent window in bounded batches, and relaunch
+rebuilds it from Gmail and existing handled history. Do not automatically refill
+older capacity-excluded mail just because an action freed space: clearing the
+queue must not immediately reveal another historical window. Fresh arrivals
+and read-state reconciliation continue through existing IDLE handling.
+
+Bulk actions use a stable snapshot of **all retained messages**, including those
+outside the visible rows, and disclose their retained-message count before
+activation. They never reach capacity-excluded Gmail messages. Conversation
+actions likewise affect only captured retained members, preserving issue #22's
+late-arrival protections. Explicit dismissals remain suppressed while their
+bounded history records exist; eviction is never treated as dismissal.
+
+These are initial product budgets, not benchmark-derived performance guarantees.
+Validate long conversations, many singleton groups, independent accounts,
+overflow/recovery, notifications, and synthetic 100/1,000/10,000-message inputs
+before release. Define the fixed limits once in centralized defaults when
+implemented; add no preference keys or Restore Defaults entries for them.
+
 ## Current defaults
 
 | Behavior | Default | Configurable | Notes |

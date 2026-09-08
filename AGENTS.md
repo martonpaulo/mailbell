@@ -276,7 +276,10 @@ For every new user-facing behavior:
   must not touch accounts, Keychain tokens, permissions, or handled-item history.
 
 A missing configurability decision is a review failure. See
-`docs/feature-defaults.md`.
+`docs/feature-defaults.md`. The approved queue-retention change is recorded
+there and in issue #27, explicitly pending implementation. Capacity eviction is
+not a handled disposition: Gmail remains authoritative, and retained membership
+and the visible menu projection must have one owner each.
 
 ## Distribution and signing
 

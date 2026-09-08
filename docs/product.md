@@ -30,8 +30,10 @@ entry, then opens the account in the selected browser or Chrome profile.
 
 Success means new mail becomes visible, review actions have accurate outcomes,
 and interrupted monitoring clearly asks for the user's attention. Numeric
-performance or retention targets are not established here; the pending queue
-retention policy remains an owner decision in
+performance targets are not established here. The
+[approved queue-retention policy](feature-defaults.md#approved-queue-limits--pending-implementation)
+keeps a per-account recent window with separate retention and menu-display
+limits; its implementation remains tracked in
 [issue #27](https://github.com/martonpaulo/mailbell/issues/27).
 
 Mailbell targets macOS 26+, uses public stable Apple APIs, stores tokens only in
