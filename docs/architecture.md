@@ -43,7 +43,7 @@ The runtime. One monitor per enabled account, supervised centrally.
   Gmail thread so a conversation counts once in the menu while notifications stay
   per message.
 - **Dispositions** (`opened`, `markedRead`, `dismissed`) persist in UserDefaults,
-  pruned to a bounded history, so a handled message never comes back.
+  pruned to a bounded history. Dismissed items are suppressed; opened or marked-read items may reappear if still unread.
 - **Reconciliation** removes items read directly in Gmail Web and may admit
   bounded unknown unread items missed while offline.
 - **Bulk actions** collect every pending group per account, mark them in one
