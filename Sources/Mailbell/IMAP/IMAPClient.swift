@@ -17,6 +17,7 @@ final class IMAPClient {
         case selectFailed(String)
         case unexpected(String)
         case invalidUID(Int)
+        case staleMailboxGeneration(expected: Int, actual: Int)
 
         var errorDescription: String? {
             switch self {
@@ -24,6 +25,9 @@ final class IMAPClient {
             case let .selectFailed(detail): "IMAP SELECT failed: \(detail)"
             case let .unexpected(detail): "Unexpected IMAP response: \(detail)"
             case let .invalidUID(uid): "Invalid IMAP UID: \(uid)"
+            case let .staleMailboxGeneration(expected, actual):
+                "The mailbox was rebuilt (UIDVALIDITY \(expected) is now \(actual)), "
+                    + "so this message can no longer be acted on. Reconnect and try again."
             }
         }
     }
@@ -62,8 +66,6 @@ final class IMAPClient {
     private var tagCounter = 0
     private static let headerFields = "BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)]"
     private static let bodyPreviewBytes = 8192
-    private static let maximumUIDsPerFetchCommand = 100
-    private static let maximumUIDFetchSequenceSetLength = 1500
 
     init(host: String = "imap.gmail.com", port: UInt16 = 993) {
         connection = IMAPConnection(host: host, port: port)
@@ -120,6 +122,10 @@ final class IMAPClient {
         try await selectMailbox("INBOX")
     }
 
+    /// The generation of the mailbox currently selected on this connection.
+    /// Read actions check it, so a STORE cannot land on a reused UID.
+    private(set) var selectedUIDValidity: Int?
+
     @discardableResult
     func selectMailbox(_ mailboxName: String) async throws -> MailboxState {
         let tag = nextTag()
@@ -138,9 +144,11 @@ final class IMAPClient {
                 state.uidNext = uidNext
             }
             if line.hasPrefix("\(tag) OK") {
+                selectedUIDValidity = state.uidValidity
                 return state
             }
             if line.hasPrefix("\(tag) NO") || line.hasPrefix("\(tag) BAD") {
+                selectedUIDValidity = nil
                 throw IMAPError.selectFailed(line)
             }
         }
@@ -253,7 +261,7 @@ final class IMAPClient {
     /// Fetches headers for a specific set of UIDs.
     func fetchHeaders(uids: [Int]) async throws -> [MessageHeader] {
         var headers: [MessageHeader] = []
-        for batch in Self.uidFetchBatches(for: uids) {
+        for batch in IMAPUIDSequence.uidFetchBatches(for: uids) {
             let batchHeaders = try await fetchHeadersBatch(uids: batch)
             headers.append(contentsOf: batchHeaders)
         }
@@ -261,7 +269,7 @@ final class IMAPClient {
     }
 
     private func fetchHeadersBatch(uids: [Int]) async throws -> [MessageHeader] {
-        let sequenceSet = Self.uidSequenceSet(for: uids)
+        let sequenceSet = IMAPUIDSequence.uidSequenceSet(for: uids)
         guard !sequenceSet.isEmpty else { return [] }
 
         let tag = nextTag()
@@ -294,7 +302,7 @@ final class IMAPClient {
     }
 
     private func fetchBodyPreviewsBatch(uids: [Int]) async throws -> [Int: String] {
-        let sequenceSet = Self.uidSequenceSet(for: uids)
+        let sequenceSet = IMAPUIDSequence.uidSequenceSet(for: uids)
         guard !sequenceSet.isEmpty else { return [:] }
 
         let tag = nextTag()
@@ -321,22 +329,30 @@ final class IMAPClient {
         return previews
     }
 
-    func markAsRead(uid: Int) async throws {
+    func markAsRead(uid: Int, requiringUIDValidity: Int) async throws {
         guard uid > 0 else { throw IMAPError.invalidUID(uid) }
-        try await markAsRead(uids: [uid])
+        try await markAsRead(uids: [uid], requiringUIDValidity: requiringUIDValidity)
     }
 
-    /// Marks every UID in the selected mailbox as read with one `UID STORE` per
-    /// batch, so a bulk action costs a handful of commands instead of one round
-    /// trip per message.
-    func markAsRead(uids: [Int]) async throws {
+    /// One `UID STORE` per batch, so a bulk action costs a handful of commands
+    /// rather than one round trip per message.
+    func markAsRead(uids: [Int], requiringUIDValidity: Int) async throws {
+        // Checked against the SELECT result rather than the caller's memory, so
+        // a generation change between capture and action stops the STORE here.
+        guard selectedUIDValidity == requiringUIDValidity else {
+            throw IMAPError.staleMailboxGeneration(
+                expected: requiringUIDValidity,
+                actual: selectedUIDValidity ?? 0
+            )
+        }
+
         let validUIDs = uids.filter { $0 > 0 }
         guard !validUIDs.isEmpty else {
             throw IMAPError.invalidUID(uids.first ?? 0)
         }
 
-        for batch in Self.uidFetchBatches(for: validUIDs) {
-            let sequenceSet = Self.uidSequenceSet(for: batch)
+        for batch in IMAPUIDSequence.uidFetchBatches(for: validUIDs) {
+            let sequenceSet = IMAPUIDSequence.uidSequenceSet(for: batch)
             guard !sequenceSet.isEmpty else { continue }
             let tag = nextTag()
             try await connection.send("\(tag) UID STORE \(sequenceSet) +FLAGS.SILENT (\\Seen)")
@@ -351,55 +367,6 @@ final class IMAPClient {
                 }
             }
         }
-    }
-
-    static func uidSequenceSet(for uids: [Int]) -> String {
-        let sortedUIDs = Array(Set(uids.filter { $0 > 0 })).sorted()
-        guard let first = sortedUIDs.first else { return "" }
-
-        var ranges: [String] = []
-        var start = first
-        var previous = first
-
-        for uid in sortedUIDs.dropFirst() {
-            if uid == previous + 1 {
-                previous = uid
-                continue
-            }
-            ranges.append(sequenceRange(start: start, end: previous))
-            start = uid
-            previous = uid
-        }
-
-        ranges.append(sequenceRange(start: start, end: previous))
-        return ranges.joined(separator: ",")
-    }
-
-    private static func uidFetchBatches(for uids: [Int]) -> [[Int]] {
-        let sortedUIDs = Array(Set(uids.filter { $0 > 0 })).sorted()
-        var batches: [[Int]] = []
-        var current: [Int] = []
-
-        for uid in sortedUIDs {
-            let candidate = current + [uid]
-            if !current.isEmpty,
-               candidate.count > maximumUIDsPerFetchCommand
-               || uidSequenceSet(for: candidate).count > maximumUIDFetchSequenceSetLength {
-                batches.append(current)
-                current = [uid]
-            } else {
-                current = candidate
-            }
-        }
-
-        if !current.isEmpty {
-            batches.append(current)
-        }
-        return batches
-    }
-
-    private static func sequenceRange(start: Int, end: Int) -> String {
-        start == end ? "\(start)" : "\(start):\(end)"
     }
 
     private static func quotedString(_ value: String) -> String {

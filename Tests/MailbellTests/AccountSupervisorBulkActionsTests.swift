@@ -24,9 +24,9 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
         XCTAssertEqual(
             Set(markedIdentities),
             Set([
-                IMAPMessageIdentity(uid: 10, mailboxName: "INBOX"),
-                IMAPMessageIdentity(uid: 11, mailboxName: "INBOX"),
-                IMAPMessageIdentity(uid: 12, mailboxName: "INBOX")
+                IMAPMessageIdentity(uid: 10, mailboxName: "INBOX", uidValidity: 1),
+                IMAPMessageIdentity(uid: 11, mailboxName: "INBOX", uidValidity: 1),
+                IMAPMessageIdentity(uid: 12, mailboxName: "INBOX", uidValidity: 1)
             ])
         )
         XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
@@ -157,7 +157,8 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
             subject: "Subject \(gmMessageId)",
             date: "",
             gmThreadId: gmThreadId,
-            gmMessageId: gmMessageId
+            gmMessageId: gmMessageId,
+            uidValidity: 1
         )
     }
 }

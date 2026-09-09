@@ -15,7 +15,10 @@ final class EmailStoreTests: XCTestCase {
         XCTAssertEqual(store.items.first?.title, "Subject")
         XCTAssertEqual(store.items.first?.sender, "Sender <sender@example.com>")
         XCTAssertNil(store.items.first?.bodyPreview)
-        XCTAssertEqual(store.items.first?.imapIdentity, IMAPMessageIdentity(uid: 1, mailboxName: "INBOX"))
+        XCTAssertEqual(
+            store.items.first?.imapIdentity,
+            IMAPMessageIdentity(uid: 1, mailboxName: "INBOX", uidValidity: 1)
+        )
         XCTAssertTrue(store.items.first?.canMarkAsRead == true)
     }
 
@@ -137,7 +140,7 @@ final class EmailStoreTests: XCTestCase {
         )
 
         XCTAssertEqual(store.items.map(\.title), ["Still unread"])
-        XCTAssertEqual(store.pendingUIDs(accountID: account.id, mailbox: .inbox), Set([2]))
+        XCTAssertEqual(store.pendingUIDs(accountID: account.id, mailbox: .inbox, uidValidity: 1), Set([2]))
     }
 
     @MainActor
@@ -201,7 +204,7 @@ final class EmailStoreTests: XCTestCase {
         XCTAssertEqual(updated.receivedAt, original.receivedAt)
         XCTAssertEqual(updated.title, "(SPAM) Moved to spam")
         XCTAssertEqual(updated.mailbox, .spam)
-        XCTAssertEqual(updated.imapIdentity, IMAPMessageIdentity(uid: 42, mailboxName: "[Gmail]/Spam"))
+        XCTAssertEqual(updated.imapIdentity, IMAPMessageIdentity(uid: 42, mailboxName: "[Gmail]/Spam", uidValidity: 1))
     }
 
     @MainActor
@@ -248,7 +251,7 @@ final class EmailStoreTests: XCTestCase {
         XCTAssertEqual(item.bodyPreview, "First preview")
         XCTAssertEqual(item.bodyPreviewLines, ["First preview"])
         XCTAssertEqual(
-            store.pendingUIDs(accountID: account.id, mailbox: .inbox),
+            store.pendingUIDs(accountID: account.id, mailbox: .inbox, uidValidity: 1),
             Set([1, 2])
         )
         XCTAssertEqual(store.pendingCountsByAccountID[account.id], 1)
@@ -352,7 +355,7 @@ final class EmailStoreTests: XCTestCase {
 
         let item = try XCTUnwrap(store.items.first)
         XCTAssertEqual(item.mailbox, .spam)
-        XCTAssertEqual(item.imapIdentity, IMAPMessageIdentity(uid: 42, mailboxName: "[Gmail]/Spam"))
+        XCTAssertEqual(item.imapIdentity, IMAPMessageIdentity(uid: 42, mailboxName: "[Gmail]/Spam", uidValidity: 1))
         XCTAssertTrue(item.canMarkAsRead)
     }
 
@@ -371,8 +374,8 @@ final class EmailStoreTests: XCTestCase {
         )
         XCTAssertTrue(try store.admit(header: makeHeader(uid: 3, gmMessageId: "other"), account: otherAccount))
 
-        XCTAssertEqual(store.pendingUIDs(accountID: account.id, mailbox: .inbox), Set([1]))
-        XCTAssertEqual(store.pendingUIDs(accountID: account.id, mailbox: .spam), Set([2]))
+        XCTAssertEqual(store.pendingUIDs(accountID: account.id, mailbox: .inbox, uidValidity: 1), Set([1]))
+        XCTAssertEqual(store.pendingUIDs(accountID: account.id, mailbox: .spam, uidValidity: 1), Set([2]))
     }
 
     @MainActor
@@ -606,7 +609,8 @@ final class EmailStoreTests: XCTestCase {
             gmThreadId: gmThreadId,
             gmMessageId: gmMessageId,
             messageId: messageId,
-            bodyPreview: bodyPreview
+            bodyPreview: bodyPreview,
+            uidValidity: 1
         )
     }
 
@@ -615,6 +619,6 @@ final class EmailStoreTests: XCTestCase {
         mailboxName: String = "INBOX",
         uids: [Int]
     ) -> MailboxUnreadSnapshot {
-        MailboxUnreadSnapshot(mailbox: mailbox, mailboxName: mailboxName, unreadUIDs: Set(uids))
+        MailboxUnreadSnapshot(mailbox: mailbox, mailboxName: mailboxName, uidValidity: 1, unreadUIDs: Set(uids))
     }
 }

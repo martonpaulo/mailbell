@@ -509,7 +509,8 @@ final class AccountSupervisorTests: XCTestCase {
             subject: subject,
             date: "",
             gmThreadId: gmThreadId,
-            gmMessageId: gmMessageId
+            gmMessageId: gmMessageId,
+            uidValidity: 1
         )
     }
 
@@ -532,7 +533,7 @@ final class AccountSupervisorTests: XCTestCase {
         mailboxName: String = "INBOX",
         uids: [Int]
     ) -> MailboxUnreadSnapshot {
-        MailboxUnreadSnapshot(mailbox: mailbox, mailboxName: mailboxName, unreadUIDs: Set(uids))
+        MailboxUnreadSnapshot(mailbox: mailbox, mailboxName: mailboxName, uidValidity: 1, unreadUIDs: Set(uids))
     }
 
     private func makeDefaults() -> UserDefaults {

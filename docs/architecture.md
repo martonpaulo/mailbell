@@ -54,6 +54,10 @@ The runtime. One monitor per enabled account, supervised centrally.
   bounded unknown unread items missed while offline.
 - **Bulk actions** collect every pending group per account, mark them in one
   authenticated session, and publish a single state update.
+- **Mailbox generation.** A message is identified by mailbox name, `UIDVALIDITY`
+  and UID together. Read actions re-check the generation from their own `SELECT`
+  before `STORE`, and a generation change drops the pending items captured under
+  the old one, so a reused UID can never be marked by mistake.
 
 ### App surface
 

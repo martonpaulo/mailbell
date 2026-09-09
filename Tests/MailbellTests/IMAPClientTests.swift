@@ -3,6 +3,10 @@ import Foundation
 import XCTest
 
 final class IMAPClientTests: XCTestCase {
+    private static let headerFetchAttributes =
+        "(UID INTERNALDATE X-GM-MSGID X-GM-THRID "
+            + "BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])"
+
     func testIdleReturnsMailboxChangedOnFlagUpdate() async throws {
         let connection = ScriptedIMAPConnection(lines: [
             "+ idling",
@@ -32,19 +36,24 @@ final class IMAPClientTests: XCTestCase {
     }
 
     func testMarkAsReadSendsSilentSeenStoreForUID() async throws {
-        let connection = ScriptedIMAPConnection(lines: ["A0001 OK STORE completed"])
+        let connection = ScriptedIMAPConnection(lines: [
+            "* OK [UIDVALIDITY 1] UIDs valid",
+            "A0001 OK SELECT completed",
+            "A0002 OK STORE completed"
+        ])
         let client = IMAPClient(connection: connection)
 
-        try await client.markAsRead(uid: 42)
+        try await client.selectMailbox("INBOX")
+        try await client.markAsRead(uid: 42, requiringUIDValidity: 1)
 
-        XCTAssertEqual(connection.sentLines, ["A0001 UID STORE 42 +FLAGS.SILENT (\\Seen)"])
+        XCTAssertEqual(connection.sentLines.last, "A0002 UID STORE 42 +FLAGS.SILENT (\\Seen)")
     }
 
     func testMarkAsReadRejectsInvalidUID() async {
         let client = IMAPClient(connection: ScriptedIMAPConnection(lines: []))
 
         do {
-            try await client.markAsRead(uid: 0)
+            try await client.markAsRead(uid: 0, requiringUIDValidity: 1)
             XCTFail("Expected invalid UID to throw.")
         } catch let error as IMAPClient.IMAPError {
             XCTAssertEqual(error.localizedDescription, "Invalid IMAP UID: 0")
@@ -54,19 +63,19 @@ final class IMAPClientTests: XCTestCase {
     }
 
     func testUIDSequenceSetDeduplicatesSortsAndCompressesConsecutiveUIDs() {
-        let sequenceSet = IMAPClient.uidSequenceSet(for: [12, 10, 11, 7, 7, 3])
+        let sequenceSet = IMAPUIDSequence.uidSequenceSet(for: [12, 10, 11, 7, 7, 3])
 
         XCTAssertEqual(sequenceSet, "3,7,10:12")
     }
 
     func testUIDSequenceSetOmitsInvalidUIDs() {
-        let sequenceSet = IMAPClient.uidSequenceSet(for: [0, -1, 5])
+        let sequenceSet = IMAPUIDSequence.uidSequenceSet(for: [0, -1, 5])
 
         XCTAssertEqual(sequenceSet, "5")
     }
 
     func testUIDSequenceSetIsEmptyWithoutPositiveUIDs() {
-        let sequenceSet = IMAPClient.uidSequenceSet(for: [0, -1])
+        let sequenceSet = IMAPUIDSequence.uidSequenceSet(for: [0, -1])
 
         XCTAssertTrue(sequenceSet.isEmpty)
     }
@@ -84,8 +93,8 @@ final class IMAPClientTests: XCTestCase {
         XCTAssertEqual(
             connection.sentLines,
             [
-                "A0001 UID FETCH 1:100 (UID INTERNALDATE X-GM-MSGID X-GM-THRID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])",
-                "A0002 UID FETCH 101 (UID INTERNALDATE X-GM-MSGID X-GM-THRID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])"
+                "A0001 UID FETCH 1:100 " + Self.headerFetchAttributes,
+                "A0002 UID FETCH 101 " + Self.headerFetchAttributes
             ]
         )
     }
@@ -103,7 +112,8 @@ final class IMAPClientTests: XCTestCase {
         let bodyBlock = Data("<p>Hello&nbsp;<b>there</b>.</p>".utf8)
         let connection = ScriptedIMAPConnection(
             lines: [
-                "* 1 FETCH (UID 42 X-GM-MSGID 100 X-GM-THRID 200 BODY[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)] {\(headerBlock.count)}",
+                "* 1 FETCH (UID 42 X-GM-MSGID 100 X-GM-THRID 200 "
+                    + "BODY[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)] {\(headerBlock.count)}",
                 ")",
                 "A0001 OK FETCH completed",
                 "* 1 FETCH (UID 42 BODY[TEXT]<0> {\(bodyBlock.count)}",
@@ -120,7 +130,7 @@ final class IMAPClientTests: XCTestCase {
         XCTAssertEqual(
             connection.sentLines,
             [
-                "A0001 UID FETCH 42 (UID INTERNALDATE X-GM-MSGID X-GM-THRID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])",
+                "A0001 UID FETCH 42 " + Self.headerFetchAttributes,
                 "A0002 UID FETCH 42 (UID BODY.PEEK[TEXT]<0.8192>)"
             ]
         )
@@ -137,7 +147,7 @@ final class IMAPClientTests: XCTestCase {
     }
 }
 
-private final class ScriptedIMAPConnection: IMAPClientTransport, @unchecked Sendable {
+final class ScriptedIMAPConnection: IMAPClientTransport, @unchecked Sendable {
     private var lines: [String]
     private var byteChunks: [Data]
     private(set) var sentLines: [String] = []

@@ -82,7 +82,7 @@ final class MailMonitorReconciliationTests: XCTestCase {
             mailboxes: [MonitoredMailbox(role: .inbox, name: "INBOX")]
         )
 
-        XCTAssertEqual(store.pendingUIDs(accountID: account.id, mailbox: .inbox), Set([1]))
+        XCTAssertEqual(store.pendingUIDs(accountID: account.id, mailbox: .inbox, uidValidity: 1), Set([1]))
         XCTAssertEqual(
             connection.sentLines,
             [
@@ -195,7 +195,8 @@ final class MailMonitorReconciliationTests: XCTestCase {
             subject: "Subject",
             date: "",
             gmThreadId: nil,
-            gmMessageId: gmMessageId
+            gmMessageId: gmMessageId,
+            uidValidity: 1
         )
     }
 }
@@ -209,9 +210,13 @@ private final class ReconciliationDelegate: MailMonitorDelegate {
         self.store = store
     }
 
-    func monitor(_ accountID: UUID, pendingUIDsFor mailbox: MessageMailbox) async -> Set<Int> {
+    func monitor(
+        _ accountID: UUID,
+        pendingUIDsFor mailbox: MessageMailbox,
+        uidValidity: Int
+    ) async -> Set<Int> {
         guard accountID == account.id else { return [] }
-        return await store.pendingUIDs(accountID: account.id, mailbox: mailbox)
+        return await store.pendingUIDs(accountID: account.id, mailbox: mailbox, uidValidity: 1)
     }
 
     func monitor(

@@ -111,6 +111,7 @@ final class EmailStoreChronologyTests: XCTestCase {
             date: "Tue, 02 Jun 2026 12:00:00 +0000",
             gmThreadId: gmThreadId,
             gmMessageId: gmMessageId,
+            uidValidity: 1,
             serverReceivedAt: serverReceivedAt
         )
     }

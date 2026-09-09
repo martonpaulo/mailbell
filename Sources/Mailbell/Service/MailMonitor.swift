@@ -1,7 +1,7 @@
 import Foundation
 
 protocol MailMonitorDelegate: AnyObject {
-    func monitor(_ accountID: UUID, pendingUIDsFor mailbox: MessageMailbox) async -> Set<Int>
+    func monitor(_ accountID: UUID, pendingUIDsFor mailbox: MessageMailbox, uidValidity: Int) async -> Set<Int>
     func monitor(
         _ accountID: UUID,
         didReconcileUnread snapshots: [MailboxUnreadSnapshot],
@@ -234,7 +234,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
 
     private func fetchAndNotify(client: IMAPClient, mailboxes: [MonitoredMailbox]) async throws {
         for mailbox in mailboxes {
-            try await client.selectMailbox(mailbox.name)
+            let generation = try await client.selectMailbox(mailbox.name).uidValidity
             let checkpointUID = lastSeenUID(for: mailbox.role)
             let from = max(checkpointUID + 1, 1)
             let uids = try await client.searchUnreadUIDs(fromUID: from)
@@ -244,7 +244,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
             var notificationUIDsToFetch = uidsToNotify
             for admissionBatch in plan.admissionBatches {
                 let headers = try await client.fetchHeaders(uids: admissionBatch)
-                    .map { $0.assigningMailbox(mailbox.role, name: mailbox.name) }
+                    .map { $0.assigningMailbox(mailbox.role, name: mailbox.name, uidValidity: generation) }
                     .sorted { $0.uid < $1.uid }
 
                 let admittedIdentities = await delegate?.monitor(account.id, shouldNotify: headers)
@@ -258,7 +258,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
 
                 if !notificationUIDsToFetch.isEmpty {
                     let notificationHeaders = try await client.fetchHeaders(uids: Array(notificationUIDsToFetch).sorted())
-                        .map { $0.assigningMailbox(mailbox.role, name: mailbox.name) }
+                        .map { $0.assigningMailbox(mailbox.role, name: mailbox.name, uidValidity: generation) }
                         .sorted { $0.uid < $1.uid }
                     notificationUIDsToFetch.removeAll()
                     let admittedNotificationIdentities = await delegate?.monitor(
@@ -297,18 +297,27 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
         var snapshots: [MailboxUnreadSnapshot] = []
         var fetchedHeaders: [MessageHeader] = []
         for mailbox in mailboxes {
-            try await client.selectMailbox(mailbox.name)
+            let generation = try await client.selectMailbox(mailbox.name).uidValidity
             let searchedUIDs = try await client.searchUnreadUIDs()
             let unreadUIDs = Set(searchedUIDs.filter { $0 > 0 })
             snapshots.append(
-                MailboxUnreadSnapshot(mailbox: mailbox.role, mailboxName: mailbox.name, unreadUIDs: unreadUIDs)
+                MailboxUnreadSnapshot(
+                    mailbox: mailbox.role,
+                    mailboxName: mailbox.name,
+                    uidValidity: generation,
+                    unreadUIDs: unreadUIDs
+                )
             )
 
-            let pendingUIDs = await delegate?.monitor(account.id, pendingUIDsFor: mailbox.role) ?? []
+            let pendingUIDs = await delegate?.monitor(
+                account.id,
+                pendingUIDsFor: mailbox.role,
+                uidValidity: generation
+            ) ?? []
             let unknownUIDs = Array(unreadUIDs.subtracting(pendingUIDs)).sorted()
             let uidsToFetch = Array(unknownUIDs.suffix(Self.maximumReconciliationHeadersPerMailbox))
             let mailboxHeaders = try await client.fetchHeaders(uids: uidsToFetch)
-                .map { $0.assigningMailbox(mailbox.role, name: mailbox.name) }
+                .map { $0.assigningMailbox(mailbox.role, name: mailbox.name, uidValidity: generation) }
             fetchedHeaders.append(contentsOf: mailboxHeaders)
         }
         await delegate?.monitor(account.id, didReconcileUnread: snapshots, fetchedHeaders: fetchedHeaders)
@@ -327,7 +336,11 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
         let admissionBatches = Self.admissionBatches(uids: fresh, batchSize: admissionBatchSize)
         let checkpointUID = admissionBatches.last?.last ?? lastSeenUID
         let uidsToNotify = notificationLimit > 0 ? Array(fresh.suffix(notificationLimit)) : []
-        return NotificationPlan(admissionBatches: admissionBatches, uidsToNotify: uidsToNotify, lastSeenUID: checkpointUID)
+        return NotificationPlan(
+            admissionBatches: admissionBatches,
+            uidsToNotify: uidsToNotify,
+            lastSeenUID: checkpointUID
+        )
     }
 
     private static func admissionBatches(uids: [Int], batchSize: Int) -> [[Int]] {
@@ -470,5 +483,8 @@ struct MonitoredMailbox: Equatable {
 struct MailboxUnreadSnapshot: Equatable {
     let mailbox: MessageMailbox
     let mailboxName: String
+    /// The generation the snapshot was taken under. Pending items captured
+    /// under a different one are meaningless, not merely absent.
+    let uidValidity: Int
     let unreadUIDs: Set<Int>
 }

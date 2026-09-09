@@ -436,14 +436,22 @@ private extension AccountSupervisor {
 }
 
 extension AccountSupervisor: MailMonitorDelegate {
-    nonisolated func monitor(_ accountID: UUID, pendingUIDsFor mailbox: MessageMailbox) async -> Set<Int> {
+    nonisolated func monitor(
+        _ accountID: UUID,
+        pendingUIDsFor mailbox: MessageMailbox,
+        uidValidity: Int
+    ) async -> Set<Int> {
         await MainActor.run { [weak self] in
             guard let self,
                   let account = accounts.first(where: { $0.id == accountID })
             else {
                 return []
             }
-            return emailStore.pendingUIDs(accountID: account.id, mailbox: mailbox)
+            return emailStore.pendingUIDs(
+                accountID: account.id,
+                mailbox: mailbox,
+                uidValidity: uidValidity
+            )
         }
     }
 
@@ -475,7 +483,10 @@ extension AccountSupervisor: MailMonitorDelegate {
         }
     }
 
-    nonisolated func monitor(_ accountID: UUID, shouldNotify headers: [MessageHeader]) async -> Set<IMAPMessageIdentity> {
+    nonisolated func monitor(
+        _ accountID: UUID,
+        shouldNotify headers: [MessageHeader]
+    ) async -> Set<IMAPMessageIdentity> {
         await MainActor.run { [weak self] in
             guard let self,
                   let account = accounts.first(where: { $0.id == accountID })

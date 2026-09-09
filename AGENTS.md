@@ -204,6 +204,11 @@ Preserve the IMAP IDLE reconnect model:
 - Server-side read marking uses `UID STORE +FLAGS.SILENT (\Seen)`. Bulk actions
   use **one authenticated session per account**, never one connection per
   message.
+- A message identity is `(mailbox name, UIDVALIDITY, UID)`, never a UID alone.
+  A read action checks the generation reported by its own `SELECT` before
+  issuing `STORE`, so a rebuilt mailbox that reused the number cannot be
+  mutated. Pending items from a superseded generation are dropped on
+  reconciliation rather than left actionable.
 - Refresh-token failure or revocation must surface as `reauthRequired` and must
   raise the menu bar alert icon. Do not hide it behind silent retry loops.
 - Transient network failures may retry with bounded backoff but must not mask

@@ -281,15 +281,19 @@ final class EmailStore {
         return true
     }
 
-    func pendingUIDs(accountID: UUID, mailbox: MessageMailbox) -> Set<Int> {
+    /// UIDs already pending for this mailbox generation. Scoped by generation so
+    /// a stale entry cannot suppress the fetch of a genuinely unknown message
+    /// that now holds the same number.
+    func pendingUIDs(accountID: UUID, mailbox: MessageMailbox, uidValidity: Int) -> Set<Int> {
         itemsByID.values.reduce(into: Set<Int>()) { result, item in
             guard item.accountID == accountID,
                   item.mailbox == mailbox,
-                  let uid = item.imapIdentity?.uid
+                  let identity = item.imapIdentity,
+                  identity.uidValidity == uidValidity
             else {
                 return
             }
-            result.insert(uid)
+            result.insert(identity.uid)
         }
     }
 
@@ -308,10 +312,20 @@ final class EmailStore {
             else {
                 return true
             }
-            guard let uid = item.imapIdentity?.uid else {
+            guard let identity = item.imapIdentity,
+                  let snapshot = snapshotsByMailbox[item.mailbox]
+            else {
                 return true
             }
-            return snapshotsByMailbox[item.mailbox]?.unreadUIDs.contains(uid) == true
+            // A pending item from an earlier generation points at a UID the
+            // server may have handed to a different message. Drop it rather
+            // than keep something no action could safely target. A snapshot
+            // with no generation says nothing, so it clears nothing: the read
+            // marker still refuses to act without a matching SELECT.
+            guard snapshot.uidValidity == 0 || identity.uidValidity == snapshot.uidValidity else {
+                return false
+            }
+            return snapshot.unreadUIDs.contains(identity.uid)
         }
 
         for header in fetchedHeaders {
@@ -421,11 +435,8 @@ final class EmailStore {
     /// holds do not count, which is what makes removal recompute the order.
     private func groupChronology() -> [String: Date] {
         itemsByID.values.reduce(into: [:]) { latest, item in
-            guard let serverReceivedAt = item.serverReceivedAt else { return }
-            guard let existing = latest[item.groupID], existing >= serverReceivedAt else {
-                latest[item.groupID] = serverReceivedAt
-                return
-            }
+            guard let receivedAt = item.serverReceivedAt else { return }
+            latest[item.groupID] = Swift.max(latest[item.groupID] ?? receivedAt, receivedAt)
         }
     }
 

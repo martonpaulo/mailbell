@@ -19,7 +19,7 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
         await supervisor.markEmailAsRead(id: item.id)
 
         XCTAssertEqual(markedAccounts, [account.id])
-        XCTAssertEqual(markedIdentities, [IMAPMessageIdentity(uid: 42, mailboxName: "INBOX")])
+        XCTAssertEqual(markedIdentities, [IMAPMessageIdentity(uid: 42, mailboxName: "INBOX", uidValidity: 1)])
         XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
         let didReadmit = await supervisor.monitor(account.id, shouldNotify: [header])
         XCTAssertTrue(didReadmit.isEmpty)
@@ -45,8 +45,8 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
         XCTAssertEqual(
             Set(markedIdentities),
             Set([
-                IMAPMessageIdentity(uid: 41, mailboxName: "INBOX"),
-                IMAPMessageIdentity(uid: 42, mailboxName: "INBOX")
+                IMAPMessageIdentity(uid: 41, mailboxName: "INBOX", uidValidity: 1),
+                IMAPMessageIdentity(uid: 42, mailboxName: "INBOX", uidValidity: 1)
             ])
         )
         XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
@@ -178,7 +178,8 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
             subject: "Subject",
             date: "",
             gmThreadId: gmThreadId,
-            gmMessageId: gmMessageId
+            gmMessageId: gmMessageId,
+            uidValidity: 1
         )
     }
 
