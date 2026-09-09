@@ -17,6 +17,7 @@ final class IMAPConnection: IMAPClientTransport, @unchecked Sendable {
     private let connection: NWConnection
     private let queue = DispatchQueue(label: AppIdentity.dispatchQueueLabel("imap"))
     private var buffer = Data()
+    private let pendingConnect = PendingConnectContinuation()
 
     init(host: String, port: UInt16) {
         self.host = NWEndpoint.Host(host)
@@ -28,21 +29,15 @@ final class IMAPConnection: IMAPClientTransport, @unchecked Sendable {
 
     func connect() async throws {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-            let resumeGate = OneShotResumeGate()
-            connection.stateUpdateHandler = { state in
+            pendingConnect.store(cont)
+            connection.stateUpdateHandler = { [pendingConnect] state in
                 switch state {
                 case .ready:
-                    if resumeGate.claim() {
-                        cont.resume()
-                    }
+                    pendingConnect.finish(throwing: nil)
                 case let .failed(error):
-                    if resumeGate.claim() {
-                        cont.resume(throwing: error)
-                    }
+                    pendingConnect.finish(throwing: error)
                 case .cancelled:
-                    if resumeGate.claim() {
-                        cont.resume(throwing: ConnectionError.closed)
-                    }
+                    pendingConnect.finish(throwing: ConnectionError.closed)
                 default:
                     break
                 }
@@ -52,8 +47,12 @@ final class IMAPConnection: IMAPClientTransport, @unchecked Sendable {
     }
 
     func cancel() {
-        connection.stateUpdateHandler = nil
         connection.cancel()
+        // The handler is left in place so a delivered .cancelled still resolves,
+        // but a cancel before readiness may produce no callback at all, so the
+        // attempt is finished here too. PendingConnectContinuation makes the
+        // duplicate harmless.
+        pendingConnect.finish(throwing: ConnectionError.closed)
     }
 
     func send(_ line: String) async throws {
