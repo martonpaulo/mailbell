@@ -4,6 +4,76 @@ All notable changes to Mailbell are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and
 [Keep a Changelog](https://keepachangelog.com/).
 
+## 0.3.0 — 2026-09-09
+
+Previews that were showing you CSS, base64 and invisible filler now show the
+message. Mail is listed in the order Gmail lists it. And several ways Mailbell
+could act on the wrong message, or quietly stop watching, are closed.
+
+> **Google OAuth unverified beta.** Unchanged: Google shows an "unverified app"
+> screen during sign-in and limits unverified clients to **100 new users**.
+
+### Fixed
+
+- **Previews showed stylesheets instead of the message.** A notification could
+  open with `body, table, td { font-family: Arial… }`. Mail whose stylesheet
+  arrived without its opening tag now has it removed, and a message that is
+  nothing but styling shows no preview rather than showing code.
+- **Previews showed raw base64.** Some mail arrived as
+  `ICAgIMKhSmFuZSB0ZSBpbnZpdMOz…`. Two causes: the fetch could cut the payload
+  at a length that cannot be decoded, and some transports fold it on spaces.
+  Both decode now.
+- **Previews filled up with invisible characters.** Marketing mail pads its
+  preheader with zero-width and no-break characters to keep the inbox snippet
+  short. Those runs used up the whole preview before any readable text. They
+  are removed — but a single joiner is left alone, so emoji and Persian and
+  Indic text are unaffected.
+- **Accented characters and currency symbols could vanish.** Mail that declares
+  one encoding but sends another lost its euro signs and curly quotes.
+- **Previews opened on a "view online" link.** A leading link marker is dropped
+  when there is a message behind it.
+- **The queue was not in Gmail's order.** After a reconnect, mail appeared in
+  whatever order the server answered. It now follows the same chronology Gmail
+  uses, and a reply lifts its whole conversation.
+- **Mark as Read could mark the wrong message.** If Gmail rebuilt a mailbox and
+  reused a number, an action prepared beforehand could land on a different
+  message. Every read action now checks that the mailbox is still the one it
+  was prepared against, and refuses instead of guessing.
+- **A reply arriving mid-action was marked read without being read.** Only the
+  messages actually sent to the server are finalized.
+- **Older unread mail could never reach the queue.** If everything recent had
+  been dismissed, each check spent its whole budget on those same messages.
+- **Check Now could stop working.** Cancelling a connection mid-handshake left
+  the account stuck with no way to recover.
+- **An account could keep working after you turned it off.** Stopping or
+  restarting an account now takes effect even mid-connection.
+- **Inbox and Spam notifications could replace each other** when two messages
+  happened to share a number.
+- **The menu bar told VoiceOver to sign in for problems that need Reconnect.**
+
+### Added
+
+- **Failures now appear where you started them.** A bulk result, a Gmail that
+  opened in the wrong browser, and a sign-in that failed from the menu are all
+  visible in the menu instead of being silently discarded.
+- **The queue has a stated limit.** Each account keeps up to 500 recent
+  messages and shows up to 50 conversations, and the menu says how many more
+  are waiting with a link to Gmail. Nothing is marked read or deleted — Gmail
+  keeps everything.
+- **Settings says what Google's unverified status actually means for you**,
+  including the 100-new-user cap.
+- **Screenshots on the website and README**, captured from the real window.
+
+### Changed
+
+- **Two System Settings buttons stopped promising a destination** they cannot
+  guarantee; each now says what it does and tells you where to go.
+- **The sign-in page in your browser no longer says you are connected** before
+  Mailbell has finished. It points you at the menu bar to confirm.
+- **Terms now distinguishes removing an account from revoking access at
+  Google.** Removing it in Mailbell deletes your tokens locally; it does not
+  tell Google anything.
+
 ## 0.1.2 — 2026-07-26
 
 An expired sign-in now reaches you instead of waiting to be noticed.
