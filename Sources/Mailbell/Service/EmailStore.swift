@@ -509,6 +509,25 @@ final class EmailStore {
         )
     }
 
+    /// Captures many groups in one pass. Calling `readSubmission` per group
+    /// rescans the whole store each time, so a bulk run over N conversations
+    /// costs N scans for no reason.
+    func readSubmissions(containing ids: [String]) -> [ReadSubmission] {
+        var membersByGroup: [String: [EmailStoreItem]] = [:]
+        for item in itemsByID.values {
+            membersByGroup[item.groupID, default: []].append(item)
+        }
+        return ids.map { id in
+            guard let item = itemsByID[id], let members = membersByGroup[item.groupID] else {
+                return ReadSubmission(itemIDs: [], identities: [])
+            }
+            return ReadSubmission(
+                itemIDs: members.map(\.id),
+                identities: members.compactMap(\.imapIdentity)
+            )
+        }
+    }
+
     func dismiss(id: String) throws {
         try removeGroup(containing: id, disposition: .dismissed)
     }
@@ -521,12 +540,20 @@ final class EmailStore {
     /// joined the thread during the round trip stays pending, because nothing
     /// marked it read.
     func markRead(submission: ReadSubmission) throws {
-        guard !submission.itemIDs.isEmpty else { return }
-        let handled = submission.itemIDs.map { id in
+        try markRead(submissions: [submission])
+    }
+
+    /// One transition for a whole bulk run: a single history write and a single
+    /// pass over the store, instead of re-encoding the handled history and
+    /// rescanning the queue once per conversation.
+    func markRead(submissions: [ReadSubmission]) throws {
+        let submitted = Set(submissions.flatMap(\.itemIDs))
+        guard !submitted.isEmpty else { return }
+
+        let handled = submitted.map { id in
             itemsByID[id].map(handledMessage) ?? HandledMessage(id: id, identity: nil)
         }
         try persistence.mark(handled, disposition: .markedRead)
-        let submitted = Set(submission.itemIDs)
         itemsByID = itemsByID.filter { id, _ in !submitted.contains(id) }
     }
 

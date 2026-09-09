@@ -64,6 +64,64 @@ final class EmailStoreReadSubmissionTests: XCTestCase {
         XCTAssertEqual(store.items.count, 1)
     }
 
+    @MainActor
+    func testBatchCaptureMatchesCapturingEachGroupSeparately() throws {
+        let store = makeStore()
+        let account = makeAccount()
+        for uid in 1 ... 6 {
+            let thread = uid % 2 == 0 ? "even" : "odd"
+            XCTAssertTrue(try store.admit(
+                header: makeHeader(uid: uid, gmMessageId: "M\(uid)", gmThreadId: thread),
+                account: account
+            ))
+        }
+        let ids = store.items.map(\.id)
+
+        let batched = store.readSubmissions(containing: ids)
+        let individually = ids.map { store.readSubmission(containing: $0) }
+
+        XCTAssertEqual(batched.map { Set($0.itemIDs) }, individually.map { Set($0.itemIDs) })
+        XCTAssertEqual(batched.map { Set($0.identities) }, individually.map { Set($0.identities) })
+    }
+
+    @MainActor
+    func testBatchCompletionFinalizesEveryCapturedGroupAndNothingElse() throws {
+        let store = makeStore()
+        let account = makeAccount()
+        for uid in 1 ... 4 {
+            XCTAssertTrue(try store.admit(
+                header: makeHeader(uid: uid, gmMessageId: "M\(uid)"),
+                account: account
+            ))
+        }
+        let capturedIDs = Array(store.items.map(\.id).prefix(3))
+        let survivorID = store.items.map(\.id).last
+
+        try store.markRead(submissions: store.readSubmissions(containing: capturedIDs))
+
+        XCTAssertEqual(store.items.map(\.id), [survivorID].compactMap { $0 })
+        // Recorded as handled, not merely removed from the queue: a handled
+        // message is refused on re-admission.
+        for uid in 1 ... 4 {
+            let header = makeHeader(uid: uid, gmMessageId: "M\(uid)")
+            let id = EmailStoreIdentity.id(accountID: account.id, header: header)
+            guard capturedIDs.contains(id) else { continue }
+            XCTAssertFalse(try store.admit(header: header, account: account), "uid \(uid) was marked read")
+        }
+    }
+
+    @MainActor
+    func testBatchCompletionWithNothingCapturedChangesNothing() throws {
+        let store = makeStore()
+        let account = makeAccount()
+        XCTAssertTrue(try store.admit(header: makeHeader(uid: 1, gmMessageId: "A"), account: account))
+
+        try store.markRead(submissions: [])
+        try store.markRead(submissions: [ReadSubmission(itemIDs: [], identities: [])])
+
+        XCTAssertEqual(store.items.count, 1)
+    }
+
     // MARK: - Helpers
 
     @MainActor

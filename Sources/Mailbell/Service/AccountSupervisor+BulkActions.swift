@@ -48,8 +48,7 @@ extension AccountSupervisor {
 
             var identities: [IMAPMessageIdentity] = []
             var submissions: [ReadSubmission] = []
-            for group in accountGroups {
-                let submission = emailStore.readSubmission(containing: group.id)
+            for submission in emailStore.readSubmissions(containing: accountGroups.map(\.id)) {
                 if submission.isEmpty {
                     failed += 1
                     continue
@@ -62,9 +61,7 @@ extension AccountSupervisor {
             do {
                 let config = try configProvider()
                 try await emailReadMarker(account, config, identities)
-                for submission in submissions {
-                    try emailStore.markRead(submission: submission)
-                }
+                try emailStore.markRead(submissions: submissions)
                 marked += submissions.count
             } catch {
                 failed += submissions.count
