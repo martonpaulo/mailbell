@@ -10,11 +10,11 @@ final class AppState: ObservableObject {
     @Published private(set) var lastError: String?
     @Published private(set) var oauthSetupMessage: String?
     @Published private(set) var isAuthorizing = false
-    @Published private(set) var isSendingTestNotification = false
-    @Published private(set) var notificationAuthorizationState: NotificationAuthorizationState = .unbundled
-    @Published private(set) var notificationStatusMessage: String?
-    @Published private(set) var notificationTestMessage: String?
-    @Published private(set) var manualRefreshMessage: String?
+    @Published var isSendingTestNotification = false
+    @Published var notificationAuthorizationState: NotificationAuthorizationState = .unbundled
+    @Published var notificationStatusMessage: String?
+    @Published var notificationTestMessage: String?
+    @Published var manualRefreshMessage: String?
     @Published private(set) var emailStoreItems: [EmailStoreItem] = []
     @Published private(set) var pendingCountsByAccountID: [UUID: Int] = [:]
     @Published private(set) var menuBarIconSystemImage = MenuBarIcon.idle
@@ -27,9 +27,9 @@ final class AppState: ObservableObject {
     @Published private(set) var playNotificationSounds: Bool
 
     private let settingsStore: AppSettingsStore
-    private let supervisor: AccountSupervisor
+    let supervisor: AccountSupervisor
     private let updateManager: UpdateManager
-    private var notificationAuthorizationTask: Task<Void, Never>?
+    var notificationAuthorizationTask: Task<Void, Never>?
 
     init(
         settingsStore: AppSettingsStore = AppSettingsStore(),
@@ -218,53 +218,6 @@ final class AppState: ObservableObject {
         bulkActionMessage = supervisor.dismissAllEmails().message
     }
 
-    func refreshNotificationAuthorizationState(showStatusMessage: Bool = false) {
-        notificationAuthorizationTask?.cancel()
-        notificationAuthorizationTask = Task { [weak self] in
-            let state = await NotificationManager.shared.authorizationState()
-            guard !Task.isCancelled else { return }
-            self?.applyNotificationAuthorizationState(state)
-            if showStatusMessage {
-                self?.notificationTestMessage = nil
-                self?.notificationStatusMessage = "Notification permission refreshed."
-            }
-        }
-    }
-
-    func requestNotificationAuthorization() {
-        notificationAuthorizationTask?.cancel()
-        notificationAuthorizationTask = Task { [weak self] in
-            let state = await NotificationManager.shared.requestAuthorization()
-            guard !Task.isCancelled else { return }
-            self?.applyNotificationAuthorizationState(state)
-            self?.notificationTestMessage = nil
-            self?.notificationStatusMessage = nil
-        }
-    }
-
-    func refreshMailNow() {
-        let result = supervisor.refreshNow()
-        manualRefreshMessage = result.message
-    }
-
-    func sendTestNotification() {
-        guard !isSendingTestNotification else { return }
-        Task {
-            isSendingTestNotification = true
-            notificationTestMessage = nil
-            notificationStatusMessage = nil
-            defer { isSendingTestNotification = false }
-            let result = await NotificationManager.shared.notifyTest(account: accounts.first?.account)
-            let state = await NotificationManager.shared.authorizationState()
-            applyNotificationAuthorizationState(state)
-            if let message = result.userMessage {
-                notificationTestMessage = message
-            } else {
-                notificationTestMessage = "Test notification sent."
-            }
-        }
-    }
-
     var isUpdaterAvailable: Bool {
         updateManager.isAvailable
     }
@@ -304,7 +257,7 @@ final class AppState: ObservableObject {
         NSApplication.shared.terminate(nil)
     }
 
-    private func applyNotificationAuthorizationState(_ state: NotificationAuthorizationState) {
+    func applyNotificationAuthorizationState(_ state: NotificationAuthorizationState) {
         guard notificationAuthorizationState != state else { return }
         notificationAuthorizationState = state
     }

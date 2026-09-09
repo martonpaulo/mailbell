@@ -30,7 +30,12 @@ final class EmailStoreChronologyTests: XCTestCase {
 
         // A thread whose first message is old but whose reply is the newest mail.
         XCTAssertTrue(try store.admit(
-            header: makeHeader(uid: 1, gmMessageId: "1", gmThreadId: "T", serverReceivedAt: date("2026-06-02T09:00:00Z")),
+            header: makeHeader(
+                uid: 1,
+                gmMessageId: "1",
+                gmThreadId: "T",
+                serverReceivedAt: date("2026-06-02T09:00:00Z")
+            ),
             account: account
         ))
         XCTAssertTrue(try store.admit(
@@ -38,7 +43,12 @@ final class EmailStoreChronologyTests: XCTestCase {
             account: account
         ))
         XCTAssertTrue(try store.admit(
-            header: makeHeader(uid: 2, gmMessageId: "2", gmThreadId: "T", serverReceivedAt: date("2026-06-02T15:00:00Z")),
+            header: makeHeader(
+                uid: 2,
+                gmMessageId: "2",
+                gmThreadId: "T",
+                serverReceivedAt: date("2026-06-02T15:00:00Z")
+            ),
             account: account
         ))
 

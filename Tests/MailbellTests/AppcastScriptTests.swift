@@ -114,7 +114,7 @@ final class AppcastScriptTests: XCTestCase {
         }
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
-        return ScriptResult(status: process.terminationStatus, output: String(decoding: data, as: UTF8.self))
+        return ScriptResult(status: process.terminationStatus, output: String(bytes: data, encoding: .utf8) ?? "")
     }
 
     private func feed(in workspace: URL) throws -> String {

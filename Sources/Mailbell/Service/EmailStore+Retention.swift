@@ -55,7 +55,6 @@ extension EmailStore {
                 )
             }
 
-
         // Extra context before any representative; then the least recent
         // conversation; then its newest members first, so the oldest surviving
         // ones stay the readable ones.

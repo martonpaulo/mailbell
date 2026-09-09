@@ -54,7 +54,7 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     private(set) var account: MailAccount
     private var includeSpam: Bool
     private var checkpoints: [MessageMailbox: CheckpointStore]
-    private let tokenProvider: AccountTokenProvider
+    let tokenProvider: AccountTokenProvider
 
     private var client: IMAPClient?
     private var runTask: Task<Void, Never>?
@@ -186,61 +186,75 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
                 backoff = 1
                 notifyStatus(.connected, generation: generation)
                 try await idleLoop(client: client, mailboxes: mailboxes)
-            } catch let error as OAuthClient.OAuthError {
-                switch error {
-                case .refreshFailed, .noRefreshToken:
-                    // The refresh token is gone; only the user can fix this.
-                    Log.error("Token revoked: \(error.localizedDescription)")
-                    notifyStatus(.reauthRequired, error: error.localizedDescription)
-                    return
-                case .refreshUnavailable:
-                    if Task.isCancelled {
-                        break
-                    }
-                    Log.error("Token refresh deferred: \(error.localizedDescription)")
-                    notifyStatus(.reconnecting, error: error.localizedDescription)
-                    client?.disconnect()
-                    client = nil
-                    try? await Task.sleep(nanoseconds: UInt64(backoff * 1_000_000_000))
-                    backoff = min(backoff * 2, 60)
-                default:
-                    notifyStatus(.reauthRequired, error: error.localizedDescription)
-                    return
-                }
-            } catch let error as IMAPClient.IMAPError {
-                if case .authFailed = error {
-                    Log.error("IMAP authentication rejected: \(error.localizedDescription)")
-                    notifyStatus(.reauthRequired, error: error.localizedDescription)
-                    client?.disconnect()
-                    client = nil
-                    return
-                }
-                if Task.isCancelled {
-                    break
-                }
-                Log.error("Connection dropped: \(error.localizedDescription)")
-                notifyStatus(.reconnecting, error: error.localizedDescription)
-                client?.disconnect()
-                client = nil
-                try? await Task.sleep(nanoseconds: UInt64(backoff * 1_000_000_000))
-                backoff = min(backoff * 2, 60)
             } catch {
-                if Task.isCancelled {
-                    break
+                switch await handleRunFailure(error, backoff: &backoff) {
+                case .retry:
+                    continue
+                case .stop:
+                    return
                 }
-                let userVisibleError = Self.userVisibleReconnectError(for: error)
-                if let userVisibleError {
-                    Log.error("Connection dropped: \(userVisibleError)")
-                } else {
-                    Log.info("Connection closed; reconnecting.")
-                }
-                notifyStatus(.reconnecting, error: userVisibleError)
-                client?.disconnect()
-                client = nil
-                try? await Task.sleep(nanoseconds: UInt64(backoff * 1_000_000_000))
-                backoff = min(backoff * 2, 60)
             }
         }
+    }
+
+    /// What a failed run should do next. Reconnect is the default; only a
+    /// credential the user must replace, or a cancelled run, ends the loop.
+    private enum RunOutcome {
+        case retry
+        case stop
+    }
+
+    private func handleRunFailure(_ error: Error, backoff: inout TimeInterval) async -> RunOutcome {
+        if let oauthError = error as? OAuthClient.OAuthError {
+            switch oauthError {
+            case .refreshFailed, .noRefreshToken:
+                // The refresh token is gone; only the user can fix this.
+                Log.error("Token revoked: \(oauthError.localizedDescription)")
+                notifyStatus(.reauthRequired, error: oauthError.localizedDescription)
+                releaseClient()
+                return .stop
+            default:
+                Log.error("Token refresh deferred: \(oauthError.localizedDescription)")
+                return await backOff(&backoff, reportingError: oauthError.localizedDescription)
+            }
+        }
+
+        if case .authFailed = error as? IMAPClient.IMAPError {
+            Log.error("IMAP authentication rejected: \(error.localizedDescription)")
+            notifyStatus(.reauthRequired, error: error.localizedDescription)
+            releaseClient()
+            return .stop
+        }
+
+        guard !Task.isCancelled else { return .stop }
+
+        if error is IMAPClient.IMAPError {
+            Log.error("Connection dropped: \(error.localizedDescription)")
+            return await backOff(&backoff, reportingError: error.localizedDescription)
+        }
+
+        // A closed connection during shutdown is ordinary, so it is logged as
+        // information and never surfaced as an error the user should act on.
+        let userVisibleError = Self.userVisibleReconnectError(for: error)
+        if let userVisibleError {
+            Log.error("Connection dropped: \(userVisibleError)")
+        } else {
+            Log.info("Connection closed; reconnecting.")
+        }
+        return await backOff(&backoff, reportingError: userVisibleError)
+    }
+
+    private func backOff(_ backoff: inout TimeInterval, reportingError error: String?) async -> RunOutcome {
+        notifyStatus(.reconnecting, error: error)
+        releaseClient()
+        try? await Task.sleep(nanoseconds: UInt64(backoff * 1_000_000_000))
+        backoff = min(backoff * 2, 60)
+        return .retry
+    }
+
+    private func releaseClient() {
+        client?.disconnect()
+        client = nil
     }
 
     private func idleLoop(client: IMAPClient, mailboxes: [MonitoredMailbox]) async throws {
@@ -270,180 +284,11 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
         try await syncUnreadStore(client: client, mailboxes: mailboxes)
     }
 
-    private func fetchAndNotify(client: IMAPClient, mailboxes: [MonitoredMailbox]) async throws {
-        for mailbox in mailboxes {
-            let generation = try await client.selectMailbox(mailbox.name).uidValidity
-            let checkpointUID = lastSeenUID(for: mailbox.role)
-            let from = max(checkpointUID + 1, 1)
-            let uids = try await client.searchUnreadUIDs(fromUID: from)
-            let plan = Self.notificationPlan(uids: uids, lastSeenUID: checkpointUID)
-
-            let uidsToNotify = Set(plan.uidsToNotify)
-            var notificationUIDsToFetch = uidsToNotify
-            for admissionBatch in plan.admissionBatches {
-                let headers = try await client.fetchHeaders(uids: admissionBatch)
-                    .map { $0.assigningMailbox(mailbox.role, name: mailbox.name, uidValidity: generation) }
-                    .sorted { $0.uid < $1.uid }
-
-                let admittedIdentities = await delegate?.monitor(account.id, shouldNotify: headers)
-                    ?? Set(headers.compactMap(\.imapIdentity))
-                await notify(headers: headers, admittedIdentities: admittedIdentities, uidsToNotify: uidsToNotify)
-                notificationUIDsToFetch.subtract(admissionBatch)
-
-                if let admittedThroughUID = admissionBatch.last {
-                    setLastSeenUID(Swift.max(lastSeenUID(for: mailbox.role), admittedThroughUID), for: mailbox.role)
-                }
-
-                if !notificationUIDsToFetch.isEmpty {
-                    let notificationHeaders = try await client.fetchHeaders(uids: Array(notificationUIDsToFetch).sorted())
-                        .map { $0.assigningMailbox(mailbox.role, name: mailbox.name, uidValidity: generation) }
-                        .sorted { $0.uid < $1.uid }
-                    notificationUIDsToFetch.removeAll()
-                    let admittedNotificationIdentities = await delegate?.monitor(
-                        account.id,
-                        shouldNotify: notificationHeaders
-                    ) ?? Set(notificationHeaders.compactMap(\.imapIdentity))
-                    await notify(
-                        headers: notificationHeaders,
-                        admittedIdentities: admittedNotificationIdentities,
-                        uidsToNotify: uidsToNotify
-                    )
-                }
-                await Task.yield()
-            }
-        }
-    }
-
-    private func notify(
-        headers: [MessageHeader],
-        admittedIdentities: Set<IMAPMessageIdentity>,
-        uidsToNotify: Set<Int>
-    ) async {
-        for header in headers {
-            guard let identity = header.imapIdentity,
-                  admittedIdentities.contains(identity),
-                  uidsToNotify.contains(header.uid)
-            else {
-                continue
-            }
-            let result = await NotificationManager.shared.notify(header, account: account)
-            delegate?.monitor(account.id, didNotify: header, result: result)
-        }
-    }
-
-    private func syncUnreadStore(client: IMAPClient, mailboxes: [MonitoredMailbox]) async throws {
-        var snapshots: [MailboxUnreadSnapshot] = []
-        var fetchedHeaders: [MessageHeader] = []
-        for mailbox in mailboxes {
-            let generation = try await client.selectMailbox(mailbox.name).uidValidity
-            let searchedUIDs = try await client.searchUnreadUIDs()
-            let unreadUIDs = Set(searchedUIDs.filter { $0 > 0 })
-            snapshots.append(
-                MailboxUnreadSnapshot(
-                    mailbox: mailbox.role,
-                    mailboxName: mailbox.name,
-                    uidValidity: generation,
-                    unreadUIDs: unreadUIDs
-                )
-            )
-
-            let uidsToSkip = await delegate?.monitor(
-                account.id,
-                uidsToSkipFor: mailbox.role,
-                mailboxName: mailbox.name,
-                uidValidity: generation
-            ) ?? []
-            let unknownUIDs = Array(unreadUIDs.subtracting(uidsToSkip)).sorted()
-            let uidsToFetch = Array(unknownUIDs.suffix(Self.maximumReconciliationHeadersPerMailbox))
-            let mailboxHeaders = try await client.fetchHeaders(uids: uidsToFetch)
-                .map { $0.assigningMailbox(mailbox.role, name: mailbox.name, uidValidity: generation) }
-            fetchedHeaders.append(contentsOf: mailboxHeaders)
-        }
-        await delegate?.monitor(account.id, didReconcileUnread: snapshots, fetchedHeaders: fetchedHeaders)
-    }
-
-    static func notificationPlan(
-        uids: [Int],
-        lastSeenUID: Int,
-        notificationLimit: Int = maximumNotificationsPerFetch,
-        admissionBatchSize: Int = maximumFreshHeadersPerAdmissionBatch
-    ) -> NotificationPlan {
-        let fresh = Array(Set(uids.filter { $0 > lastSeenUID })).sorted()
-        guard !fresh.isEmpty else {
-            return NotificationPlan(admissionBatches: [], uidsToNotify: [], lastSeenUID: lastSeenUID)
-        }
-        let admissionBatches = Self.admissionBatches(uids: fresh, batchSize: admissionBatchSize)
-        let checkpointUID = admissionBatches.last?.last ?? lastSeenUID
-        let uidsToNotify = notificationLimit > 0 ? Array(fresh.suffix(notificationLimit)) : []
-        return NotificationPlan(
-            admissionBatches: admissionBatches,
-            uidsToNotify: uidsToNotify,
-            lastSeenUID: checkpointUID
-        )
-    }
-
-    private static func admissionBatches(uids: [Int], batchSize: Int) -> [[Int]] {
-        guard batchSize > 0 else { return [] }
-        var batches: [[Int]] = []
-        var start = uids.startIndex
-        while start < uids.endIndex {
-            let end = uids.index(start, offsetBy: batchSize, limitedBy: uids.endIndex) ?? uids.endIndex
-            batches.append(Array(uids[start ..< end]))
-            start = end
-        }
-        return batches
-    }
-
-    static func monitoredMailboxes(includeSpam: Bool, spamMailboxName: String?) -> [MonitoredMailbox] {
-        var mailboxes = [MonitoredMailbox(role: .inbox, name: "INBOX")]
-        guard includeSpam,
-              let spamMailboxName = spamMailboxName?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !spamMailboxName.isEmpty
-        else {
-            return mailboxes
-        }
-        mailboxes.append(MonitoredMailbox(role: .spam, name: spamMailboxName))
-        return mailboxes
-    }
-
-    static func userVisibleReconnectError(for error: Error) -> String? {
-        if let connectionError = error as? IMAPConnection.ConnectionError,
-           case .closed = connectionError {
-            return nil
-        }
-        return error.localizedDescription
-    }
-
-    // MARK: - Tokens
-
-    private func validAccessToken() async throws -> String {
-        if let accessTokenSource {
-            return try await accessTokenSource()
-        }
-        return try await tokenProvider.validAccessToken()
-    }
-
-    private func refreshAccessToken() async throws -> String {
-        try await tokenProvider.refreshAccessToken()
-    }
-
-    private func authenticate(client: IMAPClient, email: String, accessToken: String) async throws {
-        do {
-            try await client.authenticate(email: email, accessToken: accessToken)
-        } catch let error as IMAPClient.IMAPError {
-            guard case .authFailed = error else { throw error }
-            let refreshedAccessToken = try await refreshAccessToken()
-            try await client.authenticate(email: email, accessToken: refreshedAccessToken)
-        }
-    }
-
-    // MARK: - Checkpoint / gap fill
-
-    private func lastSeenUID(for mailbox: MessageMailbox) -> Int {
+    func lastSeenUID(for mailbox: MessageMailbox) -> Int {
         checkpoints[mailbox]?.lastSeenUID ?? 0
     }
 
-    private func setLastSeenUID(_ value: Int, for mailbox: MessageMailbox) {
+    func setLastSeenUID(_ value: Int, for mailbox: MessageMailbox) {
         checkpoints[mailbox]?.lastSeenUID = value
     }
 

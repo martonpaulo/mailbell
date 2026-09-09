@@ -97,19 +97,6 @@ enum EmailStoreDisposition: String, Codable, Equatable {
     case opened
 }
 
-private struct EmailStoreRecord: Codable, Equatable {
-    var id: String
-    var disposition: EmailStoreDisposition
-    var updatedAt: Date
-    /// Where the message sat when it was handled. Optional because records
-    /// written before this existed decode without it; they are backfilled the
-    /// next time reconciliation sees the message, so the history heals itself
-    /// in one cycle rather than needing a migration.
-    var mailboxName: String?
-    var uidValidity: Int?
-    var uid: Int?
-}
-
 /// The pending members handed to one server read request, fixed at capture time.
 struct ReadSubmission: Equatable {
     let itemIDs: [String]
@@ -124,204 +111,12 @@ struct HandledMessage: Equatable {
     let identity: IMAPMessageIdentity?
 }
 
-final class EmailStorePersistence {
-    enum PersistenceError: Error, LocalizedError {
-        case decodingFailed(String)
-        case encodingFailed(String)
-        case saveFailed(String)
-
-        var errorDescription: String? {
-            switch self {
-            case let .decodingFailed(detail):
-                "Could not read handled-message history: \(detail)"
-            case let .encodingFailed(detail):
-                "Could not encode handled-message history: \(detail)"
-            case let .saveFailed(detail):
-                "Could not save handled-message history: \(detail)"
-            }
-        }
-    }
-
-    static let recoveryWarning =
-        "Handled-message history was reset because saved state was unreadable. Some items may reappear."
-
-    private let userDefaults: UserDefaults
-    static let recordsKey = "mailbell.emailStore.handledRecords.v1"
-    static let corruptBackupKey = "mailbell.emailStore.handledRecords.corruptBackup.v1"
-    private let maxRecordCount: Int
-    private let now: () -> Date
-    private let saveData: (_ data: Data, _ key: String) throws -> Void
-    private var cachedRecords: [String: EmailStoreRecord]?
-    private var pendingRecoveryWarning: String?
-
-    init(
-        userDefaults: UserDefaults = .standard,
-        maxRecordCount: Int = 500,
-        now: @escaping () -> Date = Date.init,
-        saveData: ((_ data: Data, _ key: String) throws -> Void)? = nil
-    ) {
-        self.userDefaults = userDefaults
-        self.maxRecordCount = maxRecordCount
-        self.now = now
-        self.saveData = saveData ?? { [userDefaults] data, key in
-            userDefaults.set(data, forKey: key)
-        }
-    }
-
-    func isHandled(_ id: String) throws -> Bool {
-        try records()[id] != nil
-    }
-
-    func suppressesUnreadSync(_ id: String) throws -> Bool {
-        try records()[id]?.disposition == .dismissed
-    }
-
-    func mark(_ handled: HandledMessage, disposition: EmailStoreDisposition) throws {
-        try mark([handled], disposition: disposition)
-    }
-
-    func mark(_ handled: [HandledMessage], disposition: EmailStoreDisposition) throws {
-        guard !handled.isEmpty else { return }
-        var records = try records()
-        let updatedAt = now()
-        for message in handled {
-            records[message.id] = EmailStoreRecord(
-                id: message.id,
-                disposition: disposition,
-                updatedAt: updatedAt,
-                mailboxName: message.identity?.mailboxName,
-                uidValidity: message.identity?.uidValidity,
-                uid: message.identity?.uid
-            )
-        }
-        try save(pruned(records))
-    }
-
-    /// Teaches an existing record where its message lives. Reconciliation calls
-    /// this when it meets a handled message it had no location for, so the next
-    /// cycle can skip it without downloading it again.
-    func backfillLocation(_ handled: [HandledMessage]) throws {
-        var records = try records()
-        var didChange = false
-        for message in handled {
-            guard let identity = message.identity,
-                  var record = records[message.id],
-                  record.uid == nil
-            else {
-                continue
-            }
-            record.mailboxName = identity.mailboxName
-            record.uidValidity = identity.uidValidity
-            record.uid = identity.uid
-            records[message.id] = record
-            didChange = true
-        }
-        guard didChange else { return }
-        try save(records)
-    }
-
-    /// UIDs this account has already handled in one mailbox generation, so
-    /// reconciliation can look past them instead of spending its whole budget
-    /// re-fetching the same discarded window on every cycle.
-    func handledUIDs(accountID: UUID, mailboxName: String, uidValidity: Int) throws -> Set<Int> {
-        let prefix = EmailStoreIdentity.accountPrefix(accountID: accountID)
-        return try records().values.reduce(into: Set<Int>()) { result, record in
-            guard record.id.hasPrefix(prefix),
-                  record.mailboxName == mailboxName,
-                  record.uidValidity == uidValidity,
-                  let uid = record.uid
-            else {
-                return
-            }
-            result.insert(uid)
-        }
-    }
-
-    func removeRecords(accountID: UUID) throws {
-        let prefix = EmailStoreIdentity.accountPrefix(accountID: accountID)
-        let records = try records()
-        let filtered = records.filter { id, _ in
-            !id.hasPrefix(prefix)
-        }
-        guard filtered != records else { return }
-        try save(filtered)
-    }
-
-    func takeRecoveryWarning() -> String? {
-        let warning = pendingRecoveryWarning
-        pendingRecoveryWarning = nil
-        return warning
-    }
-
-    private func records() throws -> [String: EmailStoreRecord] {
-        if let cachedRecords {
-            return cachedRecords
-        }
-        guard let data = userDefaults.data(forKey: Self.recordsKey) else {
-            cachedRecords = [:]
-            return [:]
-        }
-        do {
-            let decoded = try JSONDecoder().decode([String: EmailStoreRecord].self, from: data)
-            cachedRecords = decoded
-            return decoded
-        } catch {
-            try recoverCorruptRecords(data)
-            pendingRecoveryWarning = Self.recoveryWarning
-            cachedRecords = [:]
-            return [:]
-        }
-    }
-
-    private func recoverCorruptRecords(_ data: Data) throws {
-        let emptyRecords = [String: EmailStoreRecord]()
-        do {
-            try saveData(data, Self.corruptBackupKey)
-            let emptyData = try JSONEncoder().encode(emptyRecords)
-            try saveData(emptyData, Self.recordsKey)
-        } catch let error as PersistenceError {
-            throw error
-        } catch let error as EncodingError {
-            throw PersistenceError.encodingFailed(error.localizedDescription)
-        } catch {
-            throw PersistenceError.saveFailed(error.localizedDescription)
-        }
-    }
-
-    private func save(_ records: [String: EmailStoreRecord]) throws {
-        let data: Data
-        do {
-            data = try JSONEncoder().encode(records)
-        } catch {
-            throw PersistenceError.encodingFailed(error.localizedDescription)
-        }
-
-        do {
-            try saveData(data, Self.recordsKey)
-        } catch let error as PersistenceError {
-            throw error
-        } catch {
-            throw PersistenceError.saveFailed(error.localizedDescription)
-        }
-        cachedRecords = records
-    }
-
-    private func pruned(_ records: [String: EmailStoreRecord]) -> [String: EmailStoreRecord] {
-        guard records.count > maxRecordCount else { return records }
-
-        let retained = records.values
-            .sorted { $0.updatedAt > $1.updatedAt }
-            .prefix(maxRecordCount)
-
-        return Dictionary(uniqueKeysWithValues: retained.map { ($0.id, $0) })
-    }
-}
-
 @MainActor
 final class EmailStore {
     /// Not private: EmailStore+Retention owns trimming this back to budget.
     var itemsByID: [String: EmailStoreItem] = [:]
-    private let persistence: EmailStorePersistence
+    /// Not private: EmailStore+Actions records dispositions through it.
+    let persistence: EmailStorePersistence
     private let now: () -> Date
     private var nextAdmissionOrder = 0
 
@@ -331,22 +126,6 @@ final class EmailStore {
     ) {
         self.persistence = persistence
         self.now = now
-    }
-
-    var items: [EmailStoreItem] {
-        let chronology = groupChronology()
-        let ordered = groupedItems().sorted { left, right in
-            isNewerInQueue(left, than: right, chronology: chronology)
-        }
-        // A projection of the retained store, not a second queue: the rows are
-        // capped per account, while every retained message stays actionable.
-        var shownPerAccount: [UUID: Int] = [:]
-        return ordered.filter { item in
-            let shown = shownPerAccount[item.accountID, default: 0]
-            guard shown < PendingQueueBudget.visibleConversationsPerAccount else { return false }
-            shownPerAccount[item.accountID] = shown + 1
-            return true
-        }
     }
 
     /// Retained message records for one account, which is what a bulk action
@@ -528,46 +307,6 @@ final class EmailStore {
         }
     }
 
-    func dismiss(id: String) throws {
-        try removeGroup(containing: id, disposition: .dismissed)
-    }
-
-    func markOpened(id: String) throws {
-        try removeGroup(containing: id, disposition: .opened)
-    }
-
-    /// Finalizes exactly the members the server was asked about. Anything that
-    /// joined the thread during the round trip stays pending, because nothing
-    /// marked it read.
-    func markRead(submission: ReadSubmission) throws {
-        try markRead(submissions: [submission])
-    }
-
-    /// One transition for a whole bulk run: a single history write and a single
-    /// pass over the store, instead of re-encoding the handled history and
-    /// rescanning the queue once per conversation.
-    func markRead(submissions: [ReadSubmission]) throws {
-        let submitted = Set(submissions.flatMap(\.itemIDs))
-        guard !submitted.isEmpty else { return }
-
-        let handled = submitted.map { id in
-            itemsByID[id].map(handledMessage) ?? HandledMessage(id: id, identity: nil)
-        }
-        try persistence.mark(handled, disposition: .markedRead)
-        itemsByID = itemsByID.filter { id, _ in !submitted.contains(id) }
-    }
-
-    /// Dismisses every pending item in one persistence write and returns how
-    /// many groups (menu rows) were cleared.
-    @discardableResult
-    func dismissAll() throws -> Int {
-        guard !itemsByID.isEmpty else { return 0 }
-        let groupCount = Set(itemsByID.values.map(\.groupID)).count
-        try persistence.mark(itemsByID.values.map(handledMessage), disposition: .dismissed)
-        itemsByID = [:]
-        return groupCount
-    }
-
     func removeAccountRecords(accountID: UUID) throws {
         try persistence.removeRecords(accountID: accountID)
     }
@@ -587,99 +326,8 @@ final class EmailStore {
         return previousItems != itemsByID
     }
 
-    private func groupedItems() -> [EmailStoreItem] {
-        var firstItemsByGroupID: [String: EmailStoreItem] = [:]
-        for item in itemsByID.values {
-            guard let existing = firstItemsByGroupID[item.groupID] else {
-                firstItemsByGroupID[item.groupID] = item
-                continue
-            }
-            if isEarlierInGroup(item, than: existing) {
-                firstItemsByGroupID[item.groupID] = item
-            }
-        }
-        return Array(firstItemsByGroupID.values)
-    }
-
-    private func firstItem(groupID: String) -> EmailStoreItem? {
-        itemsByID.values
-            .filter { $0.groupID == groupID }
-            .min { left, right in
-                isEarlierInGroup(left, than: right)
-            }
-    }
-
-    /// A conversation is as new as its newest pending member, so a reply lifts
-    /// the whole thread the way it does in Gmail. Members Mailbell no longer
-    /// holds do not count, which is what makes removal recompute the order.
-    private func groupChronology() -> [String: Date] {
-        itemsByID.values.reduce(into: [:]) { latest, item in
-            guard let receivedAt = item.serverReceivedAt else { return }
-            latest[item.groupID] = Swift.max(latest[item.groupID] ?? receivedAt, receivedAt)
-        }
-    }
-
-    private func isNewerInQueue(
-        _ left: EmailStoreItem,
-        than right: EmailStoreItem,
-        chronology: [String: Date]
-    ) -> Bool {
-        switch (chronology[left.groupID], chronology[right.groupID]) {
-        case let (leftDate?, rightDate?) where leftDate != rightDate:
-            return leftDate > rightDate
-        case (.some, .none):
-            return true
-        case (.none, .some):
-            return false
-        default:
-            break
-        }
-        // Undated groups, and exact ties, fall back to the order Mailbell saw
-        // them so the queue never reshuffles on its own.
-        if left.admissionOrder != right.admissionOrder {
-            return left.admissionOrder < right.admissionOrder
-        }
-        return left.title.localizedCaseInsensitiveCompare(right.title) == .orderedAscending
-    }
-
-    func isEarlierInGroup(_ left: EmailStoreItem, than right: EmailStoreItem) -> Bool {
-        if left.receivedAt != right.receivedAt {
-            return left.receivedAt < right.receivedAt
-        }
-        if left.admissionOrder != right.admissionOrder {
-            return left.admissionOrder < right.admissionOrder
-        }
-        if let leftUID = left.imapIdentity?.uid,
-           let rightUID = right.imapIdentity?.uid,
-           leftUID != rightUID {
-            return leftUID < rightUID
-        }
-        return left.title.localizedCaseInsensitiveCompare(right.title) == .orderedAscending
-    }
-
     func takePersistenceWarning() -> String? {
         persistence.takeRecoveryWarning()
-    }
-
-    private func removeGroup(containing id: String, disposition: EmailStoreDisposition) throws {
-        guard let item = itemsByID[id] else {
-            try persistence.mark(HandledMessage(id: id, identity: nil), disposition: disposition)
-            itemsByID[id] = nil
-            return
-        }
-
-        let groupID = item.groupID
-        let grouped = itemsByID.values
-            .filter { $0.groupID == groupID }
-            .map(handledMessage)
-        try persistence.mark(grouped, disposition: disposition)
-        itemsByID = itemsByID.filter { _, item in
-            item.groupID != groupID
-        }
-    }
-
-    private func handledMessage(for item: EmailStoreItem) -> HandledMessage {
-        HandledMessage(id: item.id, identity: item.imapIdentity)
     }
 
     private func makeItem(

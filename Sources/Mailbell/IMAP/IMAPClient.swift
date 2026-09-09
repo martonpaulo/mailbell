@@ -62,10 +62,10 @@ final class IMAPClient {
         }
     }
 
-    private let connection: any IMAPClientTransport
+    let connection: any IMAPClientTransport
     private var tagCounter = 0
-    private static let headerFields = "BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)]"
-    private static let bodyPreviewBytes = 8192
+    static let headerFields = "BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)]"
+    static let bodyPreviewBytes = 8192
 
     init(host: String = "imap.gmail.com", port: UInt16 = 993) {
         connection = IMAPConnection(host: host, port: port)
@@ -75,7 +75,7 @@ final class IMAPClient {
         self.connection = connection
     }
 
-    private func nextTag() -> String {
+    func nextTag() -> String {
         tagCounter += 1
         return "A\(String(format: "%04d", tagCounter))"
     }
@@ -259,116 +259,6 @@ final class IMAPClient {
     }
 
     /// Fetches headers for a specific set of UIDs.
-    func fetchHeaders(uids: [Int]) async throws -> [MessageHeader] {
-        var headers: [MessageHeader] = []
-        for batch in IMAPUIDSequence.uidFetchBatches(for: uids) {
-            let batchHeaders = try await fetchHeadersBatch(uids: batch)
-            headers.append(contentsOf: batchHeaders)
-        }
-        return headers
-    }
-
-    private func fetchHeadersBatch(uids: [Int]) async throws -> [MessageHeader] {
-        let sequenceSet = IMAPUIDSequence.uidSequenceSet(for: uids)
-        guard !sequenceSet.isEmpty else { return [] }
-
-        let tag = nextTag()
-        try await connection.send(
-            "\(tag) UID FETCH \(sequenceSet) (UID INTERNALDATE X-GM-MSGID X-GM-THRID \(Self.headerFields))"
-        )
-
-        var headers: [MessageHeader] = []
-        while true {
-            let line = try await connection.readLine()
-            if line.hasPrefix("* "), line.uppercased().contains("FETCH") {
-                if let header = try await parseFetch(line) {
-                    headers.append(header)
-                }
-                continue
-            }
-            if line.hasPrefix("\(tag) OK") {
-                break
-            }
-            if line.hasPrefix("\(tag) NO") || line.hasPrefix("\(tag) BAD") {
-                throw IMAPError.unexpected(line)
-            }
-        }
-        guard !headers.isEmpty else { return [] }
-
-        let previews = try await fetchBodyPreviewsBatch(uids: headers.map(\.uid))
-        return headers.map { header in
-            header.assigningBodyPreview(previews[header.uid])
-        }
-    }
-
-    private func fetchBodyPreviewsBatch(uids: [Int]) async throws -> [Int: String] {
-        let sequenceSet = IMAPUIDSequence.uidSequenceSet(for: uids)
-        guard !sequenceSet.isEmpty else { return [:] }
-
-        let tag = nextTag()
-        try await connection.send(
-            "\(tag) UID FETCH \(sequenceSet) (UID BODY.PEEK[TEXT]<0.\(Self.bodyPreviewBytes)>)"
-        )
-
-        var previews: [Int: String] = [:]
-        while true {
-            let line = try await connection.readLine()
-            if line.hasPrefix("* "), line.uppercased().contains("FETCH") {
-                if let (uid, preview) = try await parseBodyPreviewFetch(line) {
-                    previews[uid] = preview
-                }
-                continue
-            }
-            if line.hasPrefix("\(tag) OK") {
-                break
-            }
-            if line.hasPrefix("\(tag) NO") || line.hasPrefix("\(tag) BAD") {
-                throw IMAPError.unexpected(line)
-            }
-        }
-        return previews
-    }
-
-    func markAsRead(uid: Int, requiringUIDValidity: Int) async throws {
-        guard uid > 0 else { throw IMAPError.invalidUID(uid) }
-        try await markAsRead(uids: [uid], requiringUIDValidity: requiringUIDValidity)
-    }
-
-    /// One `UID STORE` per batch, so a bulk action costs a handful of commands
-    /// rather than one round trip per message.
-    func markAsRead(uids: [Int], requiringUIDValidity: Int) async throws {
-        // Checked against the SELECT result rather than the caller's memory, so
-        // a generation change between capture and action stops the STORE here.
-        guard selectedUIDValidity == requiringUIDValidity else {
-            throw IMAPError.staleMailboxGeneration(
-                expected: requiringUIDValidity,
-                actual: selectedUIDValidity ?? 0
-            )
-        }
-
-        let validUIDs = uids.filter { $0 > 0 }
-        guard !validUIDs.isEmpty else {
-            throw IMAPError.invalidUID(uids.first ?? 0)
-        }
-
-        for batch in IMAPUIDSequence.uidFetchBatches(for: validUIDs) {
-            let sequenceSet = IMAPUIDSequence.uidSequenceSet(for: batch)
-            guard !sequenceSet.isEmpty else { continue }
-            let tag = nextTag()
-            try await connection.send("\(tag) UID STORE \(sequenceSet) +FLAGS.SILENT (\\Seen)")
-
-            while true {
-                let line = try await connection.readLine()
-                if line.hasPrefix("\(tag) OK") {
-                    break
-                }
-                if line.hasPrefix("\(tag) NO") || line.hasPrefix("\(tag) BAD") {
-                    throw IMAPError.unexpected(line)
-                }
-            }
-        }
-    }
-
     private static func quotedString(_ value: String) -> String {
         "\"\(value.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\""))\""
     }
@@ -378,7 +268,7 @@ final class IMAPClient {
         return line.hasPrefix("* ") && uppercased.contains("FETCH") && uppercased.contains("FLAGS")
     }
 
-    private func parseFetch(_ firstLine: String) async throws -> MessageHeader? {
+    func parseFetch(_ firstLine: String) async throws -> MessageHeader? {
         guard let literalSize = IMAPParser.parseLiteralSize(firstLine) else {
             return nil
         }
@@ -387,7 +277,7 @@ final class IMAPClient {
         return IMAPParser.parseFetch(firstLine: firstLine, trailingLine: trailingLine, headerBlock: block)
     }
 
-    private func parseBodyPreviewFetch(_ firstLine: String) async throws -> (uid: Int, preview: String?)? {
+    func parseBodyPreviewFetch(_ firstLine: String) async throws -> (uid: Int, preview: String?)? {
         guard let uid = IMAPParser.parseNumber(in: firstLine, key: "UID"),
               let literalSize = IMAPParser.parseLiteralSize(firstLine)
         else {

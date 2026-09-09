@@ -3,6 +3,10 @@ import Foundation
 import XCTest
 
 final class MailMonitorReconciliationTests: XCTestCase {
+    private static let headerFetchAttributes =
+        "(UID INTERNALDATE X-GM-MSGID X-GM-THRID "
+            + "BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])"
+
     func testClosedConnectionIsNotUserVisibleReconnectError() {
         XCTAssertNil(MailMonitor.userVisibleReconnectError(for: IMAPConnection.ConnectionError.closed))
     }
@@ -90,7 +94,7 @@ final class MailMonitorReconciliationTests: XCTestCase {
                 "A0002 UID SEARCH UID 1:* UNSEEN",
                 #"A0003 SELECT "INBOX""#,
                 "A0004 UID SEARCH UNSEEN",
-                "A0005 UID FETCH 2:3 (UID INTERNALDATE X-GM-MSGID X-GM-THRID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])",
+                "A0005 UID FETCH 2:3 " + Self.headerFetchAttributes,
                 #"A0006 SELECT "INBOX""#
             ]
         )
@@ -131,9 +135,9 @@ final class MailMonitorReconciliationTests: XCTestCase {
             [
                 #"A0001 SELECT "INBOX""#,
                 "A0002 UID SEARCH UID 1:* UNSEEN",
-                "A0003 UID FETCH 1:100 (UID INTERNALDATE X-GM-MSGID X-GM-THRID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])",
-                "A0004 UID FETCH 241:250 (UID INTERNALDATE X-GM-MSGID X-GM-THRID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])",
-                "A0005 UID FETCH 101:200 (UID INTERNALDATE X-GM-MSGID X-GM-THRID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])"
+                "A0003 UID FETCH 1:100 " + Self.headerFetchAttributes,
+                "A0004 UID FETCH 241:250 " + Self.headerFetchAttributes,
+                "A0005 UID FETCH 101:200 " + Self.headerFetchAttributes
             ]
         )
     }

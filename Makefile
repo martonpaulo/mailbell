@@ -56,7 +56,7 @@ test: ## Run tests
 	@$(SWIFT) test
 
 lint: ## Run SwiftLint
-	@$(SWIFTLINT) lint --quiet Sources Tests
+	@$(SWIFTLINT) lint --quiet --strict Sources Tests
 
 format: ## Format sources
 	@$(SWIFTFORMAT) Sources Tests
