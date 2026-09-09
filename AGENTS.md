@@ -15,7 +15,7 @@ specific `AGENTS.md` inside a subtree overrides this one for that subtree.
 - Repository: `martonpaulo/mailbell` (public); `origin` is the owner's fork.
 - Benefit-first description: Gmail notifications in your macOS menu bar — instant IMAP IDLE alerts, a review queue you can clear in one click, no server in between.
 - Public identifiers: app/bundle `com.perso.mailbell`; SwiftPM executable `mailbell`; installed app `Mailbell.app`.
-- Landing page: `https://martonpaulo.com/mailbell/`, owned by Marton Paulo; static files under `docs/`, hosted by this repository's GitHub Pages workflow. Domain or DNS changes require a separate explicit request.
+- Landing page: `https://mailbell.martonpaulo.com/`, owned by Marton Paulo; static files under `docs/` (with `docs/CNAME` naming the host), hosted by this repository's GitHub Pages workflow. The move from `martonpaulo.com/mailbell/` to this subdomain was decided by the owner on 2026-09-09 with no redirect from the old path; any further domain or DNS change requires a separate explicit request.
 - License: MIT; preserve copyright 2026 samzong and 2026 Marton Paulo and all existing third-party notices.
 - Development language: English. Product copy: English only; English fallback, no additional locales or localization framework until explicitly requested.
 - Browser acceptance targets: Chromium and WebKit/Safari for the public site and OAuth callback HTML. Use existing compatible browser tooling; no new browser manager or CI matrix is implied. Verify native Safari behavior manually when tooling cannot establish it.

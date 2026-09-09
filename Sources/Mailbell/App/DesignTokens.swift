@@ -35,11 +35,11 @@ enum Token {
 /// Every outward-facing Mailbell URL. One definition, reused by Settings, the
 /// About pane, and support copy, so a moved page is a single-line change.
 enum ProjectLinks {
-    static let website = URL(string: "https://martonpaulo.com/mailbell/")!
+    static let website = URL(string: "https://mailbell.martonpaulo.com/")!
     static let repository = URL(string: "https://github.com/martonpaulo/mailbell")!
     static let issues = URL(string: "https://github.com/martonpaulo/mailbell/issues")!
     static let latestRelease = URL(string: "https://github.com/martonpaulo/mailbell/releases/latest")!
-    static let privacyPolicy = URL(string: "https://martonpaulo.com/mailbell/privacy.html")!
-    static let termsOfService = URL(string: "https://martonpaulo.com/mailbell/terms.html")!
+    static let privacyPolicy = URL(string: "https://mailbell.martonpaulo.com/privacy.html")!
+    static let termsOfService = URL(string: "https://mailbell.martonpaulo.com/terms.html")!
     static let googleAccountPermissions = URL(string: "https://myaccount.google.com/permissions")!
 }

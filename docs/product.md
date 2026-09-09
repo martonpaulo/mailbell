@@ -41,7 +41,7 @@ Keychain, and distributes through signed and notarized direct downloads with
 Sparkle updates. The Google OAuth client remains unverified; public copy must
 disclose its warning screen and new-user cap.
 
-The canonical website is [martonpaulo.com/mailbell](https://martonpaulo.com/mailbell/).
+The canonical website is [mailbell.martonpaulo.com](https://mailbell.martonpaulo.com/).
 The detailed product, privacy, reliability, and release contracts remain in
 [AGENTS.md](../AGENTS.md). This document does not resolve pending product
 decisions or replace issue acceptance criteria.

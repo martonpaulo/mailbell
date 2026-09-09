@@ -4,6 +4,17 @@ All notable changes to Mailbell are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and
 [Keep a Changelog](https://keepachangelog.com/).
 
+## Unreleased
+
+The website moved to its own subdomain. The links the app opens follow it.
+
+### Changed
+
+- **The website is now `https://mailbell.martonpaulo.com/`.** The About pane's
+  website, privacy policy, and terms links open the new address. The old
+  `martonpaulo.com/mailbell/` path is gone and does not redirect, so 0.3.0
+  and earlier open a "not found" page from those links until they update.
+
 ## 0.3.0 — 2026-09-09
 
 Previews that were showing you CSS, base64 and invisible filler now show the
