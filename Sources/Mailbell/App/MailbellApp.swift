@@ -16,7 +16,8 @@ struct MailbellApp: App {
                 systemImage: appState.menuBarIconSystemImage,
                 pendingCount: appState.emailStoreItems.count,
                 showsPendingCount: appState.showPendingCount,
-                needsAttention: appState.needsAttention
+                needsAttention: appState.needsAttention,
+                needsSignIn: appState.needsSignIn
             )
         }
 
@@ -44,6 +45,7 @@ private struct MenuBarLabel: View {
     let pendingCount: Int
     let showsPendingCount: Bool
     let needsAttention: Bool
+    let needsSignIn: Bool
 
     var body: some View {
         HStack(spacing: Token.Size.menuBarCountSpacing) {
@@ -57,7 +59,8 @@ private struct MenuBarLabel: View {
             PendingCopy.menuBarAccessibilityLabel(
                 count: pendingCount,
                 showsCount: showsPendingCount,
-                needsAttention: needsAttention
+                needsAttention: needsAttention,
+                needsSignIn: needsSignIn
             )
         )
     }

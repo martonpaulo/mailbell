@@ -19,6 +19,7 @@ final class AppState: ObservableObject {
     @Published private(set) var pendingCountsByAccountID: [UUID: Int] = [:]
     @Published private(set) var menuBarIconSystemImage = MenuBarIcon.idle
     @Published private(set) var needsAttention = false
+    @Published private(set) var needsSignIn = false
     @Published private(set) var isMarkingAllAsRead = false
     @Published private(set) var bulkActionMessage: String?
     @Published private(set) var showPendingCount: Bool
@@ -47,6 +48,7 @@ final class AppState: ObservableObject {
         pendingCountsByAccountID = supervisor.emailStore.pendingCountsByAccountID
         menuBarIconSystemImage = supervisor.menuBarIconSystemImage
         needsAttention = supervisor.needsAttention
+        needsSignIn = supervisor.needsSignIn
         oauthSetupMessage = supervisor.oauthSetupMessage
         lastError = supervisor.accountStoreError
 
@@ -129,6 +131,7 @@ final class AppState: ObservableObject {
         pendingCountsByAccountID = supervisor.emailStore.pendingCountsByAccountID
         menuBarIconSystemImage = supervisor.menuBarIconSystemImage
         needsAttention = supervisor.needsAttention
+        needsSignIn = supervisor.needsSignIn
     }
 
     func setPlayNotificationSounds(_ isEnabled: Bool) {
@@ -286,6 +289,7 @@ final class AppState: ObservableObject {
         pendingCountsByAccountID = supervisor.emailStore.pendingCountsByAccountID
         menuBarIconSystemImage = supervisor.menuBarIconSystemImage
         needsAttention = supervisor.needsAttention
+        needsSignIn = supervisor.needsSignIn
     }
 
     func quit() {
@@ -306,6 +310,7 @@ extension AppState: AccountSupervisorDelegate {
         pendingCountsByAccountID = supervisor.emailStore.pendingCountsByAccountID
         menuBarIconSystemImage = supervisor.menuBarIconSystemImage
         needsAttention = supervisor.needsAttention
+        needsSignIn = supervisor.needsSignIn
         oauthSetupMessage = supervisor.oauthSetupMessage
         if let accountStoreError = supervisor.accountStoreError {
             lastError = accountStoreError

@@ -47,10 +47,17 @@ enum PendingCopy {
     static func menuBarAccessibilityLabel(
         count: Int,
         showsCount: Bool = true,
-        needsAttention: Bool = false
+        needsAttention: Bool = false,
+        needsSignIn: Bool = false
     ) -> String {
-        if needsAttention {
+        // Only say "sign in" when signing in is the remedy. A generic account
+        // error is recovered with Reconnect, and naming the wrong action is
+        // worse for someone who cannot see the icon than naming none.
+        if needsSignIn {
             return "Mailbell, sign in needed"
+        }
+        if needsAttention {
+            return "Mailbell, account needs attention"
         }
         guard showsCount, count > 0 else { return "Mailbell" }
         return "Mailbell, \(count) \(count == 1 ? "message" : "messages") awaiting review"

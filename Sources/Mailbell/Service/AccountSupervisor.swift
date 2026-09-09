@@ -118,6 +118,10 @@ final class AccountSupervisor {
         accountStates.contains { $0.account.isEnabled && $0.status.needsAttention }
     }
 
+    var needsSignIn: Bool {
+        accountStates.contains { $0.account.isEnabled && $0.status.needsSignIn }
+    }
+
     var menuBarIconSystemImage: String {
         MenuBarIcon.systemImage(needsAttention: needsAttention, hasPendingItems: emailStore.hasItems)
     }

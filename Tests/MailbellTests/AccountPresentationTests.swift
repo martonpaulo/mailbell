@@ -2,6 +2,38 @@
 import XCTest
 
 final class AccountPresentationTests: XCTestCase {
+    // MARK: - Menu bar accessibility label (#30)
+
+    func testTheLabelSaysSignInOnlyWhenSigningInIsTheRemedy() {
+        XCTAssertEqual(
+            PendingCopy.menuBarAccessibilityLabel(count: 0, needsAttention: true, needsSignIn: true),
+            "Mailbell, sign in needed"
+        )
+    }
+
+    func testAGenericAccountErrorDoesNotPrescribeSigningIn() {
+        // MonitorStatus.error also needs attention, but Reconnect is its remedy.
+        let label = PendingCopy.menuBarAccessibilityLabel(count: 0, needsAttention: true, needsSignIn: false)
+
+        XCTAssertEqual(label, "Mailbell, account needs attention")
+        XCTAssertFalse(label.lowercased().contains("sign in"))
+    }
+
+    func testAttentionStillOutranksTheReviewCount() {
+        XCTAssertEqual(
+            PendingCopy.menuBarAccessibilityLabel(count: 5, needsAttention: true, needsSignIn: false),
+            "Mailbell, account needs attention"
+        )
+    }
+
+    func testOnlyReauthRequiredCountsAsNeedingSignIn() {
+        XCTAssertTrue(MonitorStatus.reauthRequired.needsSignIn)
+        XCTAssertFalse(MonitorStatus.error.needsSignIn)
+        XCTAssertTrue(MonitorStatus.error.needsAttention, "still attention, just not sign-in")
+        XCTAssertFalse(MonitorStatus.connected.needsSignIn)
+        XCTAssertFalse(MonitorStatus.signedOut.needsSignIn)
+    }
+
     func testRecoveryActionMapping() {
         XCTAssertNil(AccountRecoveryAction.needed(for: state(status: .connected)))
         XCTAssertNil(AccountRecoveryAction.needed(for: state(status: .reconnecting)))
