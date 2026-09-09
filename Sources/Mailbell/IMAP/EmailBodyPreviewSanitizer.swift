@@ -53,7 +53,9 @@ enum EmailBodyPreviewSanitizer {
             imageMarker: imageMarker,
             attachmentMarker: attachmentMarker
         )
-        let punctuationTightened = replacing(pattern: "\\s+([\\.,;:!?])", in: withPreviewTokens, with: "$1")
+        // Before truncation, so stuffing cannot consume the teaser budget.
+        let withoutPadding = PreviewNoiseNormalizer.removePaddingRuns(from: withPreviewTokens)
+        let punctuationTightened = replacing(pattern: "\\s+([\\.,;:!?])", in: withoutPadding, with: "$1")
         let collapsed = punctuationTightened
             .replacingOccurrences(of: "\u{00a0}", with: " ")
             .components(separatedBy: .whitespacesAndNewlines)
