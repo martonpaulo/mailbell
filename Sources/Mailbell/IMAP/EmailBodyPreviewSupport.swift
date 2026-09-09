@@ -187,6 +187,8 @@ private struct MIMEPartHeaders {
 }
 
 enum Base64PreviewDecoder {
+    private static let minimumFoldWidth = 32
+
     static func decodePayloadsIfUseful(_ text: String, imageMarker: String) -> String {
         let normalized = text.replacingOccurrences(of: "\r\n", with: "\n")
         let lines = normalized.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
@@ -207,6 +209,12 @@ enum Base64PreviewDecoder {
             let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
             if isBase64PayloadLine(trimmed) {
                 block.append(trimmed)
+            } else if let folded = foldedBase64Chunks(in: trimmed) {
+                // A transport that collapsed the CRLF folds leaves the whole
+                // payload on one line, separated by spaces.
+                flushBlock()
+                block.append(contentsOf: folded)
+                flushBlock()
             } else {
                 flushBlock()
                 output.append(line)
@@ -222,6 +230,22 @@ enum Base64PreviewDecoder {
         return containsPattern(#"^[A-Za-z0-9+/_-]+={0,2}$"#, in: line)
     }
 
+    /// Base64 folded on spaces rather than CRLF. Ordinary prose is also made of
+    /// alphabet characters and spaces, so this demands the shape only a folded
+    /// payload has: several chunks of one fixed, wide width. A sentence never
+    /// has uniform 32-character words.
+    private static func foldedBase64Chunks(in line: String) -> [String]? {
+        let chunks = line.split(separator: " ").map(String.init)
+        guard chunks.count >= 2 else { return nil }
+        guard chunks.allSatisfy({ containsPattern(#"^[A-Za-z0-9+/_-]+={0,2}$"#, in: $0) }) else { return nil }
+
+        let width = chunks[0].count
+        guard width >= minimumFoldWidth else { return nil }
+        guard chunks.dropLast().allSatisfy({ $0.count == width }) else { return nil }
+        guard let last = chunks.last, last.count <= width else { return nil }
+        return chunks
+    }
+
     private static func decodedPreviewReplacement(for lines: [String], imageMarker: String) -> String? {
         let joined = lines.joined()
         guard joined.count >= 24 else { return nil }
@@ -229,10 +253,16 @@ enum Base64PreviewDecoder {
         let standardBase64 = joined
             .replacingOccurrences(of: "-", with: "+")
             .replacingOccurrences(of: "_", with: "/")
-        let remainder = standardBase64.count % 4
+        // A bounded BODY.PEEK slice cuts the payload anywhere. One leftover
+        // character encodes nothing and admits no valid padding, so dropping it
+        // is what makes a truncated block decodable instead of leaking whole.
+        let aligned = standardBase64.count % 4 == 1
+            ? String(standardBase64.dropLast())
+            : standardBase64
+        let remainder = aligned.count % 4
         let padded = remainder == 0
-            ? standardBase64
-            : standardBase64 + String(repeating: "=", count: 4 - remainder)
+            ? aligned
+            : aligned + String(repeating: "=", count: 4 - remainder)
 
         guard let data = Data(base64Encoded: padded, options: [.ignoreUnknownCharacters]) else {
             return nil
