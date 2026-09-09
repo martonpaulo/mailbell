@@ -9,7 +9,11 @@ enum EmailBodyPreviewSanitizer {
     private static let attachmentMarker = "[ATT]"
 
     static func preview(from data: Data, limit: Int = maximumPreviewLength) -> String? {
+        // Mail that declares iso-8859-1 is usually Windows-1252 in practice, and
+        // Latin-1 drops its 0x80-0x9F range: the euro sign and curly quotes
+        // vanish from the preview rather than round-tripping.
         let text = String(data: data, encoding: .utf8)
+            ?? String(data: data, encoding: .windowsCP1252)
             ?? String(data: data, encoding: .isoLatin1)
             ?? ""
         return preview(from: text, limit: limit)
