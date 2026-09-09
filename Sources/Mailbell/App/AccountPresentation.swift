@@ -33,6 +33,21 @@ enum PendingCopy {
     static let dismissAllActionTitle = "Dismiss All"
     static let reviewSectionTitle = "Awaiting Review"
 
+    /// Says what the queue holds without inventing a count of the mail still in
+    /// Gmail, which Mailbell has no bounded way to know.
+    static func overflowNotice(hiddenConversations: Int) -> String? {
+        guard hiddenConversations > 0 else { return nil }
+        let conversations = hiddenConversations == 1 ? "conversation" : "conversations"
+        return "\(hiddenConversations) more \(conversations) awaiting review. Open Gmail to see the rest."
+    }
+
+    /// Bulk actions reach every retained message, including the ones the menu
+    /// has no room to show, so the count is stated before the action runs.
+    static func bulkActionScope(retainedMessages: Int) -> String {
+        let messages = retainedMessages == 1 ? "message" : "messages"
+        return "Applies to \(retainedMessages) retained \(messages)"
+    }
+
     static func reviewCountText(_ count: Int) -> String {
         switch count {
         case 0:

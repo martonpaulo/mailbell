@@ -17,7 +17,7 @@ A missing decision is a review failure.
 - Preserve existing user choices on upgrade; migrate a stored value only when the
   old representation is invalid.
 
-## Approved queue limits — pending implementation
+## Queue limits
 
 The owner delegated the retention decision on 2026-09-09. This is the desired
 contract in [issue #27](https://github.com/martonpaulo/mailbell/issues/27), not a
@@ -61,11 +61,10 @@ actions likewise affect only captured retained members, preserving issue #22's
 late-arrival protections. Explicit dismissals remain suppressed while their
 bounded history records exist; eviction is never treated as dismissal.
 
-These are initial product budgets, not benchmark-derived performance guarantees.
-Validate long conversations, many singleton groups, independent accounts,
-overflow/recovery, notifications, and synthetic 100/1,000/10,000-message inputs
-before release. Define the fixed limits once in centralized defaults when
-implemented; add no preference keys or Restore Defaults entries for them.
+These are product budgets, not benchmark-derived performance guarantees. They
+live once in `PendingQueueBudget` and are deliberately not preferences: there is
+no legitimate second answer for a user to choose, so they carry no settings key
+and no Restore Defaults entry.
 
 ## Current defaults
 

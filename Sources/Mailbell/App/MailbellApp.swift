@@ -134,6 +134,13 @@ struct MenuContent: View {
                     if let error = accountState.webmailOpenError {
                         Text(PendingCopy.webmailErrorPrefix + error)
                     }
+                    if let notice = PendingCopy.overflowNotice(
+                        hiddenConversations: appState.hiddenConversationCount(
+                            accountID: accountState.account.id
+                        )
+                    ) {
+                        Text(notice)
+                    }
                     if let action = AccountRecoveryAction.needed(for: accountState) {
                         Button(action.title) {
                             perform(action, accountID: accountState.account.id)
@@ -203,6 +210,8 @@ struct MenuContent: View {
     /// whole-queue commands are never sitting loose beside per-message ones.
     private var bulkActionsSection: some View {
         Menu {
+            Text(PendingCopy.bulkActionScope(retainedMessages: appState.retainedMessageCount))
+            Divider()
             Button {
                 appState.markAllEmailsAsRead()
             } label: {

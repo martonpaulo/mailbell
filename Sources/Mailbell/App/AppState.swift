@@ -162,6 +162,14 @@ final class AppState: ObservableObject {
         }
     }
 
+    func hiddenConversationCount(accountID: UUID) -> Int {
+        supervisor.hiddenConversationCount(accountID: accountID)
+    }
+
+    var retainedMessageCount: Int {
+        supervisor.retainedMessageCount
+    }
+
     func openEmail(id: String) {
         clearBulkActionResult()
         Task {

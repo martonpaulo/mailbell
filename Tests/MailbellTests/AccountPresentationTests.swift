@@ -2,6 +2,34 @@
 import XCTest
 
 final class AccountPresentationTests: XCTestCase {
+    // MARK: - Retained window disclosure (#27)
+
+    func testOverflowNoticeAppearsOnlyWhenConversationsAreHidden() {
+        XCTAssertNil(PendingCopy.overflowNotice(hiddenConversations: 0))
+        XCTAssertEqual(
+            PendingCopy.overflowNotice(hiddenConversations: 1),
+            "1 more conversation awaiting review. Open Gmail to see the rest."
+        )
+        XCTAssertEqual(
+            PendingCopy.overflowNotice(hiddenConversations: 12),
+            "12 more conversations awaiting review. Open Gmail to see the rest."
+        )
+    }
+
+    func testOverflowNoticeDoesNotInventATotalForGmail() {
+        // Mailbell has no bounded way to know how much mail is left in Gmail,
+        // so the notice must speak only about what it retains.
+        let notice = PendingCopy.overflowNotice(hiddenConversations: 12) ?? ""
+
+        XCTAssertFalse(notice.lowercased().contains("total"))
+        XCTAssertTrue(notice.contains("Open Gmail"), "the notice carries its recovery action")
+    }
+
+    func testBulkActionScopeNamesEveryRetainedMessage() {
+        XCTAssertEqual(PendingCopy.bulkActionScope(retainedMessages: 1), "Applies to 1 retained message")
+        XCTAssertEqual(PendingCopy.bulkActionScope(retainedMessages: 240), "Applies to 240 retained messages")
+    }
+
     // MARK: - Menu bar accessibility label (#30)
 
     func testTheLabelSaysSignInOnlyWhenSigningInIsTheRemedy() {
