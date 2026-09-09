@@ -114,6 +114,9 @@ References:
 
 ## 🖼️ Settings
 
+<img src="docs/assets/screenshots/general.webp" width="788"
+  alt="Mailbell's General settings: a menu bar count toggle, Open Mailbell at login, automatic update checks with the installed version, and Restore Defaults.">
+
 Four native panes: **General** (menu bar count, start at login, Restore
 Defaults, updates), **Notifications** (permission state and a test notification),
 **Accounts** (connect, status, reconnect, remove, Spam and per-account browser
