@@ -139,7 +139,7 @@ struct SettingsView: View {
 
     func settingsFooter(_ text: String) -> some View {
         Text(text)
-            .font(.footnote)
+            .font(Token.Font.footnote)
             .foregroundStyle(.secondary)
             .textSelection(.enabled)
     }
