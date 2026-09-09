@@ -19,6 +19,11 @@ enum MenuBarIcon {
 enum PendingCopy {
     static let menuSectionTitle = "Awaiting Review"
     static let emptyMenuTitle = "No messages"
+    /// A bulk action closes the menu, so its outcome has to survive until the
+    /// menu is opened again — otherwise a partial result is never seen.
+    static let lastActionPrefix = "Last action: "
+    static let signInErrorPrefix = "Sign-in failed: "
+    static let webmailErrorPrefix = "Opening Gmail: "
     static let openActionTitle = "Open"
     static let markAsReadActionTitle = "Mark as Read"
     static let dismissActionTitle = "Dismiss"

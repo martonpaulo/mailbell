@@ -102,6 +102,10 @@ enum SettingsCopy {
         static let addAccount = "Add Gmail Account…"
         static let checkForNewMail = "Check for New Mail"
         static let openGmail = "Open Gmail"
+        /// A fallback open still clears the pending item, so the routing
+        /// problem has to be visible rather than inferred from mail opening in
+        /// the wrong browser.
+        static let webmailOpenIssueTitle = "Last Open Gmail"
         static let reconnect = "Reconnect"
         static let signInAgain = "Sign in Again…"
         static let removeAccount = "Remove Account…"

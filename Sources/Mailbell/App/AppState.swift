@@ -160,19 +160,29 @@ final class AppState: ObservableObject {
     }
 
     func openEmail(id: String) {
+        clearBulkActionResult()
         Task {
             await supervisor.openEmail(id: id)
         }
     }
 
     func markEmailAsRead(id: String) {
+        clearBulkActionResult()
         Task {
             await supervisor.markEmailAsRead(id: id)
         }
     }
 
     func dismissEmail(id: String) {
+        clearBulkActionResult()
         supervisor.dismissEmail(id: id)
+    }
+
+    /// A per-message action makes a whole-queue result stale. Clearing it is
+    /// what stops "Marked 5 as read" from sitting above a queue it no longer
+    /// describes, or beside a different account's later action.
+    private func clearBulkActionResult() {
+        bulkActionMessage = nil
     }
 
     var hasPendingEmails: Bool {

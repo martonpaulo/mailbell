@@ -106,6 +106,14 @@ extension SettingsView {
                 chromeProfiles: chromeProfiles
             )
 
+            // A fallback open still clears the pending item, so the routing
+            // warning has to be visible somewhere the user can act on it.
+            if let error = state.webmailOpenError {
+                SettingsRow(title: SettingsCopy.Accounts.webmailOpenIssueTitle, description: error) {
+                    EmptyView()
+                }
+            }
+
             accountActionRow(for: state)
         } header: {
             Text(state.account.email)

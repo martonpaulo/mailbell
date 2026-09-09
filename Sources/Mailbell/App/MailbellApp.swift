@@ -109,6 +109,9 @@ struct MenuContent: View {
             Text("This build is missing its Google OAuth configuration")
             Text(setupMessage)
         }
+        if let error = appState.lastError {
+            Text(PendingCopy.signInErrorPrefix + error)
+        }
         Button(appState.isAuthorizing ? "Authorizing…" : "Add Gmail Account") {
             appState.addGoogleAccount()
         }
@@ -124,6 +127,9 @@ struct MenuContent: View {
                     }
                     Button("Open Gmail") {
                         appState.openGmail(accountID: accountState.account.id)
+                    }
+                    if let error = accountState.webmailOpenError {
+                        Text(PendingCopy.webmailErrorPrefix + error)
                     }
                     if let action = AccountRecoveryAction.needed(for: accountState) {
                         Button(action.title) {
@@ -143,6 +149,9 @@ struct MenuContent: View {
 
     private var emailStoreSection: some View {
         Section(PendingCopy.menuSectionTitle) {
+            if let message = appState.bulkActionMessage {
+                Text(PendingCopy.lastActionPrefix + message)
+            }
             if appState.emailStoreItems.isEmpty {
                 Text(PendingCopy.emptyMenuTitle)
             } else {
