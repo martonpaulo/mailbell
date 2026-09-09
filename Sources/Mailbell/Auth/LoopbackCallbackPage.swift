@@ -54,11 +54,15 @@ private struct CallbackPageContent {
         switch state {
         case .success:
             stateClass = state.dataState
-            eyebrow = "Google sign-in complete"
-            title = "Mailbell connected"
-            message = "You can close this tab and return to Mailbell."
+            // This page is written when the browser hands the code back, before
+            // token exchange, identity lookup and account persistence have run.
+            // It can only honestly confirm the handoff.
+            eyebrow = "Google sent Mailbell back"
+            title = "Handing off to Mailbell"
+            message = "You can close this tab. Mailbell is finishing the sign-in now."
             detailsHTML = ""
-            footnote = "Mailbell will continue from the menu bar. No email content is shown on this page."
+            footnote = "Open Mailbell from the menu bar to confirm the account connected. "
+                + "No email content is shown on this page."
             badgeSVG = """
             <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
                 <path d="M9 16.5l4.4 4.4L23 11.5"></path>

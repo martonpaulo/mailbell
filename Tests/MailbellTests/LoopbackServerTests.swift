@@ -24,7 +24,15 @@ final class LoopbackServerTests: XCTestCase {
         let callback = try await waitTask.value
 
         XCTAssertEqual(response.statusCode, 200)
-        XCTAssertTrue(response.body.contains("Mailbell connected"))
+        XCTAssertTrue(response.body.contains("Handing off to Mailbell"))
+        // The page is written before token exchange runs, so it must not claim
+        // the account is connected or that monitoring has started.
+        XCTAssertFalse(response.body.contains("Mailbell connected"))
+        XCTAssertFalse(response.body.lowercased().contains("sign-in complete"))
+        XCTAssertTrue(
+            response.body.contains("Open Mailbell from the menu bar to confirm"),
+            "the page must point at where the real outcome is visible"
+        )
         XCTAssertTrue(response.body.contains("data-state=\"success\""))
         XCTAssertTrue(response.body.contains(":root[data-state=\"success\"]"))
         XCTAssertTrue(response.body.contains("--state-accent: #248a3d"))
