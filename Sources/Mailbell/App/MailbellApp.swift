@@ -33,6 +33,11 @@ struct MailbellApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        guard ScreenshotMode.isEnabled else { return }
+        // An accessory app has no Dock icon to click, so the window has to be
+        // brought forward for capture. Ordinary launches never reach this.
+        NSApp.setActivationPolicy(.regular)
+        ScreenshotMode.pinEnvironment()
     }
 
     func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {
@@ -41,6 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 private struct MenuBarLabel: View {
+    @Environment(\.openSettings) private var openSettings
     let systemImage: String
     let pendingCount: Int
     let showsPendingCount: Bool
@@ -63,6 +69,19 @@ private struct MenuBarLabel: View {
                 needsSignIn: needsSignIn
             )
         )
+        .task {
+            openSettingsForCapture()
+        }
+    }
+}
+
+private extension MenuBarLabel {
+    /// Screenshot mode opens Settings through the same action the menu uses, so
+    /// the captured window is the one users actually see.
+    func openSettingsForCapture() {
+        guard ScreenshotMode.isEnabled else { return }
+        openSettings()
+        ScreenshotMode.prepareWhenReady()
     }
 }
 

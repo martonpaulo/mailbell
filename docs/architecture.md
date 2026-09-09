@@ -101,3 +101,27 @@ server.
 
 Restore Defaults clears the last row only. Accounts, tokens, checkpoints, and
 handled history are user data, not preferences.
+
+## Screenshots
+
+Screenshots are captured from the **real on-screen window**, never rendered
+offscreen: an offscreen bitmap loses the drop shadow, the corner radius, the
+material and the elevation, and raising the scale factor does not bring them
+back.
+
+Mailbell is an accessory app, so nothing else on the system can reliably say
+which window is its. `Mailbell --screenshot-mode` therefore opens Settings
+through the same action the menu uses, pins the window size and the selected
+pane so the result does not depend on the developer's machine, activates the
+window, and only then prints its own `CGWindowID` followed by a readiness
+marker. A capture taken before that marker shows an inactive window: grey
+traffic lights and dimmed controls.
+
+`Scripts/capture_screenshots.sh` consumes that output and runs
+`screencapture -l<windowid>`. It never passes `-o`, which is the flag that
+strips the shadow, and it refuses to run without a Retina display, because a 1x
+display silently halves the resolution. Output is lossless WebP: identical
+pixels, the shadow's alpha preserved, and roughly 70% smaller than the PNG.
+
+The Accounts pane is not captured by default. It shows the connected address,
+and a published screenshot would carry a real person's email.
