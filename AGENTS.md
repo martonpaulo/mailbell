@@ -199,6 +199,9 @@ Preserve the IMAP IDLE reconnect model:
   fetched and offered to the pending store.
 - Threaded pending items count once in the menu when Gmail thread IDs exist;
   notifications remain per message.
+- A read action fixes its set of members before the server round trip and
+  finalizes only that set. A reply that joins the thread while the request is in
+  flight was never marked on the server, so it stays pending.
 - Unread reconciliation removes items read directly in Gmail Web and may admit
   bounded unknown unread items missed while offline. Its bounded window skips
   what is already pending **and** what has already been handled, so a wholly

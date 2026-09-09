@@ -47,27 +47,27 @@ extension AccountSupervisor {
             guard !accountGroups.isEmpty else { continue }
 
             var identities: [IMAPMessageIdentity] = []
-            var markableGroupIDs: [String] = []
+            var submissions: [ReadSubmission] = []
             for group in accountGroups {
-                let groupIdentities = emailStore.imapIdentitiesInGroup(containing: group.id)
-                if groupIdentities.isEmpty {
+                let submission = emailStore.readSubmission(containing: group.id)
+                if submission.isEmpty {
                     failed += 1
                     continue
                 }
-                identities.append(contentsOf: groupIdentities)
-                markableGroupIDs.append(group.id)
+                identities.append(contentsOf: submission.identities)
+                submissions.append(submission)
             }
             guard !identities.isEmpty else { continue }
 
             do {
                 let config = try configProvider()
                 try await emailReadMarker(account, config, identities)
-                for id in markableGroupIDs {
-                    try emailStore.markRead(id: id)
+                for submission in submissions {
+                    try emailStore.markRead(submission: submission)
                 }
-                marked += markableGroupIDs.count
+                marked += submissions.count
             } catch {
-                failed += markableGroupIDs.count
+                failed += submissions.count
                 applyMarkAsReadFailure(error, accountID: account.id)
             }
         }

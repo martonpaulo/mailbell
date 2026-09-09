@@ -99,6 +99,14 @@ private struct EmailStoreRecord: Codable, Equatable {
     var uid: Int?
 }
 
+/// The pending members handed to one server read request, fixed at capture time.
+struct ReadSubmission: Equatable {
+    let itemIDs: [String]
+    let identities: [IMAPMessageIdentity]
+
+    var isEmpty: Bool { identities.isEmpty }
+}
+
 /// A message plus where it lived when Mailbell handled it.
 struct HandledMessage: Equatable {
     let id: String
@@ -451,11 +459,19 @@ final class EmailStore {
         return firstItem(groupID: item.groupID)
     }
 
-    func imapIdentitiesInGroup(containing id: String) -> [IMAPMessageIdentity] {
-        guard let item = itemsByID[id] else { return [] }
-        return itemsByID.values
-            .filter { $0.groupID == item.groupID }
-            .compactMap(\.imapIdentity)
+    /// The members of a group, captured before the server round trip.
+    ///
+    /// Marking as read awaits the network, and a reply can join the same thread
+    /// while it is suspended. Finalizing "the group" on completion would then
+    /// record a message the server was never asked about, so the submitted set
+    /// is fixed here and carried through.
+    func readSubmission(containing id: String) -> ReadSubmission {
+        guard let item = itemsByID[id] else { return ReadSubmission(itemIDs: [], identities: []) }
+        let members = itemsByID.values.filter { $0.groupID == item.groupID }
+        return ReadSubmission(
+            itemIDs: members.map(\.id),
+            identities: members.compactMap(\.imapIdentity)
+        )
     }
 
     func dismiss(id: String) throws {
@@ -466,8 +482,17 @@ final class EmailStore {
         try removeGroup(containing: id, disposition: .opened)
     }
 
-    func markRead(id: String) throws {
-        try removeGroup(containing: id, disposition: .markedRead)
+    /// Finalizes exactly the members the server was asked about. Anything that
+    /// joined the thread during the round trip stays pending, because nothing
+    /// marked it read.
+    func markRead(submission: ReadSubmission) throws {
+        guard !submission.itemIDs.isEmpty else { return }
+        let handled = submission.itemIDs.map { id in
+            itemsByID[id].map(handledMessage) ?? HandledMessage(id: id, identity: nil)
+        }
+        try persistence.mark(handled, disposition: .markedRead)
+        let submitted = Set(submission.itemIDs)
+        itemsByID = itemsByID.filter { id, _ in !submitted.contains(id) }
     }
 
     /// Dismisses every pending item in one persistence write and returns how

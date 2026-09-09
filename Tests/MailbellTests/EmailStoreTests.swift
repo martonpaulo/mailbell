@@ -63,7 +63,7 @@ final class EmailStoreTests: XCTestCase {
 
         let store = makeStore(defaults: defaults)
         XCTAssertTrue(try store.admit(header: header, account: account))
-        try store.markRead(id: id)
+        try store.markRead(submission: store.readSubmission(containing: id))
 
         let relaunchedStore = makeStore(defaults: defaults)
         XCTAssertFalse(try relaunchedStore.admit(header: header, account: account))
@@ -82,7 +82,7 @@ final class EmailStoreTests: XCTestCase {
         let store = makeStore(defaults: defaults)
         try store.dismiss(id: EmailStoreIdentity.id(accountID: account.id, header: dismissedHeader))
         try store.markOpened(id: EmailStoreIdentity.id(accountID: account.id, header: openedHeader))
-        try store.markRead(id: EmailStoreIdentity.id(accountID: account.id, header: markedReadHeader))
+        try store.markRead(submission: store.readSubmission(containing: EmailStoreIdentity.id(accountID: account.id, header: markedReadHeader)))
 
         let relaunchedStore = makeStore(defaults: defaults)
         let didChange = try relaunchedStore.reconcileUnread(
@@ -423,8 +423,8 @@ final class EmailStoreTests: XCTestCase {
         try store.dismiss(id: id)
         try store.markOpened(id: id)
         try store.markOpened(id: id)
-        try store.markRead(id: id)
-        try store.markRead(id: id)
+        try store.markRead(submission: store.readSubmission(containing: id))
+        try store.markRead(submission: store.readSubmission(containing: id))
 
         XCTAssertTrue(store.items.isEmpty)
 

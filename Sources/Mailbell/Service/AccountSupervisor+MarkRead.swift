@@ -3,8 +3,8 @@ import Foundation
 extension AccountSupervisor {
     func markEmailAsRead(id: String) async {
         guard let item = emailStore.item(id: id) else { return }
-        let identities = emailStore.imapIdentitiesInGroup(containing: id)
-        guard !identities.isEmpty else {
+        let submission = emailStore.readSubmission(containing: id)
+        guard !submission.isEmpty else {
             Log.error("Cannot mark email as read because the pending item has no IMAP UID.")
             return
         }
@@ -15,8 +15,8 @@ extension AccountSupervisor {
 
         do {
             let config = try configProvider()
-            try await emailReadMarker(account, config, identities)
-            try emailStore.markRead(id: id)
+            try await emailReadMarker(account, config, submission.identities)
+            try emailStore.markRead(submission: submission)
             applyEmailStoreWarning(accountID: account.id)
             publish()
         } catch {
