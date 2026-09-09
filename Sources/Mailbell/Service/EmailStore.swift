@@ -58,7 +58,10 @@ enum EmailStoreIdentity {
         if let value = normalizedMessageID(header.messageId) {
             return ("rfcMessage", value)
         }
-        return ("\(header.mailbox.rawValue).uid", String(header.uid))
+        // Last resort: a UID is only an identity inside one mailbox generation,
+        // so both are part of the key. Gmail always supplies X-GM-MSGID, so
+        // this branch is effectively unreachable for a Gmail account.
+        return ("\(header.mailbox.rawValue).uid", "\(header.uidValidity).\(header.uid)")
     }
 
     private static func normalized(_ value: String?) -> String? {

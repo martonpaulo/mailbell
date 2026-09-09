@@ -192,7 +192,10 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
                 account: account,
                 playNotificationSounds: settingsStore.playNotificationSounds
             ),
-            identifier: "mailbell.\(account.id.uuidString).\(header.uid)"
+            identifier: EmailNotificationContentBuilder.requestIdentifier(
+                accountID: account.id,
+                header: header
+            )
         )
     }
 
