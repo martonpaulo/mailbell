@@ -58,6 +58,17 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
 
     private var client: IMAPClient?
     private var runTask: Task<Void, Never>?
+    /// Which run owns this account right now.
+    ///
+    /// A run suspends on the network in several places. Cancellation alone does
+    /// not stop the resumed continuation from assigning a client or publishing
+    /// status, so every effect is gated on the run still being the current one.
+    private var runGeneration = 0
+
+    /// Suspension seam. Production goes straight to the token provider; a test
+    /// substitutes a call it can hold open at the exact point the old run has
+    /// to be overtaken.
+    var accessTokenSource: (@Sendable () async throws -> String)?
 
     /// IDLE re-arm window: below the 29-minute IMAP limit (RFC 2177).
     private let idleTimeout: TimeInterval = 25 * 60
@@ -89,14 +100,18 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
         runTask?.cancel()
         client?.disconnect()
         client = nil
+        runGeneration &+= 1
+        let generation = runGeneration
         runTask = Task { [weak self] in
-            await self?.runLoop()
+            await self?.runLoop(generation: generation)
         }
     }
 
     func stop(clearSession: Bool = false) {
         runTask?.cancel()
         runTask = nil
+        // Retires the running generation, so anything it resumes into is inert.
+        runGeneration &+= 1
         client?.disconnect()
         client = nil
         if clearSession {
@@ -133,25 +148,43 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
 
     // MARK: - Run loop (state machine)
 
-    private func runLoop() async {
+    private func runLoop(generation: Int) async {
         var backoff: TimeInterval = 1
-        while !Task.isCancelled {
+        while !Task.isCancelled, isCurrentRun(generation) {
             do {
-                notifyStatus(.connecting)
+                notifyStatus(.connecting, generation: generation)
                 let accessToken = try await validAccessToken()
+                // The first check that matters: token retrieval suspends, and a
+                // stop or restart during it must not let this run take
+                // ownership of the account again.
+                guard isCurrentRun(generation) else { return }
                 let email = account.email
 
                 let client = IMAPClient()
                 self.client = client
                 try await client.connect()
+                guard isCurrentRun(generation) else {
+                    client.disconnect()
+                    return
+                }
                 try await authenticate(client: client, email: email, accessToken: accessToken)
                 let mailboxes = try await monitoredMailboxes(client: client)
+                guard isCurrentRun(generation) else {
+                    client.disconnect()
+                    return
+                }
+                // Guarded before any durable effect: checkpoints move and
+                // messages are admitted past this point.
                 try await reconcileCheckpoints(client: client, mailboxes: mailboxes)
                 try await reconcileUnreadState(client: client, mailboxes: mailboxes)
                 try await selectInbox(client: client)
+                guard isCurrentRun(generation) else {
+                    client.disconnect()
+                    return
+                }
 
                 backoff = 1
-                notifyStatus(.connected)
+                notifyStatus(.connected, generation: generation)
                 try await idleLoop(client: client, mailboxes: mailboxes)
             } catch let error as OAuthClient.OAuthError {
                 switch error {
@@ -384,7 +417,10 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     // MARK: - Tokens
 
     private func validAccessToken() async throws -> String {
-        try await tokenProvider.validAccessToken()
+        if let accessTokenSource {
+            return try await accessTokenSource()
+        }
+        return try await tokenProvider.validAccessToken()
     }
 
     private func refreshAccessToken() async throws -> String {
@@ -447,6 +483,20 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
 
     private func notifyStatus(_ status: MonitorStatus, error: String? = nil) {
         delegate?.monitor(account.id, didChangeStatus: status, error: error)
+    }
+
+    /// A retired run must not publish status; its view of the account is stale.
+    private func notifyStatus(_ status: MonitorStatus, error: String? = nil, generation: Int) {
+        guard isCurrentRun(generation) else { return }
+        notifyStatus(status, error: error)
+    }
+
+    func isCurrentRun(_ generation: Int) -> Bool {
+        runGeneration == generation
+    }
+
+    var currentRunGeneration: Int {
+        runGeneration
     }
 
     private func monitoredMailboxes(client: IMAPClient) async throws -> [MonitoredMailbox] {

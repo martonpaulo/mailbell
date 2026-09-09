@@ -221,6 +221,10 @@ Preserve the IMAP IDLE reconnect model:
 - Transient network failures may retry with bounded backoff but must not mask
   credential failure.
 - Network recovery and sleep/wake force reconnects without broad polling.
+- One run owns an account at a time. A run suspends on the network repeatedly,
+  and cancelling its task does not stop the resumed continuation, so every
+  effect — owning a client, publishing status, moving checkpoints, admitting
+  messages — is gated on the run still being the current generation.
 - Do not introduce content polling as the new-mail mechanism; the IDLE re-arm
   timer is not a polling loop. Keep re-arm below Gmail's server limit.
 
