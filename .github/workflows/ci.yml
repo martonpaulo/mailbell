@@ -61,6 +61,12 @@ jobs:
       - name: Repository validation
         run: bash Scripts/validate.sh
 
+      # Not preinstalled on the macOS runner image. Installing it costs about a
+      # minute, which is still a fraction of the build this job exists to run
+      # without.
+      - name: Install SwiftLint
+        run: command -v swiftlint >/dev/null 2>&1 || brew install swiftlint
+
       - name: Lint
         run: swiftlint lint --quiet --strict Sources Tests
 
