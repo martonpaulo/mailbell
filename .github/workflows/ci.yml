@@ -9,8 +9,66 @@ permissions:
   contents: read
 
 jobs:
+  # Which of the two tiers below has anything to look at. Kept as a job rather
+  # than a workflow-level `paths:` filter so the cheap checks still run — and
+  # still report — on a documentation-only change.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Decide whether the build has anything to observe
+        id: filter
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+
+          # A first push, or a force push that rewrote history, gives no usable
+          # base. Build rather than guess.
+          if [ -z "${BASE}" ] || [ "${BASE}" = "0000000000000000000000000000000000000000" ] \
+              || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
+            echo "no usable base commit; running the full build"
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed="$(git diff --name-only "${BASE}" "${GITHUB_SHA}")"
+          echo "changed files:"
+          echo "${changed}"
+
+          # Everything the compiler, the test suite or packaging can see. The
+          # workflow itself is included: a change to how the build runs has to
+          # be able to run the build.
+          if echo "${changed}" | grep -qE '^(Sources/|Tests/|Scripts/|Resources/|Package\.swift|Package\.resolved|Makefile|\.swiftlint\.yml|\.github/workflows/ci\.yml)'; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Seconds, and never skipped: these are the checks that catch a stale claim in
+  # documentation or a broken repository invariant, which is exactly the kind of
+  # change that has no code in it.
+  validate:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Repository validation
+        run: bash Scripts/validate.sh
+
+      - name: Lint
+        run: swiftlint lint --quiet --strict Sources Tests
+
+  # Minutes. Only when something it can actually observe has changed.
   build-and-test:
     runs-on: macos-latest
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     steps:
       - uses: actions/checkout@v7
 
@@ -19,6 +77,3 @@ jobs:
 
       - name: Tests
         run: swift test
-
-      - name: Repository validation
-        run: bash Scripts/validate.sh
