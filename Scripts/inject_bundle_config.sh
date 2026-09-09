@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-  echo "usage: $0 [--version X.Y.Z --build-number N] <Info.plist>|--check" >&2
+  echo "usage: $0 [--version X.Y.Z --build-number N] [--check] <Info.plist>" >&2
 }
 
 VERSION=""
@@ -41,14 +41,15 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ "${CHECK_ONLY}" -eq 1 && -n "${PLIST_PATH}" ]]; then
-  usage
-  exit 2
-fi
-
-if [[ "${CHECK_ONLY}" -eq 0 && -z "${PLIST_PATH}" ]]; then
-  usage
-  exit 2
+# The plist owns the bundle identity, so preflight reads it too rather than
+# reporting an identifier the produced app would not have.
+if [[ -z "${PLIST_PATH}" ]]; then
+  if [[ "${CHECK_ONLY}" -eq 1 ]]; then
+    PLIST_PATH="$(cd "$(dirname "$0")/.." && pwd)/Resources/Info.plist"
+  else
+    usage
+    exit 2
+  fi
 fi
 
 if [[ -n "${VERSION}" && -z "${BUILD_NUMBER}" ]] || [[ -z "${VERSION}" && -n "${BUILD_NUMBER}" ]]; then
@@ -68,7 +69,6 @@ from pathlib import Path
 CLIENT_ID_KEY = "MAILBELL_GOOGLE_CLIENT_ID"
 CLIENT_SECRET_KEY = "MAILBELL_GOOGLE_CLIENT_SECRET"
 BUNDLE_ID_KEY = "MAILBELL_BUNDLE_ID"
-DEFAULT_BUNDLE_ID = "dev.mailbell.local"
 PRODUCT_NAME = "Mailbell"
 CHECK_ONLY = sys.argv[1] == "1"
 VERSION = sys.argv[2].strip()
@@ -131,11 +131,20 @@ def validate_client_id(value):
 def validate_client_secret(value):
     return cleaned(value) or None
 
-def validate_bundle_id(value):
-    bundle_id = cleaned(value) or DEFAULT_BUNDLE_ID
-    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9.-]*", bundle_id) or "." not in bundle_id:
-        fail(f"{BUNDLE_ID_KEY} must be a reverse-DNS bundle identifier")
-    return bundle_id
+def validate_bundle_id(value, canonical):
+    """The plist owns the identity. Optional configuration may restate it, never
+    replace it: a second identifier would orphan the Keychain items and
+    UserDefaults keys derived from the first."""
+    if not canonical or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9.-]*", canonical) or "." not in canonical:
+        fail(f"the plist must already carry a reverse-DNS CFBundleIdentifier, found {canonical!r}")
+    configured = cleaned(value)
+    if configured and configured != canonical:
+        fail(
+            f"{BUNDLE_ID_KEY} is {configured!r} but this app is {canonical!r}. "
+            "Packaging never changes the bundle identifier; unset the variable "
+            "or set it to the canonical value."
+        )
+    return canonical
 
 def validate_release_metadata(version, build_number):
     if not version and not build_number:
@@ -151,9 +160,16 @@ def validate_release_metadata(version, build_number):
 dotenv = read_dotenv()
 credentials, bundle_values = first_configured_source(dotenv)
 
+path = Path(PLIST_PATH)
+try:
+    with path.open("rb") as handle:
+        plist = plistlib.load(handle)
+except OSError as error:
+    fail(f"cannot read {PLIST_PATH}: {error}")
+
 client_id = validate_client_id(credentials.get(CLIENT_ID_KEY))
 client_secret = validate_client_secret(credentials.get(CLIENT_SECRET_KEY))
-bundle_id = validate_bundle_id(bundle_values.get(BUNDLE_ID_KEY))
+bundle_id = validate_bundle_id(bundle_values.get(BUNDLE_ID_KEY), plist.get("CFBundleIdentifier"))
 release_metadata = validate_release_metadata(VERSION, BUILD_NUMBER)
 
 if CHECK_ONLY:
@@ -161,10 +177,6 @@ if CHECK_ONLY:
     print(f"Bundle identifier: {bundle_id}")
     print(f"Product name: {PRODUCT_NAME}")
     sys.exit(0)
-
-path = Path(PLIST_PATH)
-with path.open("rb") as handle:
-    plist = plistlib.load(handle)
 
 plist["MailbellGoogleClientID"] = client_id
 if client_secret:

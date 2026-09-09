@@ -92,4 +92,14 @@ codesign "${SIGN_FLAGS[@]}" "$APP/Contents/Frameworks/Sparkle.framework"
 codesign "${SIGN_FLAGS[@]}" "$APP"
 codesign --verify --deep --strict "$APP"
 
+# The produced bundle, not just the source plist, must carry the canonical
+# identity: Keychain items and UserDefaults keys are derived from it, so a
+# second identifier silently orphans the user's data.
+CANONICAL_BUNDLE_ID="$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" Resources/Info.plist)"
+BUILT_BUNDLE_ID="$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Contents/Info.plist")"
+if [[ "$BUILT_BUNDLE_ID" != "$CANONICAL_BUNDLE_ID" ]]; then
+  echo "error: packaged bundle identifier is $BUILT_BUNDLE_ID, expected $CANONICAL_BUNDLE_ID" >&2
+  exit 1
+fi
+
 echo "built $APP (identity: $IDENTITY${VERSION:+, version $VERSION build $BUILD_NUMBER})"
