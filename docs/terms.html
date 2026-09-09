@@ -55,7 +55,13 @@
     <p>You are responsible for making sure your use of Mailbell complies with any policies that apply to your account.</p>
 
     <h2>4. Your Google account and access</h2>
-    <p>You are responsible for granting and revoking Mailbell's access to your Google account. You grant it through Google's own consent screen, and you can revoke it at any time at <a href="https://myaccount.google.com/permissions">your Google Account's third-party access page</a> or by removing the account in Mailbell's Settings.</p>
+    <p>You are responsible for granting and revoking Mailbell's access to your Google account. You grant it through Google's own consent screen.</p>
+    <p>Those are two separate actions, and Mailbell only performs one of them:</p>
+    <ul>
+      <li><strong>Removing the account in Mailbell's Settings</strong> stops the app: it deletes the stored tokens from your Keychain along with the account's local state, and stops monitoring. It does not tell Google anything.</li>
+      <li><strong>Revoking access at <a href="https://myaccount.google.com/permissions">your Google Account's third-party access page</a></strong> ends the authorization itself, at the source. Do this if you want the grant gone, not just the app stopped.</li>
+    </ul>
+    <p>The <a href="privacy.html#revoke">Privacy Policy</a> describes both steps in order.</p>
     <p>You are responsible for your own Google account security and for the consequences of connecting an account you do not control.</p>
 
     <h2>5. No backend, no service</h2>
