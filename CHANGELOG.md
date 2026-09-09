@@ -4,9 +4,12 @@ All notable changes to Mailbell are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and
 [Keep a Changelog](https://keepachangelog.com/).
 
-## Unreleased
+## 0.3.1 — 2026-09-09
 
 The website moved to its own subdomain. The links the app opens follow it.
+
+> **Google OAuth unverified beta.** Unchanged: Google shows an "unverified app"
+> screen during sign-in and limits unverified clients to **100 new users**.
 
 ### Changed
 
