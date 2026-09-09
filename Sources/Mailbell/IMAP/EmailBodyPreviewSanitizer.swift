@@ -63,8 +63,13 @@ enum EmailBodyPreviewSanitizer {
             .joined(separator: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard !collapsed.isEmpty else { return nil }
-        return wrappedPreview(truncated(collapsed, limit: limit))
+        let withoutLeadingLink = PreviewNoiseNormalizer.removeLeadingLinkBoilerplate(
+            from: collapsed,
+            urlMarker: urlMarker
+        )
+
+        guard !withoutLeadingLink.isEmpty else { return nil }
+        return wrappedPreview(truncated(withoutLeadingLink, limit: limit))
     }
 
     private static func removeMIMEPartHeaders(from rawText: String) -> String {

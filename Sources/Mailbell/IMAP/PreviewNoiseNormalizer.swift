@@ -67,4 +67,22 @@ enum PreviewNoiseNormalizer {
 
         return String(result)
     }
+
+    /// "View online" boilerplate is the first thing in many campaigns, so the
+    /// preview opens on a marker instead of the message. Only leading markers
+    /// go, and only when readable text follows them.
+    static func removeLeadingLinkBoilerplate(from text: String, urlMarker: String) -> String {
+        var remainder = Substring(text)
+
+        while true {
+            let trimmed = remainder.drop(while: { $0 == " " })
+            guard trimmed.hasPrefix(urlMarker) else { break }
+            let candidate = trimmed.dropFirst(urlMarker.count)
+            // Keep the marker when it is all the preview has to show.
+            guard candidate.contains(where: { !$0.isWhitespace }) else { break }
+            remainder = candidate
+        }
+
+        return String(remainder).trimmingCharacters(in: .whitespaces)
+    }
 }
