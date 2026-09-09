@@ -2,6 +2,34 @@
 import XCTest
 
 final class EmailBodyPreviewSanitizerTests: XCTestCase {
+    func testPreviewIsNilWhenTheSliceHoldsOnlyStylesheetRules() {
+        let raw = """
+        body, table, td, h1, h2, h3, p { font-family: Arial, Helvetica, sans-serif!important; }
+        .btn { color: #fff; padding: 10px; }
+        """
+
+        XCTAssertNil(EmailBodyPreviewSanitizer.preview(from: raw))
+    }
+
+    func testPreviewRemovesMediaQueryWrapperButKeepsTheMessage() {
+        let raw = """
+        @media screen and (max-width: 600px) { .wrap { width: 100% !important; } }
+        <p>Your statement is ready</p>
+        """
+
+        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: raw), "Your statement is ready")
+    }
+
+    func testPreviewKeepsProseThatMerelyMentionsStyleVocabulary() {
+        // Removal keys on CSS syntax, never on words. This sentence must survive.
+        let raw = "<p>We changed the body font-family and the style of every table in the app.</p>"
+
+        XCTAssertEqual(
+            EmailBodyPreviewSanitizer.preview(from: raw),
+            "We changed the body font-family and the style of every table in the app."
+        )
+    }
+
     func testPreviewStripsHTMLAndCollapsesUsefulText() {
         let raw = """
         <html><body><p>Hello&nbsp;<strong>Ana</strong>.</p><img src="cid:image">\

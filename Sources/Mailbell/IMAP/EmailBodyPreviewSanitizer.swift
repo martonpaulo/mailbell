@@ -31,8 +31,13 @@ enum EmailBodyPreviewSanitizer {
             quotedPrintableDecoded,
             imageMarker: imageMarker
         )
+        // Runs before HTML extraction: a slice that lost its <style> element
+        // gives SwiftSoup nothing to remove, so the rules would become text.
+        let withoutStylesheets = StylesheetPreviewArtifactRemover.removeStylesheetArtifacts(
+            from: transferDecoded
+        )
         let htmlDecoded = HTMLPreviewTextExtractor.decodeIfNeeded(
-            transferDecoded,
+            withoutStylesheets,
             htmlTextExtractor: htmlTextExtractor
         )
         let withoutMIMEArtifacts = removeMIMEArtifacts(from: htmlDecoded)
