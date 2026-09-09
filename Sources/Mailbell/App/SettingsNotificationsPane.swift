@@ -132,7 +132,8 @@ extension SettingsView {
         SettingsCopy.Notifications.footer(
             isSendingTest: appState.isSendingTestNotification,
             testMessage: appState.notificationTestMessage,
-            statusMessage: appState.notificationStatusMessage
+            statusMessage: appState.notificationStatusMessage,
+            needsSystemSettings: appState.notificationAuthorizationState.shouldOpenSystemSettings
         )
     }
 

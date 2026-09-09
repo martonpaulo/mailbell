@@ -21,7 +21,11 @@ enum SettingsCopy {
         static let openAtLoginTitle = "Open Mailbell at login"
         static let openAtLoginDescription = "Mailbell watches for mail only while it is running."
         static let loginItemTitle = "Login item"
-        static let openLoginItemsSettings = "Open Login Items Settings"
+        // SystemSettings.open launches the app; macOS decides which pane is
+        // showing, so the label promises only what actually happens and the
+        // route is given as guidance instead.
+        static let openLoginItemsSettings = "Open System Settings…"
+        static let loginItemsRoute = "In System Settings, go to General \u{2192} Login Items & Extensions."
     }
 
     enum Updates {
@@ -67,7 +71,8 @@ enum SettingsCopy {
         static let soundTitle = "Sound"
         static let badgeTitle = "Badge"
         static let allow = "Allow Notifications…"
-        static let openSystemSettings = "Open Notification Settings"
+        static let openSystemSettings = "Open System Settings…"
+        static let notificationsRoute = "In System Settings, go to Notifications, then choose Mailbell."
         static let refreshStatus = "Refresh Status"
         static let sendTest = "Send Test Notification"
         static let sendingTestAccessibilityLabel = "Sending test notification"
@@ -85,11 +90,19 @@ enum SettingsCopy {
 
         /// The most specific thing we can say right now: an in-flight test, then
         /// the last test result, then the last permission-refresh result.
-        static func footer(isSendingTest: Bool, testMessage: String?, statusMessage: String?) -> String {
+        static func footer(
+            isSendingTest: Bool,
+            testMessage: String?,
+            statusMessage: String?,
+            needsSystemSettings: Bool = false
+        ) -> String {
             if isSendingTest {
                 return sendingTestFooter
             }
-            return testMessage ?? statusMessage ?? defaultFooter
+            let text = testMessage ?? statusMessage ?? defaultFooter
+            // The button can only launch the app; macOS decides which pane is
+            // showing, so the route is stated rather than promised by a label.
+            return needsSystemSettings ? "\(text) \(notificationsRoute)" : text
         }
     }
 

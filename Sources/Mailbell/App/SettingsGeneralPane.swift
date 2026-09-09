@@ -34,7 +34,9 @@ extension SettingsView {
             if loginItemNeedsAttention {
                 SettingsRow(
                     title: SettingsCopy.Startup.loginItemTitle,
-                    description: loginItemStatus.detail
+                    description: [loginItemStatus.detail, SettingsCopy.Startup.loginItemsRoute]
+                        .compactMap { $0 }
+                        .joined(separator: " ")
                 ) {
                     loginItemStatusValue
                 }
