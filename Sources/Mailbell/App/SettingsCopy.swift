@@ -139,8 +139,12 @@ enum SettingsCopy {
                 return "Finish signing in to Google in your browser."
             }
             if !hasAccounts {
+                // Both halves are required disclosure: the warning a user will
+                // see, and the cap that can stop sign-in working at all.
                 return "Sign-in opens in your browser. Google has not verified Mailbell yet, so it shows "
-                    + "an \"unverified app\" warning: choose Advanced, then continue."
+                    + "an \"unverified app\" warning: choose Advanced, then continue. Google also caps "
+                    + "unverified apps at 100 new users, so sign-in can stop working for new people "
+                    + "until verification completes."
             }
             if canRefresh {
                 return "Mailbell is notified as mail arrives. Checking manually is only useful after a "
@@ -186,8 +190,8 @@ enum SettingsCopy {
             "The website explains setup, the Google review status, and what Mailbell can access."
         static let legalFooter =
             "Mailbell is in public beta and its Google OAuth client is not verified by Google yet, "
-                + "so Google shows an \"unverified app\" screen during sign-in. "
-                + "Revoke access at any time in your Google Account."
+                + "so Google shows an \"unverified app\" screen during sign-in and caps unverified "
+                + "apps at 100 new users. Revoke access at any time in your Google Account."
     }
 
     // MARK: - Build configuration

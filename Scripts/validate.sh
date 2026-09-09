@@ -83,6 +83,15 @@ for page in README.md docs/index.html docs/privacy.html docs/terms.html; do
         || note "$page must disclose the unverified Google OAuth status"
 done
 grep -qi '100' README.md || note "README must state Google's 100-new-user cap"
+# Settings is where a user who opened the DMG directly meets the flow, so the
+# same two disclosures have to be there and not only in public copy.
+settings_copy=Sources/Mailbell/App/SettingsCopy.swift
+if [ -f "$settings_copy" ]; then
+    grep -qi 'unverified' "$settings_copy" \
+        || note "$settings_copy must disclose the unverified Google OAuth status"
+    grep -q '100 new users' "$settings_copy" \
+        || note "$settings_copy must state Google's 100-new-user cap"
+fi
 # An "unlimited" claim is only allowed when it is being denied.
 if grep -hiE 'unlimited' README.md docs/*.html 2>/dev/null \
     | grep -viE '\b(no|not|never|without|cannot)\b' | grep -q .; then
