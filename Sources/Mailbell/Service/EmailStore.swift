@@ -90,6 +90,19 @@ private struct EmailStoreRecord: Codable, Equatable {
     var id: String
     var disposition: EmailStoreDisposition
     var updatedAt: Date
+    /// Where the message sat when it was handled. Optional because records
+    /// written before this existed decode without it; they are backfilled the
+    /// next time reconciliation sees the message, so the history heals itself
+    /// in one cycle rather than needing a migration.
+    var mailboxName: String?
+    var uidValidity: Int?
+    var uid: Int?
+}
+
+/// A message plus where it lived when Mailbell handled it.
+struct HandledMessage: Equatable {
+    let id: String
+    let identity: IMAPMessageIdentity?
 }
 
 final class EmailStorePersistence {
@@ -144,18 +157,65 @@ final class EmailStorePersistence {
         try records()[id]?.disposition == .dismissed
     }
 
-    func mark(_ id: String, disposition: EmailStoreDisposition) throws {
-        try mark([id], disposition: disposition)
+    func mark(_ handled: HandledMessage, disposition: EmailStoreDisposition) throws {
+        try mark([handled], disposition: disposition)
     }
 
-    func mark(_ ids: [String], disposition: EmailStoreDisposition) throws {
-        guard !ids.isEmpty else { return }
+    func mark(_ handled: [HandledMessage], disposition: EmailStoreDisposition) throws {
+        guard !handled.isEmpty else { return }
         var records = try records()
         let updatedAt = now()
-        for id in ids {
-            records[id] = EmailStoreRecord(id: id, disposition: disposition, updatedAt: updatedAt)
+        for message in handled {
+            records[message.id] = EmailStoreRecord(
+                id: message.id,
+                disposition: disposition,
+                updatedAt: updatedAt,
+                mailboxName: message.identity?.mailboxName,
+                uidValidity: message.identity?.uidValidity,
+                uid: message.identity?.uid
+            )
         }
         try save(pruned(records))
+    }
+
+    /// Teaches an existing record where its message lives. Reconciliation calls
+    /// this when it meets a handled message it had no location for, so the next
+    /// cycle can skip it without downloading it again.
+    func backfillLocation(_ handled: [HandledMessage]) throws {
+        var records = try records()
+        var didChange = false
+        for message in handled {
+            guard let identity = message.identity,
+                  var record = records[message.id],
+                  record.uid == nil
+            else {
+                continue
+            }
+            record.mailboxName = identity.mailboxName
+            record.uidValidity = identity.uidValidity
+            record.uid = identity.uid
+            records[message.id] = record
+            didChange = true
+        }
+        guard didChange else { return }
+        try save(records)
+    }
+
+    /// UIDs this account has already handled in one mailbox generation, so
+    /// reconciliation can look past them instead of spending its whole budget
+    /// re-fetching the same discarded window on every cycle.
+    func handledUIDs(accountID: UUID, mailboxName: String, uidValidity: Int) throws -> Set<Int> {
+        let prefix = EmailStoreIdentity.accountPrefix(accountID: accountID)
+        return try records().values.reduce(into: Set<Int>()) { result, record in
+            guard record.id.hasPrefix(prefix),
+                  record.mailboxName == mailboxName,
+                  record.uidValidity == uidValidity,
+                  let uid = record.uid
+            else {
+                return
+            }
+            result.insert(uid)
+        }
     }
 
     func removeRecords(accountID: UUID) throws {
@@ -284,6 +344,25 @@ final class EmailStore {
         return true
     }
 
+    /// Every UID reconciliation should look past in this mailbox generation:
+    /// what is already pending, plus what has already been handled. Without the
+    /// second half, a newest window of dismissed messages is re-selected on
+    /// every cycle and older unread mail never gets a turn.
+    func uidsToSkip(
+        accountID: UUID,
+        mailbox: MessageMailbox,
+        mailboxName: String,
+        uidValidity: Int
+    ) throws -> Set<Int> {
+        let handled = try persistence.handledUIDs(
+            accountID: accountID,
+            mailboxName: mailboxName,
+            uidValidity: uidValidity
+        )
+        return pendingUIDs(accountID: accountID, mailbox: mailbox, uidValidity: uidValidity)
+            .union(handled)
+    }
+
     /// UIDs already pending for this mailbox generation. Scoped by generation so
     /// a stale entry cannot suppress the fetch of a genuinely unknown message
     /// that now holds the same number.
@@ -330,6 +409,16 @@ final class EmailStore {
             }
             return snapshot.unreadUIDs.contains(identity.uid)
         }
+
+        // A handled message Mailbell had no location for is recorded now, so
+        // the next cycle can look past it instead of spending its whole budget
+        // fetching the same discarded window again.
+        try persistence.backfillLocation(fetchedHeaders.map { header in
+            HandledMessage(
+                id: EmailStoreIdentity.id(accountID: account.id, header: header),
+                identity: header.imapIdentity
+            )
+        })
 
         for header in fetchedHeaders {
             guard let snapshot = snapshotsByMailbox[header.mailbox],
@@ -387,7 +476,7 @@ final class EmailStore {
     func dismissAll() throws -> Int {
         guard !itemsByID.isEmpty else { return 0 }
         let groupCount = Set(itemsByID.values.map(\.groupID)).count
-        try persistence.mark(Array(itemsByID.keys), disposition: .dismissed)
+        try persistence.mark(itemsByID.values.map(handledMessage), disposition: .dismissed)
         itemsByID = [:]
         return groupCount
     }
@@ -487,19 +576,23 @@ final class EmailStore {
 
     private func removeGroup(containing id: String, disposition: EmailStoreDisposition) throws {
         guard let item = itemsByID[id] else {
-            try persistence.mark(id, disposition: disposition)
+            try persistence.mark(HandledMessage(id: id, identity: nil), disposition: disposition)
             itemsByID[id] = nil
             return
         }
 
         let groupID = item.groupID
-        let groupedIDs = itemsByID.values
+        let grouped = itemsByID.values
             .filter { $0.groupID == groupID }
-            .map(\.id)
-        try persistence.mark(groupedIDs, disposition: disposition)
+            .map(handledMessage)
+        try persistence.mark(grouped, disposition: disposition)
         itemsByID = itemsByID.filter { _, item in
             item.groupID != groupID
         }
+    }
+
+    private func handledMessage(for item: EmailStoreItem) -> HandledMessage {
+        HandledMessage(id: item.id, identity: item.imapIdentity)
     }
 
     private func makeItem(

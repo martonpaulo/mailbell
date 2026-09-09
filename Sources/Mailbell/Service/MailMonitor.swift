@@ -1,7 +1,12 @@
 import Foundation
 
 protocol MailMonitorDelegate: AnyObject {
-    func monitor(_ accountID: UUID, pendingUIDsFor mailbox: MessageMailbox, uidValidity: Int) async -> Set<Int>
+    func monitor(
+        _ accountID: UUID,
+        uidsToSkipFor mailbox: MessageMailbox,
+        mailboxName: String,
+        uidValidity: Int
+    ) async -> Set<Int>
     func monitor(
         _ accountID: UUID,
         didReconcileUnread snapshots: [MailboxUnreadSnapshot],
@@ -309,12 +314,13 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
                 )
             )
 
-            let pendingUIDs = await delegate?.monitor(
+            let uidsToSkip = await delegate?.monitor(
                 account.id,
-                pendingUIDsFor: mailbox.role,
+                uidsToSkipFor: mailbox.role,
+                mailboxName: mailbox.name,
                 uidValidity: generation
             ) ?? []
-            let unknownUIDs = Array(unreadUIDs.subtracting(pendingUIDs)).sorted()
+            let unknownUIDs = Array(unreadUIDs.subtracting(uidsToSkip)).sorted()
             let uidsToFetch = Array(unknownUIDs.suffix(Self.maximumReconciliationHeadersPerMailbox))
             let mailboxHeaders = try await client.fetchHeaders(uids: uidsToFetch)
                 .map { $0.assigningMailbox(mailbox.role, name: mailbox.name, uidValidity: generation) }

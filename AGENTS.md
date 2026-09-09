@@ -200,7 +200,11 @@ Preserve the IMAP IDLE reconnect model:
 - Threaded pending items count once in the menu when Gmail thread IDs exist;
   notifications remain per message.
 - Unread reconciliation removes items read directly in Gmail Web and may admit
-  bounded unknown unread items missed while offline.
+  bounded unknown unread items missed while offline. Its bounded window skips
+  what is already pending **and** what has already been handled, so a wholly
+  dismissed newest window cannot consume every cycle's budget and starve older
+  unread mail. Handled records remember where the message lived; a record
+  without that location is backfilled the first time reconciliation meets it.
 - Server-side read marking uses `UID STORE +FLAGS.SILENT (\Seen)`. Bulk actions
   use **one authenticated session per account**, never one connection per
   message.

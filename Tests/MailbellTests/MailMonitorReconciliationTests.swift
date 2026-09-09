@@ -212,7 +212,8 @@ private final class ReconciliationDelegate: MailMonitorDelegate {
 
     func monitor(
         _ accountID: UUID,
-        pendingUIDsFor mailbox: MessageMailbox,
+        uidsToSkipFor mailbox: MessageMailbox,
+        mailboxName: String,
         uidValidity: Int
     ) async -> Set<Int> {
         guard accountID == account.id else { return [] }

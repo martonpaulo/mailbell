@@ -438,7 +438,8 @@ private extension AccountSupervisor {
 extension AccountSupervisor: MailMonitorDelegate {
     nonisolated func monitor(
         _ accountID: UUID,
-        pendingUIDsFor mailbox: MessageMailbox,
+        uidsToSkipFor mailbox: MessageMailbox,
+        mailboxName: String,
         uidValidity: Int
     ) async -> Set<Int> {
         await MainActor.run { [weak self] in
@@ -447,7 +448,12 @@ extension AccountSupervisor: MailMonitorDelegate {
             else {
                 return []
             }
-            return emailStore.pendingUIDs(
+            return (try? emailStore.uidsToSkip(
+                accountID: account.id,
+                mailbox: mailbox,
+                mailboxName: mailboxName,
+                uidValidity: uidValidity
+            )) ?? emailStore.pendingUIDs(
                 accountID: account.id,
                 mailbox: mailbox,
                 uidValidity: uidValidity

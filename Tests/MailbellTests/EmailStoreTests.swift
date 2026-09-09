@@ -441,11 +441,11 @@ final class EmailStoreTests: XCTestCase {
             now: { timestamp }
         )
 
-        try persistence.mark("old", disposition: .dismissed)
+        try persistence.mark(HandledMessage(id: "old", identity: nil), disposition: .dismissed)
         timestamp = Date(timeIntervalSince1970: 2)
-        try persistence.mark("middle", disposition: .dismissed)
+        try persistence.mark(HandledMessage(id: "middle", identity: nil), disposition: .dismissed)
         timestamp = Date(timeIntervalSince1970: 3)
-        try persistence.mark("new", disposition: .opened)
+        try persistence.mark(HandledMessage(id: "new", identity: nil), disposition: .opened)
 
         XCTAssertFalse(try persistence.isHandled("old"))
         XCTAssertTrue(try persistence.isHandled("middle"))
@@ -456,7 +456,7 @@ final class EmailStoreTests: XCTestCase {
         let defaults = makeDefaults()
         let firstPersistence = EmailStorePersistence(userDefaults: defaults)
 
-        try firstPersistence.mark("persisted", disposition: .opened)
+        try firstPersistence.mark(HandledMessage(id: "persisted", identity: nil), disposition: .opened)
 
         let secondPersistence = EmailStorePersistence(userDefaults: defaults)
         XCTAssertTrue(try secondPersistence.isHandled("persisted"))

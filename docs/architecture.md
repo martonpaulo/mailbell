@@ -51,7 +51,9 @@ The runtime. One monitor per enabled account, supervised centrally.
 - **Dispositions** (`opened`, `markedRead`, `dismissed`) persist in UserDefaults,
   pruned to a bounded history. Dismissed items are suppressed; opened or marked-read items may reappear if still unread.
 - **Reconciliation** removes items read directly in Gmail Web and may admit
-  bounded unknown unread items missed while offline.
+  bounded unknown unread items missed while offline. It skips both pending and
+  already-handled UIDs, so its bounded window makes progress instead of
+  re-selecting the same discarded messages forever.
 - **Bulk actions** collect every pending group per account, mark them in one
   authenticated session, and publish a single state update.
 - **Mailbox generation.** A message is identified by mailbox name, `UIDVALIDITY`
