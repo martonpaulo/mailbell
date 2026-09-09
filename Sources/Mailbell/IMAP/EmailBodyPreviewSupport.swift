@@ -1,4 +1,5 @@
 import Foundation
+import SwiftSoup
 
 enum PreviewTokenReplacer {
     static func replaceTokens(
@@ -274,6 +275,64 @@ enum Base64PreviewDecoder {
             || containsPattern(#"(?is)</?[A-Za-z][A-Za-z0-9:-]*(?:\s+[^<>]*)?/?>"#, in: text)
             || containsPattern(#"(?i)\b(?:https?://|www\.)"#, in: text)
             || containsPattern(#"[.!?]"#, in: text)
+    }
+
+    private static func containsPattern(_ pattern: String, in text: String) -> Bool {
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return false }
+        let range = NSRange(text.startIndex ..< text.endIndex, in: text)
+        return regex.firstMatch(in: text, range: range) != nil
+    }
+}
+
+/// Turning an HTML message part into plain preview text: dropping the parts a
+/// reader never sees, marking images, and falling back to the raw text when the
+/// slice cannot be parsed. Separated from the sanitizer pipeline, which decides
+/// the order of stages rather than how any one of them works.
+enum HTMLPreviewTextExtractor {
+    private static let imageMarker = "[IMG]"
+
+    static func decodeIfNeeded(
+        _ text: String,
+        htmlTextExtractor: (String) throws -> String
+    ) -> String {
+        guard containsHTMLSignal(text) else { return text }
+        do {
+            return try htmlTextExtractor(text)
+        } catch {
+            return text
+        }
+    }
+
+    static func extractText(from text: String) throws -> String {
+        let document = try SwiftSoup.parseHTML(text)
+        try document.select("script, style, noscript, template, head, meta, link").remove()
+        try document.select("[hidden], [aria-hidden=true]").remove()
+
+        for element in try document.select("[style]").array() {
+            let style = try element.attr("style")
+                .lowercased()
+                .replacingOccurrences(of: " ", with: "")
+            if style.contains("display:none")
+                || style.contains("visibility:hidden")
+                || style.contains("opacity:0") {
+                try element.remove()
+            }
+        }
+
+        for element in try document.select("img, svg").array() {
+            try element.before(" \(imageMarker) ")
+            try element.remove()
+        }
+
+        if let body = document.body() {
+            return try body.text()
+        }
+        return try document.text()
+    }
+
+    private static func containsHTMLSignal(_ text: String) -> Bool {
+        containsPattern(#"(?is)</?[A-Za-z][A-Za-z0-9:-]*(?:\s+[^<>]*)?/?>"#, in: text)
+            || containsPattern(#"&#(?:x[0-9A-Fa-f]+|[0-9]+);|&[A-Za-z][A-Za-z0-9]+;"#, in: text)
     }
 
     private static func containsPattern(_ pattern: String, in text: String) -> Bool {

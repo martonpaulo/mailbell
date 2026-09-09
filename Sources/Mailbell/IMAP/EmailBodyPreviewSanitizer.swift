@@ -1,5 +1,4 @@
 import Foundation
-import SwiftSoup
 
 enum EmailBodyPreviewSanitizer {
     static let maximumPreviewLength = 240
@@ -19,7 +18,7 @@ enum EmailBodyPreviewSanitizer {
     static func preview(
         from rawText: String,
         limit: Int = maximumPreviewLength,
-        htmlTextExtractor: (String) throws -> String = extractHTMLText
+        htmlTextExtractor: (String) throws -> String = HTMLPreviewTextExtractor.extractText
     ) -> String? {
         let withoutNonTextMIMEParts = MIMEBodyPreviewNormalizer.replaceNonTextParts(
             from: rawText,
@@ -32,7 +31,10 @@ enum EmailBodyPreviewSanitizer {
             quotedPrintableDecoded,
             imageMarker: imageMarker
         )
-        let htmlDecoded = decodeHTMLIfNeeded(transferDecoded, htmlTextExtractor: htmlTextExtractor)
+        let htmlDecoded = HTMLPreviewTextExtractor.decodeIfNeeded(
+            transferDecoded,
+            htmlTextExtractor: htmlTextExtractor
+        )
         let withoutMIMEArtifacts = removeMIMEArtifacts(from: htmlDecoded)
         // Before markers are inserted, so bracket cleanup cannot eat [IMG]/[URL].
         let withoutMarkdown = removeMarkdownArtifacts(from: withoutMIMEArtifacts)
@@ -261,53 +263,4 @@ enum EmailBodyPreviewSanitizer {
             .joined(separator: "\n")
     }
 
-    private static func decodeHTMLIfNeeded(
-        _ text: String,
-        htmlTextExtractor: (String) throws -> String
-    ) -> String {
-        guard containsHTMLSignal(text) else { return text }
-        do {
-            return try htmlTextExtractor(text)
-        } catch {
-            return text
-        }
-    }
-
-    private static func extractHTMLText(from text: String) throws -> String {
-        let document = try SwiftSoup.parseHTML(text)
-        try document.select("script, style, noscript, template, head, meta, link").remove()
-        try document.select("[hidden], [aria-hidden=true]").remove()
-
-        for element in try document.select("[style]").array() {
-            let style = try element.attr("style")
-                .lowercased()
-                .replacingOccurrences(of: " ", with: "")
-            if style.contains("display:none")
-                || style.contains("visibility:hidden")
-                || style.contains("opacity:0") {
-                try element.remove()
-            }
-        }
-
-        for element in try document.select("img, svg").array() {
-            try element.before(" \(imageMarker) ")
-            try element.remove()
-        }
-
-        if let body = document.body() {
-            return try body.text()
-        }
-        return try document.text()
-    }
-
-    private static func containsHTMLSignal(_ text: String) -> Bool {
-        containsPattern(#"(?is)</?[A-Za-z][A-Za-z0-9:-]*(?:\s+[^<>]*)?/?>"#, in: text)
-            || containsPattern(#"&#(?:x[0-9A-Fa-f]+|[0-9]+);|&[A-Za-z][A-Za-z0-9]+;"#, in: text)
-    }
-
-    private static func containsPattern(_ pattern: String, in text: String) -> Bool {
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return false }
-        let range = NSRange(text.startIndex ..< text.endIndex, in: text)
-        return regex.firstMatch(in: text, range: range) != nil
-    }
 }
