@@ -23,8 +23,9 @@ It runs entirely on your Mac. There is no Mailbell server.
 
 ## ⚠️ Public beta: Google has not verified this app yet
 
-Mailbell's Google OAuth client is still going through Google's review, so it is
-an **unverified app**. Before you install, know both consequences:
+Mailbell's Google OAuth client has **not been submitted for Google's review
+yet**, so it is an **unverified app**. Before you install, know both
+consequences:
 
 - **You will see a warning screen during sign-in.** Google shows
   *"Google hasn't verified this app"*. You have to choose **Advanced**, then
