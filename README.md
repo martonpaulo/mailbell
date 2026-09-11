@@ -1,6 +1,6 @@
-<div align="center">
+<img src="docs/social-card.jpg" width="100%" alt="Mailbell — Gmail notifications in your macOS menu bar">
 
-<img src="docs/assets/app-icon.png" width="128" alt="Mailbell app icon">
+<div align="center">
 
 # Mailbell
 
@@ -113,10 +113,7 @@ References:
 [Gmail XOAUTH2](https://developers.google.com/workspace/gmail/imap/xoauth2-protocol) ·
 [Gmail scopes](https://developers.google.com/workspace/gmail/api/auth/scopes)
 
-## 🖼️ Settings
-
-<img src="docs/assets/screenshots/general.webp" width="788"
-  alt="Mailbell's General settings: a menu bar count toggle, Open Mailbell at login, automatic update checks with the installed version, and Restore Defaults.">
+## ⚙️ Settings
 
 Four native panes: **General** (menu bar count, start at login, Restore
 Defaults, updates), **Notifications** (permission state and a test notification),
