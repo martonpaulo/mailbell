@@ -46,6 +46,8 @@ client secret is optional for Desktop clients.
 Install to `/Applications` rather than running the unbundled binary: macOS only delivers
 notifications to a real app bundle.
 
+<br />
+
 ## 🛠 Commands
 
 `make` with no target lists everything. The ones that matter:
@@ -68,6 +70,8 @@ notifications to a real app bundle.
 | `make sparkle-keys` | Generate the Sparkle EdDSA key into the Keychain |
 | `make release` | Build, sign, notarize and staple a tagged release DMG |
 | `make clean` | Remove SwiftPM build artifacts |
+
+<br />
 
 ## 🔐 Secrets and variables
 
@@ -105,6 +109,8 @@ than publishing an unsigned or credential-less build:
 
 `ci.yml` and `pages.yml` read no secrets at all.
 
+<br />
+
 ## Public beta: Google has not verified this app yet
 
 Mailbell's Google OAuth client has **not been submitted for Google's review yet**, so it is an
@@ -123,6 +129,8 @@ server this project operates, because none exists.
 If your account belongs to a Google Workspace organization, your administrator may block unverified
 apps entirely. That is their policy to change, not something the app can work around.
 
+<br />
+
 ## What it does
 
 | | |
@@ -136,6 +144,8 @@ apps entirely. That is their policy to change, not something the app can work ar
 | 🌐 **Opens in the right place** | Default browser, a specific browser, or the exact Chrome profile already signed in to that account |
 | 🗑️ **Optional Spam** | Off by default; turn it on and unread Spam joins the queue |
 | 🚀 **Start at login** | Set it once, forget it |
+
+<br />
 
 ## What Mailbell can see
 
@@ -173,6 +183,8 @@ References:
 [Gmail XOAUTH2](https://developers.google.com/workspace/gmail/imap/xoauth2-protocol) ·
 [Gmail scopes](https://developers.google.com/workspace/gmail/api/auth/scopes)
 
+<br />
+
 ## Settings
 
 Four native panes: **General** (menu bar count, start at login, Restore Defaults, updates),
@@ -181,6 +193,8 @@ reconnect, remove, Spam and per-account browser routing), and **About**.
 
 Every default and the reasoning behind it is in
 [docs/feature-defaults.md](docs/feature-defaults.md).
+
+<br />
 
 ## Releasing (maintainers)
 
@@ -210,6 +224,8 @@ a version.
 Docs: [architecture](docs/architecture.md) · [feature defaults](docs/feature-defaults.md) ·
 [contributing](CONTRIBUTING.md) · [security](SECURITY.md) · [agent policy](AGENTS.md)
 
+<br />
+
 ## Troubleshooting
 
 - **No notifications** — macOS only delivers notifications to a real app bundle. Install to
@@ -225,6 +241,8 @@ Docs: [architecture](docs/architecture.md) · [feature defaults](docs/feature-de
 - **Sign-in stopped working for new people** — the 100-user cap for unverified apps may have been
   reached.
 
+<br />
+
 ## Limitations
 
 - **Gmail only**, over IMAP IDLE. No other provider, and no polling fallback.
@@ -236,6 +254,8 @@ Docs: [architecture](docs/architecture.md) · [feature defaults](docs/feature-de
   100 new users until review completes.
 - Gmail exposes no narrower scope that permits IMAP, so the consent screen asks for more than the
   app uses.
+
+<br />
 
 ## License
 
