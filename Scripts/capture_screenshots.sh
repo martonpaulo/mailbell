@@ -31,9 +31,33 @@ if [[ "$backing" -eq 0 ]]; then
   exit 1
 fi
 
-command -v cwebp >/dev/null 2>&1 || {
-  echo "error: cwebp not found; install it with 'brew install webp'" >&2
+command -v cwebp >/dev/null 2>&1 && command -v dwebp >/dev/null 2>&1 || {
+  echo "error: cwebp/dwebp not found; install them with 'brew install webp'" >&2
   exit 1
+}
+
+# Writes the narrower widths of an image the page serves through srcset, as
+# <name>-<width>.webp next to <name>.webp. Each width is resampled once from the
+# lossless capture. They are near-lossless rather than lossless because a
+# resampled screenshot compresses so much worse losslessly that a smaller width
+# can outweigh the full-size file; near-lossless keeps every pixel within a few
+# levels of the resample, which leaves text edges visibly identical.
+#
+#   variants <name> <width...>
+variants() {
+  local name=$1
+  shift
+  local tmp
+  tmp="$(mktemp -d)"
+  dwebp -quiet "$OUT_DIR/$name.webp" -o "$tmp/full.png"
+  local width
+  for width in "$@"; do
+    cp "$tmp/full.png" "$tmp/$width.png"
+    sips --resampleWidth "$width" "$tmp/$width.png" >/dev/null
+    cwebp -quiet -near_lossless 60 -z 9 -metadata none "$tmp/$width.png" -o "$OUT_DIR/$name-$width.webp"
+    echo "wrote $OUT_DIR/$name-$width.webp ($(du -h "$OUT_DIR/$name-$width.webp" | cut -f1))"
+  done
+  rm -rf "$tmp"
 }
 
 mkdir -p "$OUT_DIR"
@@ -62,8 +86,15 @@ for pane in $PANES; do
   [[ -s "$PNG" ]] || { echo "error: capture produced no image for $name" >&2; exit 1; }
 
   # Lossless WebP: identical pixels, keeps the shadow's alpha, and roughly 70%
-  # smaller than the PNG.
-  cwebp -quiet -lossless -alpha_q 100 "$PNG" -o "$OUT_DIR/$name.webp"
+  # smaller than the PNG. -z 9 is the slowest, smallest lossless setting.
+  cwebp -quiet -lossless -z 9 -metadata none "$PNG" -o "$OUT_DIR/$name.webp"
   echo "wrote $OUT_DIR/$name.webp ($(du -h "$OUT_DIR/$name.webp" | cut -f1))"
   kill "$APP_PID" 2>/dev/null || true
 done
+
+# The hero's srcset and imagesrcset in docs/index.html list exactly these
+# widths. There is no 1200 px width: resampled, it weighs more than the
+# full-size lossless file, so a phone would pay more for fewer pixels.
+if [[ " $PANES " == *" 0 "* ]]; then
+  variants general 480 800
+fi

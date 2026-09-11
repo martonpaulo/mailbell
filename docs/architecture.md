@@ -122,6 +122,12 @@ traffic lights and dimmed controls.
 strips the shadow, and it refuses to run without a Retina display, because a 1x
 display silently halves the resolution. Output is lossless WebP: identical
 pixels, the shadow's alpha preserved, and roughly 70% smaller than the PNG.
+The General pane is the site's hero, so the script also writes `general-480.webp`
+and `general-800.webp`, which the page's `srcset` and preload `imagesrcset` list
+next to the full-size file. They are resampled from the lossless capture and
+encoded near-lossless: plain lossless makes a resampled screenshot so much
+larger that a 1200 px width would outweigh the full 1576 px file, which is why
+there is none.
 
 The Accounts pane is not captured by default. It shows the connected address,
 and a published screenshot would carry a real person's email.
