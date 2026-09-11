@@ -264,7 +264,7 @@ Docs: [architecture](docs/architecture.md) · [feature defaults](docs/feature-de
 
 <br />
 
-## License
+## License and attribution
 
 [MIT](LICENSE) © 2026 Marton Paulo.
 
