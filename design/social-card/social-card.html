@@ -1,37 +1,50 @@
 <!doctype html>
 <!-- Mailbell social card. Source of truth for docs/social-card.png, served at
      https://mailbell.martonpaulo.com/social-card.png (1200x630). Never edit the PNG.
-     Render from the repository root:
-       npx --yes playwright@1.63.0 screenshot --viewport-size="1200,630" \
-         "file://$PWD/design/social-card/social-card.html" docs/social-card.png
-       magick docs/social-card.png -strip -colors 256 -define png:compression-level=9 PNG8:docs/social-card.png
-     Layout, safe area and rules: the social card standard (skill-deck#261). Fonts: Inter, OFL (fonts/OFL.txt). -->
+     Render on a Mac (the drawn interface uses the system font): npx --yes playwright@1.63.0 screenshot --viewport-size="1200,630" "file://$PWD/design/social-card/social-card.html" docs/social-card.png, then magick docs/social-card.png -strip -colors 256 -define png:compression-level=9 PNG8:docs/social-card.png
+     System, grid and contrast rules: the social card standard (skill-deck#261).
+     Fonts: Gabarito and Figtree (OFL, fonts/*-OFL.txt), the typefaces of martonpaulo.com. -->
 <meta charset="utf-8">
+<title>Mailbell social card</title>
 <style>
-  @font-face { font-family: "Inter Display"; font-weight: 700; src: url(fonts/Inter_28pt-Bold.ttf); }
-  @font-face { font-family: "Inter"; font-weight: 400; src: url(fonts/Inter_18pt-Regular.ttf); }
-  @font-face { font-family: "Inter"; font-weight: 500; src: url(fonts/Inter_24pt-Medium.ttf); }
-  @font-face { font-family: "Inter"; font-weight: 600; src: url(fonts/Inter_24pt-SemiBold.ttf); }
-  html, body { margin: 0; }
-  .card {
-    position: relative; width: 1200px; height: 630px; overflow: hidden;
-    background:
-      radial-gradient(760px 520px at 86% 40%, rgba(231, 164, 36, .30), transparent 64%),
-      radial-gradient(520px 360px at 6% 8%, rgba(231, 164, 36, .12), transparent 70%),
-      linear-gradient(160deg, #fdfaf2 0%, #f5eedd 100%);
-    color: #1a1710; font-family: "Inter", sans-serif;
-  }
-  .copy { position: absolute; left: 96px; top: 50%; transform: translateY(-54%); width: 470px; }
-  .icon { width: 104px; height: 104px; display: block; margin-bottom: 30px;
-          filter: drop-shadow(0 16px 26px rgba(163, 92, 0, .28)); }
-  .eyebrow { margin: 0 0 18px; font-weight: 600; font-size: 22px; letter-spacing: .12em;
-             text-transform: uppercase; color: #9a5600; }
-  h1 { margin: 0; font: 700 84px/1 "Inter Display", sans-serif; letter-spacing: -0.035em; }
-  .promise { margin: 22px 0 0; font-weight: 500; font-size: 38px; line-height: 1.18;
-             letter-spacing: -0.015em; color: #4d4535; text-wrap: balance; }
-  .domain { position: absolute; left: 96px; bottom: 62px; font-size: 24px; color: #7d735f; }
-  .shot { position: absolute; left: 620px; top: 96px; width: 660px; border-radius: 14px;
-          filter: drop-shadow(0 30px 50px rgba(60, 40, 0, .28)); }
+@font-face { font-family: "Gabarito"; font-weight: 700; src: url(fonts/gabarito-latin-700-normal.woff2); }
+@font-face { font-family: "Figtree"; font-weight: 400; src: url(fonts/figtree-latin-400-normal.woff2); }
+@font-face { font-family: "Figtree"; font-weight: 500; src: url(fonts/figtree-latin-500-normal.woff2); }
+@font-face { font-family: "Figtree"; font-weight: 600; src: url(fonts/figtree-latin-600-normal.woff2); }
+@font-face { font-family: "Figtree"; font-weight: 700; src: url(fonts/figtree-latin-700-normal.woff2); }
+html, body { margin: 0; }
+.card { position: relative; width: 1200px; height: 630px; overflow: hidden; font-family: "Figtree", sans-serif;
+        color: var(--ink); background: var(--gradient); }
+.card::before { content: ""; position: absolute; inset: 0; background: var(--glow, none); }
+/* One grid for every card: the copy block is centred vertically in a 440px column at x=96;
+   the product visual always starts at x=600, a fixed gutter. */
+.copy { position: absolute; left: 96px; top: 50%; transform: translateY(-50%); width: 440px; z-index: 2; }
+.icon { width: 104px; height: 104px; display: block; margin-bottom: 30px; filter: drop-shadow(0 16px 26px rgba(0,0,0,.22)); }
+.eyebrow { display: inline-block; margin: 0 0 20px; padding: 8px 16px; border-radius: 999px;
+           background: var(--pill-bg); border: 1px solid var(--pill-line);
+           font-weight: 700; font-size: 19px; letter-spacing: .1em; text-transform: uppercase; }
+h1 { margin: 0; font: 700 88px/1 "Gabarito", sans-serif; letter-spacing: -0.03em; }
+.promise { margin: 20px 0 0; font-weight: 500; font-size: 38px; line-height: 1.2; letter-spacing: -0.01em;
+           color: var(--ink-soft); text-wrap: balance; }
+.domain { margin: 34px 0 0; font-size: 24px; font-weight: 500; color: var(--ink-soft); }
+/* The drawn interface: the system font, the way the real app renders. */
+.ui { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; color: #1f2937; }
+.win { position: absolute; background: #fff; border-radius: 22px;
+       box-shadow: 0 40px 80px rgba(15,23,42,.30), 0 8px 20px rgba(15,23,42,.12); }
+.bar { height: 11px; border-radius: 6px; background: #e5e7eb; }
+
+.card { --gradient: linear-gradient(135deg,#854d0e 0%,#a16207 38%,#ca8a04 72%,#eab308 100%); --glow: radial-gradient(640px 520px at 92% 60%,rgba(253,224,71,.45),transparent 65%); --ink: #fff; --ink-soft: rgba(255,255,255,.92);
+        --pill-bg: rgba(255,255,255,.16); --pill-line: rgba(255,255,255,.4); }
+
+.menu{position:absolute;left:600px;top:50%;transform:translateY(-50%);width:420px;padding:8px;box-sizing:border-box;border-radius:14px;background:rgba(248,248,248,.97);box-shadow:0 30px 70px rgba(60,20,0,.35),0 0 0 1px rgba(0,0,0,.06);font:500 19px -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;color:#1f2937;z-index:3}
+.item{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:8px}
+.item svg{flex:none;color:#4b5563}
+.item .grow{flex:1}.item .chev{color:#9ca3af}
+.item.sel{background:#2f6fe8;color:#fff}.item.sel svg,.item.sel .chev{color:#fff}.item.sel .bar{background:rgba(255,255,255,.65)}
+.head{padding:10px 12px 4px;font:700 15px -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;color:#8a8f98}
+.sep{height:1px;background:#e3e3e3;margin:6px 10px}
+.note{position:absolute;left:420px;top:74px;width:240px;display:none}
+
 </style>
 <div class="card">
   <div class="copy">
@@ -39,7 +52,19 @@
     <p class="eyebrow">Free for Mac · Open source</p>
     <h1>Mailbell</h1>
     <p class="promise">Gmail notifications in your menu bar</p>
+    <p class="domain">mailbell.martonpaulo.com</p>
   </div>
-  <img class="shot" src="../../docs/assets/screenshots/general.webp" alt="">
-  <div class="domain">mailbell.martonpaulo.com</div>
+  <div class="menu ui">
+  <div class="head">Accounts</div>
+  <div class="item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3"/><path d="M6.5 18.5c1.5-2.5 3.5-3.5 5.5-3.5s4 1 5.5 3.5"/></svg><span class="grow"><span class="bar" style="display:block;width:70%"></span></span><span class="chev">›</span></div>
+  <div class="sep"></div>
+  <div class="head">Awaiting Review</div>
+  <div class="item sel"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6 8.5 7 8.5-7"/></svg><span class="grow"><span class="bar" style="display:block;width:82%"></span></span><span class="chev">›</span></div><div class="item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6 8.5 7 8.5-7"/></svg><span class="grow"><span class="bar" style="display:block;width:64%"></span></span><span class="chev">›</span></div><div class="item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6 8.5 7 8.5-7"/></svg><span class="grow"><span class="bar" style="display:block;width:74%"></span></span><span class="chev">›</span></div>
+  <div class="item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h5l1.5 3h5L16 13h5"/><path d="M5 5h14l2 8v6H3v-6z"/></svg><span class="grow">All Messages</span><span class="chev">›</span></div>
+  <div class="sep"></div>
+  <div class="item">Check Now</div>
+  <div class="sep"></div>
+  <div class="item">Settings…</div>
+  <div class="item">Quit Mailbell</div>
+ </div>
 </div>
