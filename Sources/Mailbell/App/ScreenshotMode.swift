@@ -32,6 +32,25 @@ enum ScreenshotMode {
     static let windowFrameDefaultsKey = "NSWindow Frame com_apple_SwiftUI_Settings_window"
     static let paneArgument = "--screenshot-pane"
 
+    /// Pins Light or Dark. Without it Settings follows the system appearance, so
+    /// the published image would change with whoever ran the capture.
+    static let appearanceArgument = "--screenshot-appearance"
+
+    /// The appearance named after `--screenshot-appearance` (`light` or `dark`),
+    /// or nil to follow the system.
+    static func requestedAppearance(arguments: [String] = CommandLine.arguments) -> NSAppearance.Name? {
+        guard let index = arguments.firstIndex(of: appearanceArgument),
+              arguments.count > index + 1
+        else {
+            return nil
+        }
+        switch arguments[index + 1] {
+        case "light": return .aqua
+        case "dark": return .darkAqua
+        default: return nil
+        }
+    }
+
     static var isEnabled: Bool {
         isEnabled(arguments: CommandLine.arguments)
     }
@@ -110,9 +129,18 @@ enum ScreenshotMode {
         DispatchQueue.main.async {
             NSApp.activate(ignoringOtherApps: true)
             window.makeKeyAndOrderFront(nil)
-            DispatchQueue.main.async {
-                emit(windowIDLine(Int(window.windowNumber)))
-                emit(readyMarker)
+            // Published captures keep the traffic lights and the toolbar and drop the
+            // words: the product's name is already beside every image. The Settings scene
+            // sets the title again once it has selected its pane, so the title is hidden
+            // after that settles, and readiness is announced only afterwards.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                window.titleVisibility = .hidden
+                window.title = ""
+                window.displayIfNeeded()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    emit(windowIDLine(Int(window.windowNumber)))
+                    emit(readyMarker)
+                }
             }
         }
     }

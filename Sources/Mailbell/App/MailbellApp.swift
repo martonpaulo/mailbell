@@ -37,6 +37,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // An accessory app has no Dock icon to click, so the window has to be
         // brought forward for capture. Ordinary launches never reach this.
         NSApp.setActivationPolicy(.regular)
+        if let appearance = ScreenshotMode.requestedAppearance() {
+            NSApp.appearance = NSAppearance(named: appearance)
+        }
         ScreenshotMode.pinEnvironment()
     }
 

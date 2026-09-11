@@ -52,7 +52,11 @@ enum LoginItemStatus: Equatable {
 /// Start-at-login via SMAppService. Only works for a registered (bundled) app.
 enum LoginItem {
     static var status: LoginItemStatus {
-        LoginItemStatus.from(SMAppService.mainApp.status)
+        // A capture runs a throwaway bundle that SMAppService does not know, which would
+        // publish an "Unavailable" warning no installed copy ever shows. Captures present
+        // a fresh install's state instead, the way they pin every other fixture.
+        if ScreenshotMode.isEnabled { return .disabled }
+        return LoginItemStatus.from(SMAppService.mainApp.status)
     }
 
     static var isEnabled: Bool {

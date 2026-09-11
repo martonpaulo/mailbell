@@ -28,6 +28,22 @@ final class ScreenshotModeTests: XCTestCase {
         )
     }
 
+    func testTheAppearanceFollowsTheSystemUnlessPinned() {
+        XCTAssertNil(ScreenshotMode.requestedAppearance(arguments: ["Mailbell", ScreenshotMode.launchArgument]))
+        XCTAssertEqual(
+            ScreenshotMode.requestedAppearance(arguments: ["Mailbell", ScreenshotMode.appearanceArgument, "light"]),
+            .aqua
+        )
+        XCTAssertEqual(
+            ScreenshotMode.requestedAppearance(arguments: ["Mailbell", ScreenshotMode.appearanceArgument, "dark"]),
+            .darkAqua
+        )
+        // An unknown value must not pin anything by accident.
+        XCTAssertNil(
+            ScreenshotMode.requestedAppearance(arguments: ["Mailbell", ScreenshotMode.appearanceArgument, "sepia"])
+        )
+    }
+
     func testPinningClearsTheSavedFrameAndSelectsThePane() {
         let suiteName = "mailbell.tests.screenshot.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!

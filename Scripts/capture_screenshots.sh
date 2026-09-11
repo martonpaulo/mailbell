@@ -11,8 +11,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-APP="${MAILBELL_APP:-/Applications/Mailbell.app}"
 OUT_DIR="${1:-docs/assets/screenshots}"
+CAPTURE_BUNDLE_ID="com.perso.mailbell.capture"
+LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 # Pane index matches the tab order: General, Notifications, Accounts, About.
 #
 # Accounts is not captured by default: it shows the connected address, and a
@@ -21,7 +22,26 @@ OUT_DIR="${1:-docs/assets/screenshots}"
 PANES="${2:-0 1 3}"
 PANE_NAMES=(general notifications accounts about)
 
-[[ -d "$APP" ]] || { echo "error: $APP not found; run make install first" >&2; exit 1; }
+# The capture runs a bundle built from these sources, never the installed app:
+# the flags it relies on may not exist in any release yet, and the installed
+# Mailbell shares the owner's Keychain and preferences. The throwaway copy gets
+# its own bundle identifier, so it sees no accounts, prompts for no Keychain
+# item, and cannot race the real app's notifications. Its preferences are
+# deleted on exit. MAILBELL_APP overrides this for a bundle you built yourself.
+CAPTURE_WORK="$(mktemp -d)"
+if [[ -n "${MAILBELL_APP:-}" ]]; then
+  APP="$MAILBELL_APP"
+else
+  APP="$CAPTURE_WORK/Mailbell.app"
+  Scripts/build_app_bundle.sh --output "$APP" --identity "-" --arch "$(uname -m)" >/dev/null
+  /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $CAPTURE_BUNDLE_ID" "$APP/Contents/Info.plist"
+  codesign --force --deep --sign - "$APP" >/dev/null 2>&1
+  # Registered with LaunchServices, as any opened app is, so SMAppService finds it
+  # and Settings shows a fresh install's login-item state instead of a warning.
+  # Unregistered again on exit.
+  "$LSREGISTER" -f "$APP" >/dev/null 2>&1 || true
+fi
+[[ -d "$APP" ]] || { echo "error: $APP not found" >&2; exit 1; }
 
 # A 1x display silently halves the resolution, so refuse rather than publish a
 # degraded image.
@@ -62,12 +82,27 @@ variants() {
 
 mkdir -p "$OUT_DIR"
 TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"; [[ -n "${APP_PID:-}" ]] && kill "$APP_PID" 2>/dev/null || true' EXIT
+# Every step here tolerates failure: under set -e, a kill of an app that already
+# exited would abort the trap before the throwaway preferences are deleted.
+cleanup() {
+  if [[ -n "${APP_PID:-}" ]]; then
+    kill "$APP_PID" 2>/dev/null || true
+    wait "$APP_PID" 2>/dev/null || true
+  fi
+  if [[ -z "${MAILBELL_APP:-}" && -n "${APP:-}" ]]; then
+    "$LSREGISTER" -u "$APP" >/dev/null 2>&1 || true
+  fi
+  rm -rf "$TMP" "$CAPTURE_WORK"
+  [[ -n "${MAILBELL_APP:-}" ]] || defaults delete "$CAPTURE_BUNDLE_ID" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
 
 for pane in $PANES; do
   name="${PANE_NAMES[$pane]}"
   pkill -f -- "--screenshot-mode" 2>/dev/null || true
-  "$APP/Contents/MacOS/Mailbell" --screenshot-mode --screenshot-pane "$pane" > "$TMP/out.log" 2>&1 &
+  # Light matches the site's default appearance; without the flag Settings would
+  # follow whatever the operator's system uses.
+  "$APP/Contents/MacOS/Mailbell" --screenshot-mode --screenshot-pane "$pane" --screenshot-appearance light > "$TMP/out.log" 2>&1 &
   APP_PID=$!
 
   WINDOW_ID=""
