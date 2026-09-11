@@ -24,6 +24,8 @@ network traffic outside Gmail itself is the update check through
 
 ---
 
+<br />
+
 ## 🌱 Quick Start
 
 Requires **macOS 26 or later** and a current Xcode toolchain. Optional: `swiftlint` and `swiftformat`
