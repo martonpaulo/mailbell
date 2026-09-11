@@ -47,7 +47,9 @@ no:
 
 ## Pull requests
 
-- Conventional Commits, English everywhere.
+- Conventional Commits, English everywhere. A commit made for an issue ends its subject with
+  `(#<issue number>)`.
+- Work on `main` unless a branch was requested; keep each commit to one concern.
 - Business-rule changes come with tests.
 - Every user-facing behavior declares its default and configurability decision
   (see [docs/feature-defaults.md](docs/feature-defaults.md)).
