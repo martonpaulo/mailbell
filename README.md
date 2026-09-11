@@ -19,6 +19,7 @@ It runs **entirely on your Mac. There is no Mailbell server.** Tokens live in th
 the only change it ever makes to your mailbox is marking a message read when you ask, and the only
 network traffic outside Gmail itself is the update check through
 [Sparkle](https://sparkle-project.org).
+
 <br />
 
 ---
@@ -109,6 +110,7 @@ than publishing an unsigned or credential-less build:
 > store.
 
 `ci.yml` and `pages.yml` read no secrets at all.
+
 <br />
 
 ---
@@ -244,6 +246,7 @@ Docs: [architecture](docs/architecture.md) · [feature defaults](docs/feature-de
   [report it](https://github.com/martonpaulo/mailbell/issues).
 - **Sign-in stopped working for new people** — the 100-user cap for unverified apps may have been
   reached.
+
 <br />
 
 ---
