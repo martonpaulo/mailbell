@@ -27,86 +27,63 @@ network traffic outside Gmail itself is the update check through
 <br />
 
 ## 🌱 Quick Start
-Requires **macOS 26 or later** and a current Xcode toolchain. Optional: `swiftlint` and `swiftformat`
-for `make check`.
+Requires **macOS 26 or later** and the **Swift 6.2** toolchain; `make check` also uses SwiftLint and SwiftFormat.
 
 ```bash
 git clone https://github.com/martonpaulo/mailbell.git
 cd mailbell
 cp .env.example .env      # then set MAILBELL_GOOGLE_CLIENT_ID
-make check                # build + lint + tests + repository invariants
-make install              # ad-hoc signed bundle in /Applications
+make install
 ```
 
-Local builds need your **own** Google Desktop OAuth client, because the release credentials are not
-in this repository. Create one in the
-[Google Cloud Console](https://console.cloud.google.com/apis/credentials) under *Create Credentials →
-OAuth client ID → Desktop app*, with the Gmail API enabled and IMAP turned on in Gmail settings. The
-client secret is optional for Desktop clients.
+Local builds need your **own** Google Desktop OAuth client, because the release credentials are not in this repository.
 
-Install to `/Applications` rather than running the unbundled binary: macOS only delivers
-notifications to a real app bundle.
+Install to `/Applications` rather than running the unbundled binary: macOS only delivers notifications to a real app bundle.
 
 <br />
 
 ## 🛠 Commands
-`make` with no target lists everything. The ones that matter:
-
 | Command | What it does |
-|---|---|
-| `make build` | Build debug artifacts |
+| --- | --- |
+| `make check` | Run the full gate before a commit: `build`, `lint`, `test`, `validate` |
+| `make build` | Build the debug artifacts |
 | `make app` | Build the debug executable product |
-| `make run` | Run the debug executable (unbundled; notifications need `make install`) |
+| `make run` | Run the debug executable, unbundled; notifications need `make install` |
 | `make test` | Run the test suite |
 | `make lint` | Run SwiftLint |
-| `make format` | Format sources with SwiftFormat |
+| `make format` | Format the sources with SwiftFormat |
 | `make validate` | Check the repository invariants (`Scripts/validate.sh`) |
-| `make check` | `build` + `lint` + `test` + `validate` |
 | `make install` | Install an ad-hoc signed app bundle to `/Applications` |
 | `make uninstall` | Remove the installed app bundle |
+| `make refresh-icons` | Reinstall and flush the macOS icon caches after an icon change |
 | `make dmg` | Build an ad-hoc signed drag-and-drop DMG |
 | `make icons` | Regenerate the AppIcon PNGs and `.icns` from `Resources/logo.png` |
 | `make setup-release-signing` | Configure the Developer ID identity and the `notarytool` Keychain profile |
 | `make sparkle-keys` | Generate the Sparkle EdDSA key into the Keychain |
+| `make require-oauth-config` | Verify the release Google OAuth credentials are available |
 | `make release` | Build, sign, notarize and staple a tagged release DMG |
-| `make clean` | Remove SwiftPM build artifacts |
+| `make clean` | Remove the SwiftPM build artifacts |
+
+`make` with no target lists every target.
 
 <br />
 
 ## 🔐 Secrets and variables
-Never commit `.env`, credentials, tokens, or signing material. The names below are the complete set;
-the values live in your shell, the Keychain, or GitHub Actions secrets.
+Names only: the values live in your shell, the Keychain, or the repository's Actions secrets, and `validate.yml` and `deploy.yml` read none of them.
 
-Local environment ([.env.example](.env.example)):
-
-| Name | What it is |
-|---|---|
-| `MAILBELL_GOOGLE_CLIENT_ID` | Your own Google Desktop OAuth client ID. Required for a local build |
-| `MAILBELL_GOOGLE_CLIENT_SECRET` | That client's secret. Optional for Desktop clients |
-| `MAILBELL_BUNDLE_ID` | Optional. May only restate the identifier already in `Resources/Info.plist`; packaging rejects a different value |
-| `MAILBELL_CODE_SIGN_IDENTITY` | Signing identity label for a signed local build |
-| `MAILBELL_NOTARY_KEYCHAIN_PROFILE` | Name of an existing `notarytool` Keychain profile |
-
-GitHub Actions secrets, read by [`.github/workflows/release.yml`](.github/workflows/release.yml).
-The workflow checks all seven up front and **skips the release cleanly** when any is missing, rather
-than publishing an unsigned or credential-less build:
-
-| Secret | What it is |
-|---|---|
-| `DEVELOPER_ID_CERT_P12` | base64 of a PKCS#12 holding **only** the Developer ID Application identity |
-| `DEVELOPER_ID_CERT_PASSWORD` | That PKCS#12's export password |
-| `NOTARIZATION_APPLE_ID` | Apple Developer account email |
-| `NOTARIZATION_PASSWORD` | App-specific password for notarization |
-| `NOTARIZATION_TEAM_ID` | Apple Developer Team ID |
-| `SPARKLE_PRIVATE_KEY` | Sparkle EdDSA private key (`generate_keys -x`) |
-| `MAILBELL_GOOGLE_CLIENT_ID` / `MAILBELL_GOOGLE_CLIENT_SECRET` | The release OAuth client |
-
-> **Exporting the certificate:** `security export -t identities` dumps *every* identity in the login
-> keychain, which on a normal Mac includes unrelated personal certificates such as government eID
-> keys. Narrow the export to the single Developer ID identity before it goes anywhere near a secret
-> store.
-
-`validate.yml` and `deploy.yml` read no secrets at all.
+| Name | Where | What for |
+| --- | --- | --- |
+| `MAILBELL_GOOGLE_CLIENT_ID` | `.env` locally, Actions secret for a release | Required. The Google Desktop OAuth client ID the build signs in with |
+| `DEVELOPER_ID_CERT_P12` | Actions secret, `release.yml` | Required for a release. Base64 of a PKCS#12 holding only the Developer ID Application identity |
+| `DEVELOPER_ID_CERT_PASSWORD` | Actions secret, `release.yml` | Required for a release. That PKCS#12's export password |
+| `NOTARIZATION_APPLE_ID` | Actions secret, `release.yml` | Required for a release. The Apple Developer account email |
+| `NOTARIZATION_PASSWORD` | Actions secret, `release.yml` | Required for a release. The app-specific password used for notarization |
+| `NOTARIZATION_TEAM_ID` | Actions secret, `release.yml` | Required for a release. The Apple Developer Team ID |
+| `SPARKLE_PRIVATE_KEY` | Actions secret, `release.yml` | Required for a release. The Sparkle EdDSA private key (`generate_keys -x`) |
+| `MAILBELL_GOOGLE_CLIENT_SECRET` | `.env` locally, Actions secret for a release | Optional for Desktop clients. That OAuth client's secret |
+| `MAILBELL_BUNDLE_ID` | `.env` locally | Optional. May only restate the identifier already in `Resources/Info.plist`; packaging rejects a different value |
+| `MAILBELL_CODE_SIGN_IDENTITY` | `.env` locally | Optional. The signing identity label for a signed local build |
+| `MAILBELL_NOTARY_KEYCHAIN_PROFILE` | `.env` locally | Optional. The name of an existing `notarytool` Keychain profile |
 
 ---
 
@@ -123,6 +100,11 @@ Mailbell's Google OAuth client has **not been submitted for Google's review yet*
 - **Google caps unverified apps at 100 new users.** Once 100 people have connected an account, new
   sign-ins stop working until verification completes. **No unlimited use is promised while the app
   is unverified.**
+
+Local builds use your own client, not this one. Create it in the
+[Google Cloud Console](https://console.cloud.google.com/apis/credentials) under *Create Credentials →
+OAuth client ID → Desktop app*, with the Gmail API enabled and IMAP turned on in Gmail settings. The
+client secret is optional for Desktop clients.
 
 This is a review status, not a security problem. Your Gmail data still never passes through any
 server this project operates, because none exists.
@@ -217,6 +199,11 @@ git tag v0.1.0 && make release
 number that disagrees with the derived one. It builds, signs with Developer ID, notarizes and
 staples both the app archive and the DMG, signs the update for Sparkle, and writes the `appcast.xml`
 entry. Commit the appcast, push the tag, and attach the DMG and ZIP to the GitHub Release.
+
+> **Exporting the certificate:** `security export -t identities` dumps *every* identity in the login
+> keychain, which on a normal Mac includes unrelated personal certificates such as government eID
+> keys. Narrow the export to the single Developer ID identity before it goes anywhere near a secret
+> store.
 
 Pushing a `v*.*.*` tag runs the same flow in CI, using the secrets above. `workflow_dispatch` reruns
 the whole signing chain against an existing tag, so the pipeline can be exercised without inventing
