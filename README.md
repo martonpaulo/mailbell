@@ -26,8 +26,7 @@ network traffic outside Gmail itself is the update check through
 
 <br />
 
-## Quick Start
-
+## 🌱 Quick Start
 Requires **macOS 26 or later** and a current Xcode toolchain. Optional: `swiftlint` and `swiftformat`
 for `make check`.
 
@@ -50,8 +49,7 @@ notifications to a real app bundle.
 
 <br />
 
-## Commands
-
+## 🛠 Commands
 `make` with no target lists everything. The ones that matter:
 
 | Command | What it does |
@@ -75,8 +73,7 @@ notifications to a real app bundle.
 
 <br />
 
-## Secrets and variables
-
+## 🔐 Secrets and variables
 Never commit `.env`, credentials, tokens, or signing material. The names below are the complete set;
 the values live in your shell, the Keychain, or GitHub Actions secrets.
 
