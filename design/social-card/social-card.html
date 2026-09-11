@@ -1,0 +1,45 @@
+<!doctype html>
+<!-- Mailbell social card. Source of truth for docs/social-card.png, served at
+     https://mailbell.martonpaulo.com/social-card.png (1200x630). Never edit the PNG.
+     Render from the repository root:
+       npx --yes playwright@1.63.0 screenshot --viewport-size="1200,630" \
+         "file://$PWD/design/social-card/social-card.html" docs/social-card.png
+       magick docs/social-card.png -strip -colors 256 -define png:compression-level=9 PNG8:docs/social-card.png
+     Layout, safe area and rules: the social card standard (skill-deck#261). Fonts: Inter, OFL (fonts/OFL.txt). -->
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: "Inter Display"; font-weight: 700; src: url(fonts/Inter_28pt-Bold.ttf); }
+  @font-face { font-family: "Inter"; font-weight: 400; src: url(fonts/Inter_18pt-Regular.ttf); }
+  @font-face { font-family: "Inter"; font-weight: 500; src: url(fonts/Inter_24pt-Medium.ttf); }
+  @font-face { font-family: "Inter"; font-weight: 600; src: url(fonts/Inter_24pt-SemiBold.ttf); }
+  html, body { margin: 0; }
+  .card {
+    position: relative; width: 1200px; height: 630px; overflow: hidden;
+    background:
+      radial-gradient(760px 520px at 86% 40%, rgba(231, 164, 36, .30), transparent 64%),
+      radial-gradient(520px 360px at 6% 8%, rgba(231, 164, 36, .12), transparent 70%),
+      linear-gradient(160deg, #fdfaf2 0%, #f5eedd 100%);
+    color: #1a1710; font-family: "Inter", sans-serif;
+  }
+  .copy { position: absolute; left: 96px; top: 50%; transform: translateY(-54%); width: 470px; }
+  .icon { width: 104px; height: 104px; display: block; margin-bottom: 30px;
+          filter: drop-shadow(0 16px 26px rgba(163, 92, 0, .28)); }
+  .eyebrow { margin: 0 0 18px; font-weight: 600; font-size: 22px; letter-spacing: .12em;
+             text-transform: uppercase; color: #9a5600; }
+  h1 { margin: 0; font: 700 84px/1 "Inter Display", sans-serif; letter-spacing: -0.035em; }
+  .promise { margin: 22px 0 0; font-weight: 500; font-size: 38px; line-height: 1.18;
+             letter-spacing: -0.015em; color: #4d4535; }
+  .domain { position: absolute; left: 96px; bottom: 62px; font-size: 24px; color: #7d735f; }
+  .shot { position: absolute; left: 620px; top: 96px; width: 660px; border-radius: 14px;
+          filter: drop-shadow(0 30px 50px rgba(60, 40, 0, .28)); }
+</style>
+<div class="card">
+  <div class="copy">
+    <img class="icon" src="../../docs/assets/app-icon.png" alt="">
+    <p class="eyebrow">Free for Mac · Open source</p>
+    <h1>Mailbell</h1>
+    <p class="promise">Gmail notifications in your menu bar</p>
+  </div>
+  <img class="shot" src="../../docs/assets/screenshots/general.webp" alt="">
+  <div class="domain">mailbell.martonpaulo.com</div>
+</div>
