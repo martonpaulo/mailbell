@@ -6,7 +6,7 @@
 
 Gmail notifications in your macOS menu bar — instant IMAP IDLE alerts, a review queue you can clear in one click, no server in between.
 
-[![CI](https://github.com/martonpaulo/mailbell/actions/workflows/ci.yml/badge.svg)](https://github.com/martonpaulo/mailbell/actions/workflows/ci.yml) [![Release](https://github.com/martonpaulo/mailbell/actions/workflows/release.yml/badge.svg)](https://github.com/martonpaulo/mailbell/actions/workflows/release.yml) [![Swift 6.2](https://img.shields.io/badge/Swift-6.2-orange)](https://swift.org) [![Sparkle 2.9](https://img.shields.io/badge/Sparkle-2.9-blue)](https://sparkle-project.org)
+[![Validate](https://github.com/martonpaulo/mailbell/actions/workflows/validate.yml/badge.svg)](https://github.com/martonpaulo/mailbell/actions/workflows/validate.yml) [![Release](https://github.com/martonpaulo/mailbell/actions/workflows/release.yml/badge.svg)](https://github.com/martonpaulo/mailbell/actions/workflows/release.yml) [![Swift 6.2](https://img.shields.io/badge/Swift-6.2-orange)](https://swift.org) [![Sparkle 2.9](https://img.shields.io/badge/Sparkle-2.9-blue)](https://sparkle-project.org)
 
 </div>
 
@@ -107,7 +107,7 @@ than publishing an unsigned or credential-less build:
 > keys. Narrow the export to the single Developer ID identity before it goes anywhere near a secret
 > store.
 
-`ci.yml` and `pages.yml` read no secrets at all.
+`validate.yml` and `deploy.yml` read no secrets at all.
 
 ---
 
