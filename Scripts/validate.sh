@@ -103,7 +103,8 @@ fi
 # The header nav carries this site's own destinations and no outward link; the
 # footer carries the outward links and no internal one. Neither repeats the
 # other, so a link appears once per page.
-expected_navigation="Features|Download|Privacy|Terms"
+# Download is the last item in the header nav, fleet-wide.
+expected_navigation="Features|Privacy|Terms|Download"
 expected_footer="Source|Issues|Releases"
 for page in docs/index.html docs/privacy.html docs/terms.html; do
     [ -f "$page" ] || continue
