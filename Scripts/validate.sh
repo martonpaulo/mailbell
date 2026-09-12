@@ -100,8 +100,11 @@ fi
 
 # Every website page shares one navigation and one footer. A visitor must never
 # see the site's structure change from page to page.
-expected_navigation="Features|Download|Privacy|Terms|GitHub"
-expected_footer="Privacy|Terms|Source|Issues|Releases"
+# The header nav carries this site's own destinations and no outward link; the
+# footer carries the outward links and no internal one. Neither repeats the
+# other, so a link appears once per page.
+expected_navigation="Features|Download|Privacy|Terms"
+expected_footer="Source|Issues|Releases"
 for page in docs/index.html docs/privacy.html docs/terms.html; do
     [ -f "$page" ] || continue
     navigation=$(sed -n '/<nav aria-label="Page sections">/,/<\/nav>/p' "$page" \
