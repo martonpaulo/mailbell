@@ -198,6 +198,8 @@ echo "$PLIST_VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' \
 for page in docs/index.html; do
     grep -Fq "Download Mailbell $PLIST_VERSION" "$page" \
         || note "$page must name the shipped version on its download button (Download Mailbell $PLIST_VERSION)"
+    grep -Fq "releases/tag/v$PLIST_VERSION" "$page" \
+        || note "$page release notes link must point at releases/tag/v$PLIST_VERSION"
 done
 
 # The 404 page is part of the site, not a bare fallback: same header, same
