@@ -1,203 +1,316 @@
-/* Mailbell website: self-contained, light/dark aware. */
+/* Fleet typography standard, 2026-09. This :root block is identical, in this
+   order, in windowhop, mailbell and meantime: the three sites share a design
+   but no package, so copying is the cost and identical ordering is what keeps
+   the drift greppable. The -apple-system stack is deliberate and stays: these
+   are landing pages for Mac apps, so the page wears the platform's own face. */
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.375rem;
+  --text-xl: clamp(1.75rem, 1.25rem + 1.5vw, 2.25rem);
+  --text-2xl: clamp(2.5rem, 1.5rem + 3.5vw, 4rem);
+  --text-3xl: clamp(3rem, 1.25rem + 6.5vw, 6.5rem);
+  --leading-tight: 1.08;
+  --leading-snug: 1.2;
+  --leading-relaxed: 1.4;
+  --leading-body: 1.6;
+  --tracking-display: -0.03em;
+  --tracking-body: -0.01em;
+  --tracking-eyebrow: 0.12em;
+  --weight-body: 400;
+  --weight-strong: 600;
+  --weight-display: 700;
+  --measure: 68ch;
+  --measure-narrow: 44ch;
+  --measure-title: 16ch;
+}
+
+/* --- Mailbell palette and page metrics ------------------------------------- */
 :root {
   color-scheme: light dark;
   --bg: #fbf9f4;
   --surface: #ffffff;
-  --ink: #1a1710;
-  --muted: #625a4b;
+  --surface-strong: #ffffff;
+  --text: #1a1710;
+  --secondary: #625a4b;
+  --line: rgba(26, 23, 16, 0.12);
   --accent: #a35c00;
-  --accent-soft: rgba(163, 92, 0, 0.10);
+  --accent-hover: #8a4e00;
+  --button-primary-fg: #ffffff;
+  --button-primary-bg: #a35c00;
+  --button-primary-bg-hover: #8a4e00;
+  --button-glow: 0 8px 22px color-mix(in srgb, var(--accent) 28%, transparent);
+  --button-glow-hover: 0 12px 28px color-mix(in srgb, var(--accent) 34%, transparent);
+  --shadow: 0 24px 80px rgba(26, 23, 16, 0.12);
+  --radius: 28px;
+  --radius-card: 24px;
+  --page-width: min(1180px, calc(100% - 40px));
+  /* Mailbell's own: the unverified-app disclosure. */
   --warning-bg: #fff8e6;
-  --warning-border: #e0a72a;
-  --warning-ink: #6b4a00;
-  --accent-ink: #ffffff;
-  --border: rgba(26, 23, 16, 0.12);
-  /* The header and the content share one page container. Keeping the width
-     and gutter here is what keeps them aligned when either one changes. */
-  --page-width: 980px;
-  --page-gutter: 1.5rem;
-  --shadow: 0 18px 48px rgba(26, 23, 16, 0.12);
-  --radius: 16px;
+  --warning-line: #e0a72a;
+  --warning-text: #6b4a00;
 }
+
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #14110b;
     --surface: #201b12;
-    --ink: #f6f1e6;
-    --muted: #b3a892;
+    --surface-strong: #201b12;
+    --text: #f6f1e6;
+    --secondary: #b3a892;
+    --line: rgba(246, 241, 230, 0.14);
     --accent: #ffc53d;
-    --accent-soft: rgba(255, 197, 61, 0.12);
+    --accent-hover: #ffd469;
+    --button-primary-fg: #14110b;
+    --button-primary-bg: #ffc53d;
+    --button-primary-bg-hover: #ffd469;
+    --shadow: 0 28px 90px rgba(0, 0, 0, 0.55);
     --warning-bg: #2a2110;
-    --warning-border: #b98a1c;
-    --warning-ink: #ffdf9a;
-    --accent-ink: #14110b;
-    --border: rgba(246, 241, 230, 0.14);
-    --shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+    --warning-line: #b98a1c;
+    --warning-text: #ffdf9a;
   }
 }
+
+/* --- Shared structure ------------------------------------------------------
+   The section rhythm, hero, feature blocks, buttons and footer below are the
+   fleet's one landing-page design. Keep them in step across the three sites. */
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
+/* The footer sits at the bottom of the viewport on a short page (the 404
+   above all) instead of floating in the middle of it. svh keeps mobile browser
+   chrome from pushing it off; vh is the fallback for anything older. */
 body {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-body);
+  line-height: var(--leading-body);
+  letter-spacing: var(--tracking-body);
   background: var(--bg);
-  color: var(--ink);
-  line-height: 1.55;
+  color: var(--text);
 }
-img { max-width: 100%; height: auto; }
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
+a { color: inherit; }
+/* A link inside running copy shows itself. Navigation, buttons and link rows
+   carry their own treatment instead. */
+p a, li a, td a { color: var(--accent); text-decoration: underline; text-underline-offset: 0.18em; }
+.actions a, .link-row a, .site-footer a, .site-header a { text-decoration: none; }
+img { display: block; max-width: 100%; height: auto; }
+strong { font-weight: var(--weight-strong); }
+
+.skip-link { position: fixed; left: 16px; top: -80px; z-index: 100; padding: 10px 14px; border-radius: 10px; background: var(--text); color: var(--bg); text-decoration: none; }
+.skip-link:focus { top: 16px; }
+
 :where(a, button, input, select):focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 3px;
+  outline: 3px solid color-mix(in srgb, var(--accent) 70%, white);
+  outline-offset: 4px;
+  border-radius: 8px;
 }
 
-.skip-link {
-  position: absolute; left: -9999px; top: 0; background: var(--accent);
-  color: var(--accent-ink); padding: 0.5rem 1rem; border-radius: 8px; z-index: 10;
+/* One icon for every link that leaves the site: the GitHub button, another site
+   of the fleet, any external documentation. A link to another page of this site
+   never carries it. */
+.external-icon {
+  flex: none;
+  width: 0.7em;
+  height: 0.7em;
+  margin-left: 0.35em;
+  vertical-align: baseline;
+  opacity: 0.8;
 }
-.skip-link:focus { left: 1rem; top: 1rem; }
 
 .site-header {
-  display: flex; align-items: center; justify-content: space-between;
-  flex-wrap: wrap; gap: 0.5rem 1.2rem;
-  max-width: var(--page-width); margin: 0 auto; padding: 1.1rem var(--page-gutter);
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px 24px;
+  width: var(--page-width); margin: 0 auto; padding: 14px 0;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(22px) saturate(1.4);
+  border-bottom: 1px solid var(--line);
 }
-.brand { display: flex; align-items: center; gap: 0.6rem; font-weight: 700; color: var(--ink); flex-shrink: 0; }
-.brand img { border-radius: 8px; }
-.site-header nav { display: flex; gap: 1.4rem; }
-.site-header nav a { color: var(--muted); font-weight: 500; }
-.site-header nav a:hover { color: var(--accent); text-decoration: none; }
+.brand { display: inline-flex; align-items: center; gap: 10px; font-weight: var(--weight-strong); text-decoration: none; letter-spacing: var(--tracking-display); }
+.brand img { border-radius: 9px; }
+.site-header nav { display: flex; gap: 24px; }
+.site-header nav a, .text-link, .link-row a, .site-footer a {
+  display: inline-flex; align-items: center;
+  color: var(--secondary); text-decoration: none;
+  font-size: var(--text-sm); font-weight: var(--weight-strong);
+}
+.site-header nav a:hover, .text-link:hover, .link-row a:hover, .site-footer a:hover { color: var(--accent); }
 .site-header [aria-current="page"] { color: var(--accent); }
 
-@media (max-width: 640px) {
-  .site-header { justify-content: center; padding-inline: 1rem; }
-  .site-header nav {
-    width: 100%; justify-content: center; flex-wrap: wrap;
-    gap: 0.5rem 1rem; text-align: center;
-  }
-}
+main, .site-footer { width: var(--page-width); margin-inline: auto; }
+main { flex: 1 0 auto; }
+.site-footer { margin-top: auto; }
 
-main { max-width: var(--page-width); margin: 0 auto; padding: 0 var(--page-gutter) 4rem; }
-
-.hero { text-align: center; padding: 3.5rem 0 2rem; }
-.hero-icon { border-radius: 28px; box-shadow: var(--shadow); }
+.hero { padding: 96px 0 72px; text-align: center; overflow: hidden; }
+.hero-copy { max-width: 820px; margin: 0 auto; }
 .eyebrow {
-  text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.78rem;
-  font-weight: 700; color: var(--accent); margin: 1.6rem 0 0.4rem;
+  margin: 0 0 12px; color: var(--accent);
+  font-size: var(--text-xs); font-weight: var(--weight-display);
+  text-transform: uppercase; letter-spacing: var(--tracking-eyebrow);
 }
-h1 { font-size: clamp(2.1rem, 5.5vw, 3.2rem); line-height: 1.12; margin: 0.2rem 0 0.8rem; letter-spacing: -0.02em; }
-h2 { font-size: clamp(1.5rem, 3.4vw, 2rem); line-height: 1.18; margin: 0.2rem 0 0.7rem; letter-spacing: -0.01em; }
-.hero-summary { font-size: 1.15rem; color: var(--muted); max-width: 34rem; margin: 0 auto 1.6rem; }
+/* Balanced wrapping is for headings. Body copy reads worse when the browser
+   evens out the last lines of a long paragraph. */
+h1, h2, h3 { text-wrap: balance; }
+h1 {
+  max-width: var(--measure-title); margin: 0 auto;
+  font-size: var(--text-3xl); line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display); font-weight: var(--weight-display);
+}
+.hero-summary {
+  max-width: var(--measure-narrow); margin: 26px auto 28px;
+  color: var(--secondary); font-size: var(--text-lg); line-height: var(--leading-relaxed);
+}
 
-.actions { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; }
+.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+/* Buttons take Mailbell's motion: a short rise on hover with the shadow
+   following it on the same curve, and the press putting the button back down. */
 .button {
-  display: inline-block; padding: 0.72rem 1.5rem; border-radius: 999px;
-  font-weight: 600; transition: transform 0.12s ease, box-shadow 0.12s ease;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 48px; padding: 0 22px; border-radius: 999px;
+  text-decoration: none; font-size: 1rem; font-weight: var(--weight-strong);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease, color 0.12s ease;
 }
-.button:hover { text-decoration: none; transform: translateY(-1px); }
-.button.primary { background: var(--accent); color: var(--accent-ink); box-shadow: 0 8px 22px var(--accent-soft); }
-.button.secondary { border: 1px solid var(--border); color: var(--ink); background: var(--surface); }
-.compatibility { color: var(--muted); font-size: 0.9rem; margin-top: 1rem; }
-.actions + .compatibility { margin-top: 1.35rem; }
+.button:hover { transform: translateY(-1px); text-decoration: none; }
+.button:active { transform: translateY(0); }
+/* The soft halo under the download button. Mailbell's was a fixed rgba of its
+   own accent; here it is mixed from whichever accent the site carries. */
+.button.primary {
+  background: var(--button-primary-bg); color: var(--button-primary-fg);
+  box-shadow: var(--button-glow);
+}
+.button.primary:hover { background: var(--button-primary-bg-hover); box-shadow: var(--button-glow-hover); }
+.button.secondary { background: var(--surface-strong); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
+.compatibility { margin: 18px 0 0; color: var(--secondary); font-size: var(--text-sm); }
+
+.section { padding: 120px 0; border-top: 1px solid var(--line); }
+.section h2 {
+  max-width: var(--measure-title); margin: 0;
+  font-size: var(--text-2xl); line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-display); font-weight: var(--weight-display);
+}
+/* The rhythm inside a section: eyebrow, heading, an optional lead paragraph at
+   22px, then whatever the section shows at 48px. */
+.section > :not(.eyebrow):not(h2) { margin-top: 48px; }
+.section > p:not(.eyebrow) {
+  max-width: var(--measure); margin: 22px 0 0;
+  color: var(--secondary); font-size: var(--text-md); line-height: var(--leading-relaxed);
+}
+
+figure { margin: 0; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+figcaption { padding: 16px 4px 2px; color: var(--secondary); font-size: var(--text-sm); }
+
+.feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.feature-grid article { min-height: 240px; padding: 30px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); }
+.feature-grid article > span {
+  display: grid; place-items: center; width: 46px; height: 46px; margin-bottom: 36px;
+  border-radius: 13px; background: color-mix(in srgb, var(--accent) 13%, transparent);
+  color: var(--accent); font-size: var(--text-md); font-weight: var(--weight-display);
+}
+.feature-grid h3 { margin: 0 0 8px; font-size: var(--text-lg); line-height: var(--leading-snug); letter-spacing: var(--tracking-display); font-weight: var(--weight-strong); }
+.feature-grid p { margin: 0; color: var(--secondary); }
+
+.download { text-align: center; }
+.download > img { margin: 0 auto 20px; }
+.download h2, .download > p:not(.eyebrow) { margin-inline: auto; }
+.download > p:not(.eyebrow) { margin-block: 18px 30px; }
+.download .text-link { display: inline-flex; margin-top: 22px; color: var(--accent); }
+.download .compatibility { margin-top: 22px; }
+
+.link-row { display: flex; flex-wrap: wrap; gap: 12px 24px; }
+.link-row a { color: var(--accent); }
+
+.site-footer {
+  display: flex; justify-content: space-between; gap: 12px 30px; flex-wrap: wrap;
+  padding: 32px 0 56px; border-top: 1px solid var(--line);
+  color: var(--secondary); font-size: var(--text-sm);
+}
+.site-footer p { margin: 0; }
+.site-footer nav { display: flex; flex-wrap: wrap; gap: 12px 20px; }
+
+@media (max-width: 820px) {
+  :root { --page-width: min(100% - 28px, 1180px); }
+  /* The header keeps every destination on narrow screens: it wraps onto a
+     second centred row rather than dropping links the visitor came for. */
+  .site-header { flex-wrap: wrap; justify-content: center; }
+  .site-header nav { width: 100%; justify-content: center; flex-wrap: wrap; gap: 8px 18px; }
+  .hero { padding-top: 68px; }
+  .section { padding: 86px 0; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .feature-grid article { min-height: 210px; }
+  .site-footer { flex-direction: column; }
+}
+
+@media (max-width: 520px) {
+  .actions { align-items: stretch; flex-direction: column; }
+  .button { width: 100%; }
+  .feature-grid article { padding: 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  .button:hover, .button:active { transform: none; }
+}
+
+/* --- Mailbell's own sections ------------------------------------------------ */
+
+.hero-icon { margin: 0 auto 26px; border-radius: 28px; box-shadow: var(--shadow); }
 
 /* The unverified-app disclosure. Prominent by design: users meet Google's
    warning screen during sign-in and must not be surprised by it. */
 .notice {
-  background: var(--warning-bg);
-  border: 1px solid var(--warning-border);
-  border-radius: var(--radius);
-  color: var(--warning-ink);
-  padding: 1.1rem 1.3rem;
-  margin: 2rem auto 0;
-  max-width: 44rem;
-  text-align: left;
+  max-width: var(--measure); margin: 48px auto 0; padding: 22px 26px;
+  background: var(--warning-bg); border: 1px solid var(--warning-line);
+  border-radius: var(--radius-card); color: var(--warning-text); text-align: left;
 }
-.notice h2, .notice h3 { margin: 0 0 0.4rem; font-size: 1.02rem; color: inherit; }
-.notice p { margin: 0.4rem 0 0; font-size: 0.95rem; }
+.notice h2, .notice h3 { max-width: none; margin: 0 0 8px; font-size: var(--text-md); line-height: var(--leading-snug); letter-spacing: var(--tracking-body); color: inherit; }
+.notice p { margin: 10px 0 0; }
 .notice p:first-of-type { margin-top: 0; }
 .notice a { color: inherit; text-decoration: underline; }
-.notice ul { margin: 0.5rem 0 0; padding-left: 1.2rem; font-size: 0.95rem; }
+.notice ul { margin: 10px 0 0; padding-left: 20px; }
 
-.section { padding: 3.4rem 0 0; text-align: center; }
-.section > p:not(.eyebrow) { color: var(--muted); max-width: 40rem; margin: 0 auto 0.8rem; }
-.section h2 { margin-bottom: 1rem; }
-.section .actions { margin-top: 1.6rem; }
-
-.feature-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem; margin-top: 2rem; text-align: left;
-}
-.feature-grid article {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 1.3rem 1.4rem;
-}
-.feature-grid span { font-size: 1.5rem; }
-.feature-grid h3 { margin: 0.5rem 0 0.3rem; font-size: 1.02rem; }
-.feature-grid p { margin: 0; color: var(--muted); font-size: 0.94rem; }
-
-.steps {
-  counter-reset: step; list-style: none; margin: 2rem auto 0; padding: 0;
-  max-width: 40rem; text-align: left;
-}
-.steps li {
-  counter-increment: step; position: relative; padding: 0 0 1.1rem 2.6rem;
-  color: var(--muted);
-}
+.steps { counter-reset: step; list-style: none; max-width: var(--measure); margin: 0; padding: 0; }
+.steps li { counter-increment: step; position: relative; padding: 0 0 18px 44px; color: var(--secondary); }
 .steps li::before {
   content: counter(step); position: absolute; left: 0; top: 0;
-  width: 1.8rem; height: 1.8rem; border-radius: 999px;
-  background: var(--accent-soft); color: var(--accent);
-  display: grid; place-items: center; font-weight: 700; font-size: 0.85rem;
+  width: 30px; height: 30px; border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 13%, transparent); color: var(--accent);
+  display: grid; place-items: center; font-weight: var(--weight-display); font-size: var(--text-sm);
 }
-.steps strong { color: var(--ink); }
-
-.download { padding-bottom: 0.5rem; }
-.download img { border-radius: 22px; box-shadow: var(--shadow); margin-bottom: 0.6rem; }
-.section.download > .compatibility { margin-top: 1.8rem; }
-
-/* Legal pages: long-form prose, left aligned and comfortable to read. */
-.legal { max-width: 46rem; margin: 0 auto; padding-top: 2.5rem; text-align: left; }
-.legal h1 { text-align: left; }
-.legal h2 { margin-top: 2.4rem; font-size: 1.3rem; }
-.legal h3 { margin-top: 1.6rem; font-size: 1.05rem; }
-/* A heading inside a callout is the box's own title, not a document section, so
-   it must not inherit the section spacing that would gap it off the box top. */
-.legal .notice h2,
-.legal .notice h3 { margin-top: 0; font-size: 1.02rem; }
-.legal p, .legal li { color: var(--muted); }
-.legal strong { color: var(--ink); }
-.legal ul, .legal ol { padding-left: 1.3rem; }
-.legal li { margin-bottom: 0.4rem; }
-.legal .updated { font-size: 0.9rem; }
-.legal table {
-  width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.94rem;
-  display: block; overflow-x: auto;
-}
-.legal th, .legal td {
-  border: 1px solid var(--border); padding: 0.6rem 0.75rem;
-  text-align: left; vertical-align: top;
-}
-.legal th { background: var(--surface); color: var(--ink); font-weight: 650; }
-.legal td { color: var(--muted); }
-
-.back { display: inline-block; margin-top: 2.5rem; }
-
-.site-footer {
-  border-top: 1px solid var(--border); text-align: center;
-  color: var(--muted); font-size: 0.9rem; padding: 1.6rem 1rem 2.2rem;
-  margin-top: 3rem;
-}
-.site-footer a { color: var(--muted); text-decoration: underline; }
-.site-footer a:hover { color: var(--accent); }
+.steps strong { color: var(--text); }
 
 /* The screenshot already carries the window's own corner radius and drop
    shadow, captured from the real window. Adding either here would cut the
    corner at a different radius and stack a second shadow on top of the real
    one. */
-.shot { margin: 2.5rem 0 0; }
-.shot img { width: 100%; max-width: 788px; height: auto; }
-.shot figcaption {
-  color: var(--muted); font-size: 0.92rem; margin-top: 0.4rem;
-}
+.shot { margin: 62px auto 0; padding: 0; background: none; border: 0; }
+.shot img { width: 100%; max-width: 788px; margin-inline: auto; }
+.shot figcaption { text-align: center; }
+
+/* Legal pages: long-form prose, left aligned and comfortable to read. */
+.legal { max-width: var(--measure); margin: 0 auto; padding: 72px 0 96px; text-align: left; }
+.legal h1 { max-width: none; margin: 0 0 8px; font-size: var(--text-xl); line-height: var(--leading-snug); }
+.legal h2 { max-width: none; margin: 48px 0 8px; font-size: var(--text-lg); line-height: var(--leading-snug); letter-spacing: var(--tracking-display); font-weight: var(--weight-display); }
+.legal h3 { max-width: none; margin: 30px 0 6px; font-size: var(--text-md); line-height: var(--leading-snug); font-weight: var(--weight-strong); }
+/* A heading inside a callout is the box's own title, not a document section, so
+   it must not inherit the section spacing that would gap it off the box top. */
+.legal .notice h2, .legal .notice h3 { margin-top: 0; font-size: var(--text-md); }
+.legal p, .legal li { color: var(--secondary); }
+.legal strong { color: var(--text); }
+.legal ul, .legal ol { padding-left: 22px; }
+.legal li { margin-bottom: 6px; }
+.legal .updated { font-size: var(--text-sm); }
+.legal table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: var(--text-sm); display: block; overflow-x: auto; }
+.legal th, .legal td { border: 1px solid var(--line); padding: 10px 12px; text-align: left; vertical-align: top; }
+.legal th { background: var(--surface); color: var(--text); font-weight: var(--weight-strong); }
+.legal td { color: var(--secondary); }
+
+.back { display: inline-flex; margin-top: 40px; }
+.legal .back { color: var(--accent); text-decoration: none; font-weight: var(--weight-strong); }
+.legal .notice a { color: inherit; text-decoration: underline; }

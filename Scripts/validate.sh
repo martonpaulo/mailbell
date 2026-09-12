@@ -105,10 +105,12 @@ expected_footer="Privacy|Terms|Source|Issues|Releases"
 for page in docs/index.html docs/privacy.html docs/terms.html; do
     [ -f "$page" ] || continue
     navigation=$(sed -n '/<nav aria-label="Page sections">/,/<\/nav>/p' "$page" \
+        | sed -E 's/<svg[^>]*>.*<\/svg>//g' \
         | sed -E -n 's/.*>([^<]+)<\/a>.*/\1/p' | paste -sd '|' -)
     [ "$navigation" = "$expected_navigation" ] \
         || note "$page navigation must be $expected_navigation (got $navigation)"
     footer=$(sed -n '/<footer class="site-footer">/,/<\/footer>/p' "$page" \
+        | sed -E 's/<svg[^>]*>.*<\/svg>//g' \
         | sed -E -n 's/.*>([^<]+)<\/a>.*/\1/p' | paste -sd '|' -)
     [ "$footer" = "$expected_footer" ] \
         || note "$page footer must be $expected_footer (got $footer)"
@@ -189,6 +191,37 @@ fi
 PLIST_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Resources/Info.plist)
 echo "$PLIST_VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' \
     || note "CFBundleShortVersionString must be X.Y.Z (got $PLIST_VERSION)"
+
+# The website names the shipped version on its download buttons, so a release
+# that forgets the site fails here instead of shipping a page that advertises
+# the previous version.
+for page in docs/index.html; do
+    grep -Fq "Download Mailbell $PLIST_VERSION" "$page" \
+        || note "$page must name the shipped version on its download button (Download Mailbell $PLIST_VERSION)"
+done
+
+# The 404 page is part of the site, not a bare fallback: same header, same
+# footer, same design.
+if [ ! -f docs/404.html ]; then
+    note "website must ship a 404 page"
+else
+    for marker in 'class="site-header"' 'class="site-footer"' 'styles/main.css'; do
+        grep -Fq "$marker" docs/404.html || note "docs/404.html must carry $marker"
+    done
+fi
+
+# Every link that leaves the site carries the external-link arrow and rel="noopener".
+while IFS= read -r line; do
+    case "$line" in
+        *'rel="noopener"'*) ;;
+        *) note "external link without rel=\"noopener\": $(printf '%s' "$line" | cut -c1-80)" ;;
+    esac
+    case "$line" in
+        *'class="external-icon"'*) ;;
+        *) note "external link without the external-link icon: $(printf '%s' "$line" | cut -c1-80)" ;;
+    esac
+done < <(grep -hoE '<a [^>]*href="https?://[^"]+"[^>]*>[^<]*(<svg[^>]*>.*</svg>)?</a>' \
+    docs/index.html docs/privacy.html docs/terms.html docs/404.html 2>/dev/null || true)
 
 # The published appcast must describe the shipped app.
 if [ -f appcast.xml ]; then
