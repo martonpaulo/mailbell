@@ -1,11 +1,12 @@
 name: Deploy
 
 on:
-  push:
+  # Deploy never revalidates: it waits for Validate to pass on main and publishes
+  # the exact commit Validate checked (fleet convention, skill-deck #263).
+  workflow_run:
+    workflows: [Validate]
+    types: [completed]
     branches: [main]
-    paths:
-      - "docs/**"
-      - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
 permissions:
@@ -17,9 +18,15 @@ concurrency:
 
 jobs:
   build:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       # docs/ holds the static site and the project's own written documentation
       # side by side, so uploading the folder wholesale published product.md,
       # architecture.md, design.md and feature-defaults.md on the public host.
