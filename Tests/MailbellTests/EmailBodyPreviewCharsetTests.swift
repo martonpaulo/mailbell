@@ -1,4 +1,4 @@
-@testable import mailbell
+@testable import Mailbell
 import XCTest
 
 /// Mail that declares iso-8859-1 is usually Windows-1252 on the wire. Latin-1

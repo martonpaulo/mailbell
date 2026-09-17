@@ -1,4 +1,4 @@
-@testable import mailbell
+@testable import Mailbell
 import XCTest
 
 /// Shared fixtures for the store suites, so the files that exercise the queue

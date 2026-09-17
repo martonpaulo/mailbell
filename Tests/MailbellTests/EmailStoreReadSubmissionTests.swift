@@ -1,4 +1,4 @@
-@testable import mailbell
+@testable import Mailbell
 import XCTest
 
 /// Marking as read awaits the network. A reply can join the same thread while

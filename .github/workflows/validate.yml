@@ -44,7 +44,7 @@ jobs:
           # Everything the compiler, the test suite or packaging can see. The
           # workflow itself is included: a change to how the build runs has to
           # be able to run the build.
-          if echo "${changed}" | grep -qE '^(Sources/|Tests/|Scripts/|Resources/|Package\.swift|Package\.resolved|Makefile|\.swiftlint\.yml|\.github/workflows/ci\.yml)'; then
+          if echo "${changed}" | grep -qE '^(Sources/|Tests/|scripts/|Resources/|Package\.swift|Package\.resolved|Makefile|\.swiftlint\.yml|\.github/workflows/ci\.yml)'; then
             echo "code=true" >> "$GITHUB_OUTPUT"
           else
             echo "code=false" >> "$GITHUB_OUTPUT"
@@ -59,7 +59,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Repository validation
-        run: bash Scripts/validate.sh
+        run: bash scripts/validate.sh
 
       # Not preinstalled on the macOS runner image. Installing it costs about a
       # minute, which is still a fraction of the build this job exists to run

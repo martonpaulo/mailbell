@@ -1,4 +1,4 @@
-@testable import mailbell
+@testable import Mailbell
 import XCTest
 
 final class BundleConfigScriptTests: XCTestCase {
@@ -237,7 +237,7 @@ final class BundleConfigScriptTests: XCTestCase {
         let root = repositoryRoot()
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/bash")
-        process.arguments = [root.appendingPathComponent("Scripts/inject_bundle_config.sh").path] + arguments
+        process.arguments = [root.appendingPathComponent("scripts/inject_bundle_config.sh").path] + arguments
         process.currentDirectoryURL = root
 
         var processEnvironment = ProcessInfo.processInfo.environment

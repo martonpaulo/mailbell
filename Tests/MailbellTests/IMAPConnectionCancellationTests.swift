@@ -1,4 +1,4 @@
-@testable import mailbell
+@testable import Mailbell
 import XCTest
 
 /// Cancelling an IMAP connection used to remove the state handler *before*

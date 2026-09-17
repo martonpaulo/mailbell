@@ -267,7 +267,7 @@ Preserve the IMAP IDLE reconnect model:
     anything irreversible confirms first.
   - A status row earns its space only when it can disagree with the control
     above it; otherwise it is noise.
-  These rules are enforced by `Scripts/validate.sh` source-shape invariants.
+  These rules are enforced by `scripts/validate.sh` source-shape invariants.
 - Preserve native controls, keyboard navigation, focus, hover/pressed/disabled/
   loading/error states, Dynamic Type, contrast, validation feedback, and safe
   areas.
@@ -307,7 +307,7 @@ the visible menu projection have one owner each in `EmailStore`.
 - **Signing material is never committed.** The Sparkle EdDSA private key lives in
   the login Keychain; only the public key ships in the bundle. Developer ID
   identity comes from local environment/Keychain. Notarization runs through
-  `Scripts/notarize.sh`, a verbatim copy of the owner's canonical script: CI
+  `scripts/notarize.sh`, a verbatim copy of the owner's canonical script: CI
   authenticates with the team App Store Connect API key (`NOTARY_API_KEY*`
   secrets), a Mac with the shared `skd-notary` Keychain profile.
 - Releases are tagged `vX.Y.Z`; the tag must match `CFBundleShortVersionString`.

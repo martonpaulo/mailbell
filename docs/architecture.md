@@ -117,7 +117,7 @@ window, and only then prints its own `CGWindowID` followed by a readiness
 marker. A capture taken before that marker shows an inactive window: grey
 traffic lights and dimmed controls.
 
-`Scripts/capture_screenshots.sh` consumes that output and runs
+`scripts/capture_screenshots.sh` consumes that output and runs
 `screencapture -l<windowid>`. It never passes `-o`, which is the flag that
 strips the shadow, and it refuses to run without a Retina display, because a 1x
 display silently halves the resolution. Output is lossless WebP: identical

@@ -1,4 +1,4 @@
-@testable import mailbell
+@testable import Mailbell
 import XCTest
 
 /// Notification Center replaces a request that reuses an identifier, so the

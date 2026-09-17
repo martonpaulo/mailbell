@@ -1,4 +1,4 @@
-@testable import mailbell
+@testable import Mailbell
 import XCTest
 
 /// Preheader stuffing is invisible, so it is not whitespace and survives space

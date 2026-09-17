@@ -38,7 +38,7 @@ fi
 # Google installed-app secrets carry a fixed prefix; nothing tracked may hold one.
 # This script is excluded because it necessarily names the prefix it looks for.
 if git ls-files -z 2>/dev/null | xargs -0 grep -l 'GOCSPX-' 2>/dev/null \
-    | grep -v '^Scripts/validate.sh$' | grep -q .; then
+    | grep -v '^scripts/validate.sh$' | grep -q .; then
     note "a Google OAuth client secret must never be committed"
 fi
 # The credentials this machine actually builds with must not appear in git.
@@ -59,20 +59,20 @@ if [ -f .env.example ] && grep -qE '^[A-Z_]+=.+' .env.example; then
 fi
 
 # Release credentials are injected at packaging time, never checked in.
-grep -q 'MailbellGoogleClientID' Scripts/inject_bundle_config.sh \
+grep -q 'MailbellGoogleClientID' scripts/inject_bundle_config.sh \
     || note "packaging must inject the OAuth client into the bundle plist"
 
 # Sparkle is embedded and nested-signed by exactly one script, so no packaging
 # path can ship an unsigned updater.
-grep -q 'Sparkle.framework' Scripts/build_app_bundle.sh \
+grep -q 'Sparkle.framework' scripts/build_app_bundle.sh \
     || note "the shared bundle builder must embed Sparkle.framework"
-grep -q 'XPCServices/Downloader.xpc' Scripts/build_app_bundle.sh \
+grep -q 'XPCServices/Downloader.xpc' scripts/build_app_bundle.sh \
     || note "the shared bundle builder must sign Sparkle's nested XPC services"
 for target in install dmg release; do
     grep -qE "^${target}:" Makefile || note "Makefile must define the $target target"
 done
 if grep -qE '^\s+@?cp .*Contents/MacOS' Makefile; then
-    note "packaging paths must go through Scripts/build_app_bundle.sh"
+    note "packaging paths must go through scripts/build_app_bundle.sh"
 fi
 
 # The public beta must be honest about Google's review status everywhere it

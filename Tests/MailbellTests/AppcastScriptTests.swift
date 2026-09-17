@@ -1,4 +1,4 @@
-@testable import mailbell
+@testable import Mailbell
 import XCTest
 
 /// The appcast advertises a signature and length for an exact archive. Treating
@@ -74,14 +74,14 @@ final class AppcastScriptTests: XCTestCase {
     private func makeWorkspace() throws -> URL {
         let workspace = FileManager.default.temporaryDirectory
             .appendingPathComponent("MailbellAppcast.\(UUID().uuidString)")
-        let scripts = workspace.appendingPathComponent("Scripts")
+        let scripts = workspace.appendingPathComponent("scripts")
         try FileManager.default.createDirectory(at: scripts, withIntermediateDirectories: true)
         try FileManager.default.copyItem(
             at: URL(fileURLWithPath: #filePath)
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
-                .appendingPathComponent("Scripts/make_appcast.sh"),
+                .appendingPathComponent("scripts/make_appcast.sh"),
             to: scripts.appendingPathComponent("make_appcast.sh")
         )
         return workspace
@@ -96,7 +96,7 @@ final class AppcastScriptTests: XCTestCase {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/bash")
         process.arguments = [
-            workspace.appendingPathComponent("Scripts/make_appcast.sh").path,
+            workspace.appendingPathComponent("scripts/make_appcast.sh").path,
             version,
             "999",
             "/tmp/\(archive)",

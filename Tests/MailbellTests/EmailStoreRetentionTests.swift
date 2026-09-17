@@ -1,4 +1,4 @@
-@testable import mailbell
+@testable import Mailbell
 import XCTest
 
 /// The review queue is a recent, reconstructible window over Gmail. Without a

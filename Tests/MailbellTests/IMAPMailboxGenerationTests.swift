@@ -1,4 +1,4 @@
-@testable import mailbell
+@testable import Mailbell
 import XCTest
 
 /// RFC 3501 identifies a message by mailbox name, UIDVALIDITY and UID together.

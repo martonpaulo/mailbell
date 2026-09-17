@@ -1,4 +1,4 @@
-@testable import mailbell
+@testable import Mailbell
 import XCTest
 
 /// Queue order must follow Gmail's ordinary inbox chronology: newest server

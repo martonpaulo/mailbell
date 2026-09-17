@@ -1,4 +1,4 @@
-@testable import mailbell
+@testable import Mailbell
 import XCTest
 
 final class AppIdentityTests: XCTestCase {
@@ -25,8 +25,8 @@ final class AppIdentityTests: XCTestCase {
     func testPackagedAppDetectionRejectsUnbundledExecutable() {
         XCTAssertFalse(
             AppIdentity.isPackagedApp(
-                bundleURL: URL(fileURLWithPath: "/Users/perso/Projects/mailbell/.build/release"),
-                executableURL: URL(fileURLWithPath: "/Users/perso/Projects/mailbell/.build/release/mailbell"),
+                bundleURL: URL(fileURLWithPath: "/Users/perso/proj/mailbell/.build/release"),
+                executableURL: URL(fileURLWithPath: "/Users/perso/proj/mailbell/.build/release/Mailbell"),
                 arguments: []
             )
         )

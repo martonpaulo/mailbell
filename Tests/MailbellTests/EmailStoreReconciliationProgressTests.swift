@@ -1,4 +1,4 @@
-@testable import mailbell
+@testable import Mailbell
 import XCTest
 
 /// Reconciliation fetches a bounded window of the newest unknown unread UIDs.

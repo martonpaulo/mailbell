@@ -52,7 +52,7 @@ Install to `/Applications` rather than running the unbundled binary: macOS only 
 | `make test` | Run the test suite |
 | `make lint` | Run SwiftLint |
 | `make format` | Format the sources with SwiftFormat |
-| `make validate` | Check the repository invariants (`Scripts/validate.sh`) |
+| `make validate` | Check the repository invariants (`scripts/validate.sh`) |
 | `make install` | Install an ad-hoc signed app bundle to `/Applications` |
 | `make uninstall` | Remove the installed app bundle |
 | `make refresh-icons` | Reinstall and flush the macOS icon caches after an icon change |
@@ -76,14 +76,14 @@ Names only: the values live in your shell, the Keychain, or the repository's Act
 | `MAILBELL_GOOGLE_CLIENT_ID` | `.env` locally, Actions secret for a release | Required. The Google Desktop OAuth client ID the build signs in with |
 | `DEVELOPER_ID_CERT_P12` | Actions secret, `release.yml` | Required for a release. Base64 of a PKCS#12 holding only the Developer ID Application identity |
 | `DEVELOPER_ID_CERT_PASSWORD` | Actions secret, `release.yml` | Required for a release. That PKCS#12's export password |
-| `NOTARY_API_KEY` | Actions secret, `release.yml` | Required for a release. The team App Store Connect API key (`.p8`, Developer role) used by `Scripts/notarize.sh` |
+| `NOTARY_API_KEY` | Actions secret, `release.yml` | Required for a release. The team App Store Connect API key (`.p8`, Developer role) used by `scripts/notarize.sh` |
 | `NOTARY_API_KEY_ID` | Actions secret, `release.yml` | Required for a release. That key's Key ID |
 | `NOTARY_API_ISSUER_ID` | Actions secret, `release.yml` | Required for a release. The App Store Connect Issuer ID |
 | `SPARKLE_PRIVATE_KEY` | Actions secret, `release.yml` | Required for a release. The Sparkle EdDSA private key (`generate_keys -x`) |
 | `MAILBELL_GOOGLE_CLIENT_SECRET` | `.env` locally, Actions secret for a release | Optional for Desktop clients. That OAuth client's secret |
 | `MAILBELL_BUNDLE_ID` | `.env` locally | Optional. May only restate the identifier already in `Resources/Info.plist`; packaging rejects a different value |
 | `MAILBELL_CODE_SIGN_IDENTITY` | `.env` locally | Optional. The signing identity label for a signed local build |
-| `NOTARY_PROFILE` | `.env` or shell locally, `Scripts/notarize.sh` | Optional. The `notarytool` Keychain profile `make release` uses; defaults to the shared `skd-notary` |
+| `NOTARY_PROFILE` | `.env` or shell locally, `scripts/notarize.sh` | Optional. The `notarytool` Keychain profile `make release` uses; defaults to the shared `skd-notary` |
 
 ---
 
@@ -197,7 +197,7 @@ git tag v0.1.0 && make release
 
 `make release` refuses a dirty worktree, a tag that disagrees with the plist version, or a build
 number that disagrees with the derived one. It builds, signs with Developer ID, notarizes and
-staples both the app archive and the DMG through `Scripts/notarize.sh`, signs the update for Sparkle, and writes the `appcast.xml`
+staples both the app archive and the DMG through `scripts/notarize.sh`, signs the update for Sparkle, and writes the `appcast.xml`
 entry. Commit the appcast, push the tag, and attach the DMG and ZIP to the GitHub Release.
 
 > **Exporting the certificate:** `security export -t identities` dumps *every* identity in the login

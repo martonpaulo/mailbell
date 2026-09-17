@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "mailbell",
+    name: "Mailbell",
     platforms: [
         .macOS(.v26)
     ],
@@ -15,7 +15,7 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "mailbell",
+            name: "Mailbell",
             dependencies: [
                 "FlyingFox",
                 .product(name: "FlyingSocks", package: "FlyingFox"),
@@ -30,7 +30,7 @@ let package = Package(
         ),
         .testTarget(
             name: "MailbellTests",
-            dependencies: ["mailbell"],
+            dependencies: ["Mailbell"],
             path: "Tests/MailbellTests"
         )
     ]

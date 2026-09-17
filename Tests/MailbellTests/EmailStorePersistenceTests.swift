@@ -1,4 +1,4 @@
-@testable import mailbell
+@testable import Mailbell
 import XCTest
 
 /// Handled history: what survives a relaunch, what gets pruned, and what

@@ -62,7 +62,7 @@ format: ## Format sources
 	@$(SWIFTFORMAT) Sources Tests
 
 validate: ## Check repository invariants
-	@bash Scripts/validate.sh
+	@bash scripts/validate.sh
 
 check: ## Run build, lint, tests, and repository validation
 	@printf '\n$(BOLD)[1/4] Building$(RESET)\n'
@@ -81,29 +81,29 @@ check: ## Run build, lint, tests, and repository validation
 
 icons: ## Regenerate AppIcon PNGs and AppIcon.icns from Resources/logo.png
 	@printf "$(BOLD)[icons]$(RESET) Regenerating app icons\n"
-	@chmod +x Scripts/generate_app_icon.sh
-	@Scripts/generate_app_icon.sh
+	@chmod +x scripts/generate_app_icon.sh
+	@scripts/generate_app_icon.sh
 
 require-oauth-config: ## Verify the release Google OAuth credentials are available
-	@Scripts/inject_bundle_config.sh --check
+	@scripts/inject_bundle_config.sh --check
 
 setup-release-signing: ## Configure the Developer ID identity and the shared notarytool Keychain profile
-	@Scripts/configure_release_signing.sh
+	@scripts/configure_release_signing.sh
 
 sparkle-keys: ## Generate the Sparkle EdDSA key (Keychain) and write the public key
-	@bash Scripts/make_sparkle_keys.sh
+	@bash scripts/make_sparkle_keys.sh
 
 release: icons ## Build, sign, notarize, and staple a tagged release DMG
 	@bash -euo pipefail -c '\
-		source Scripts/mailbell_env.sh; \
+		source scripts/mailbell_env.sh; \
 		mailbell_load_dotenv; \
 		if [[ -n "$$(git status --porcelain --untracked-files=normal)" ]]; then \
 			echo "error: worktree must be clean before make release" >&2; \
 			git status --short --branch >&2; \
 			exit 1; \
 		fi; \
-		eval "$$(Scripts/resolve_release_metadata.sh --shell)"; \
-		Scripts/inject_bundle_config.sh --check >/dev/null; \
+		eval "$$(scripts/resolve_release_metadata.sh --shell)"; \
+		scripts/inject_bundle_config.sh --check >/dev/null; \
 		if [[ -z "$${MAILBELL_CODE_SIGN_IDENTITY:-}" ]]; then \
 			echo "error: set MAILBELL_CODE_SIGN_IDENTITY in .env or your shell" >&2; \
 			echo "hint: run make setup-release-signing once on the release Mac" >&2; \
@@ -112,7 +112,7 @@ release: icons ## Build, sign, notarize, and staple a tagged release DMG
 		notarize() { \
 			mkdir -p artifacts/notarization; \
 			local log="artifacts/notarization/notarytool-$$(date +%Y%m%d-%H%M%S).log"; \
-			if Scripts/notarize.sh "$$1" 2>&1 | tee "$${log}"; then \
+			if scripts/notarize.sh "$$1" 2>&1 | tee "$${log}"; then \
 				rm -f "$${log}"; \
 				rmdir artifacts/notarization 2>/dev/null || true; \
 			else \
@@ -136,7 +136,7 @@ release: icons ## Build, sign, notarize, and staple a tagged release DMG
 		app_bundle="$(RELEASE_STAGING)/$(APP_NAME).app"; \
 		printf "\n$(BOLD)[1/13]$(RESET) Building signed release app for $(ARCH)\n"; \
 		mkdir -p "$(RELEASE_STAGING)" artifacts; \
-		Scripts/build_app_bundle.sh --output "$${app_bundle}" \
+		scripts/build_app_bundle.sh --output "$${app_bundle}" \
 			--identity "$${MAILBELL_CODE_SIGN_IDENTITY}" --hardened \
 			--version "$${VERSION}" --build-number "$${BUILD_NUMBER}" --arch $(ARCH); \
 		printf "$(BOLD)[2/13]$(RESET) Verifying app signature\n"; \
@@ -155,7 +155,7 @@ release: icons ## Build, sign, notarize, and staple a tagged release DMG
 		ln -sfn /Applications "$(RELEASE_STAGING)/Applications"; \
 		printf "$(BOLD)[7/13]$(RESET) Creating release DMG\n"; \
 		rm -f "$${final_dmg}"; \
-		Scripts/create_dmg.sh "$(RELEASE_STAGING)" "$(APP_NAME)" "$(INSTALLER_ICON)" "$${DMG_VOLUME_NAME}" "$${final_dmg}"; \
+		scripts/create_dmg.sh "$(RELEASE_STAGING)" "$(APP_NAME)" "$(INSTALLER_ICON)" "$${DMG_VOLUME_NAME}" "$${final_dmg}"; \
 		printf "$(BOLD)[8/13]$(RESET) Cleaning release staging files\n"; \
 		rm -rf "$(RELEASE_DIR)"; \
 		printf "$(BOLD)[9/13]$(RESET) Signing DMG with Developer ID\n"; \
@@ -167,8 +167,8 @@ release: icons ## Build, sign, notarize, and staple a tagged release DMG
 		hdiutil verify "$${final_dmg}" >/dev/null; \
 		spctl -a -t open --context context:primary-signature -vv "$${final_dmg}"; \
 		printf "$(BOLD)[12/13]$(RESET) Signing the update archive for Sparkle\n"; \
-		sig="$$(Scripts/sign_sparkle_update.sh "$${update_zip}")"; \
-		Scripts/make_appcast.sh "$${VERSION}" "$${BUILD_NUMBER}" "$${update_zip}" "$${sig}"; \
+		sig="$$(scripts/sign_sparkle_update.sh "$${update_zip}")"; \
+		scripts/make_appcast.sh "$${VERSION}" "$${BUILD_NUMBER}" "$${update_zip}" "$${sig}"; \
 		printf "$(BOLD)[13/13]$(RESET) Release artifacts ready\n"; \
 		cp -f "$${final_dmg}" "artifacts/$$(basename "$${final_dmg}")"; \
 		printf "$(GREEN)[ok]$(RESET) DMG: artifacts/%s\n" "$$(basename "$${final_dmg}")"; \
@@ -189,20 +189,20 @@ dmg: require-oauth-config icons ## Build an ad-hoc signed drag-and-drop DMG
 	@printf "\n$(BOLD)[1/4]$(RESET) Building local packaged app for $(ARCH)\n"
 	@rm -rf $(DMG_STAGING)
 	@mkdir -p $(DMG_STAGING)
-	@Scripts/build_app_bundle.sh --output $(DMG_STAGING)/$(APP_NAME).app \
+	@scripts/build_app_bundle.sh --output $(DMG_STAGING)/$(APP_NAME).app \
 		--identity "$(CODE_SIGN_IDENTITY)" --arch $(ARCH)
 	@printf "$(BOLD)[2/4]$(RESET) Adding Applications shortcut\n"
 	@ln -sfn /Applications $(DMG_STAGING)/Applications
 	@printf "$(BOLD)[3/4]$(RESET) Creating standard macOS installer DMG\n"
 	@rm -f "$(DMG_PATH)"
-	@Scripts/create_dmg.sh "$(DMG_STAGING)" "$(APP_NAME)" "$(INSTALLER_ICON)" "$(DMG_VOLUME_NAME)" "$(DMG_PATH)"
+	@scripts/create_dmg.sh "$(DMG_STAGING)" "$(APP_NAME)" "$(INSTALLER_ICON)" "$(DMG_VOLUME_NAME)" "$(DMG_PATH)"
 	@printf "$(BOLD)[4/4]$(RESET) Cleaning temporary DMG staging files\n"
 	@rm -rf $(DMG_DIR)
 	@printf "$(GREEN)[ok]$(RESET) DMG created: %s\n" "$(DMG_PATH)"
 
 install: require-oauth-config icons ## Install an ad-hoc signed app bundle to /Applications
 	@printf "\n$(BOLD)[1/2]$(RESET) Building local packaged app for $(ARCH)\n"
-	@Scripts/build_app_bundle.sh --output $(APP_BUNDLE) \
+	@scripts/build_app_bundle.sh --output $(APP_BUNDLE) \
 		--identity "$(CODE_SIGN_IDENTITY)" --arch $(ARCH)
 	@printf "$(BOLD)[2/2]$(RESET) Registering app with LaunchServices\n"
 	@-$(LSREGISTER) -f $(APP_BUNDLE) >/dev/null 2>&1

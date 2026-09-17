@@ -1,4 +1,4 @@
-@testable import mailbell
+@testable import Mailbell
 import XCTest
 
 /// A bounded BODY.PEEK slice cuts a base64 payload anywhere, and some

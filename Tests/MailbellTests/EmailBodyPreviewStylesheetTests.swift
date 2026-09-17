@@ -1,4 +1,4 @@
-@testable import mailbell
+@testable import Mailbell
 import XCTest
 
 /// A bounded BODY.PEEK slice can arrive without the <style> element that

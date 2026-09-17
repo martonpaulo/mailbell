@@ -1,4 +1,4 @@
-@testable import mailbell
+@testable import Mailbell
 import XCTest
 
 /// The capture mode must be invisible to ordinary launches, and the state a
@@ -71,7 +71,7 @@ final class ScreenshotModeTests: XCTestCase {
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
-                .appendingPathComponent("Scripts/capture_screenshots.sh"),
+                .appendingPathComponent("scripts/capture_screenshots.sh"),
             encoding: .utf8
         )
 

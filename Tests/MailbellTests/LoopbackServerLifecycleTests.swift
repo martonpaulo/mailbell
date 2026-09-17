@@ -1,4 +1,4 @@
-@testable import mailbell
+@testable import Mailbell
 import XCTest
 
 /// Starting, stopping and restarting the loopback listener: a timed-out wait

@@ -19,7 +19,7 @@ make check
 ```
 
 That runs the debug build (must be warning-free), SwiftLint, the tests, and
-`Scripts/validate.sh` repository invariants.
+`scripts/validate.sh` repository invariants.
 
 To exercise notifications you need a real bundle, because macOS will not deliver
 notifications to an unbundled binary:

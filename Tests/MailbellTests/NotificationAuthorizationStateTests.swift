@@ -1,4 +1,4 @@
-@testable import mailbell
+@testable import Mailbell
 import UserNotifications
 import XCTest
 

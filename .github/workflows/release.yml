@@ -27,7 +27,7 @@ jobs:
       - name: Tests and validation
         run: |
           swift test
-          bash Scripts/validate.sh
+          bash scripts/validate.sh
 
       - name: Derive version
         id: version
@@ -122,14 +122,14 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           mkdir -p build/release/staging artifacts
-          Scripts/build_app_bundle.sh \
+          scripts/build_app_bundle.sh \
             --output "build/release/staging/Mailbell.app" \
             --identity "$MAILBELL_CODE_SIGN_IDENTITY" --hardened \
             --version "$VERSION" --build-number "${{ steps.version.outputs.build }}"
           ditto -c -k --keepParent "build/release/staging/Mailbell.app" "artifacts/Mailbell-$VERSION.zip"
 
       # The team App Store Connect API key is written to a private temporary file
-      # for Scripts/notarize.sh and removed by the always-run step at the end.
+      # for scripts/notarize.sh and removed by the always-run step at the end.
       - name: Write notary API key
         if: steps.gate.outputs.ready == 'true'
         env:
@@ -152,7 +152,7 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           APP="build/release/staging/Mailbell.app"
-          Scripts/notarize.sh "artifacts/Mailbell-$VERSION.zip"
+          scripts/notarize.sh "artifacts/Mailbell-$VERSION.zip"
           xcrun stapler staple "$APP"
           xcrun stapler validate "$APP"
           codesign --verify --deep --strict --verbose=2 "$APP"
@@ -178,11 +178,11 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           DMG="artifacts/Mailbell-$VERSION.dmg"
           ln -sfn /Applications build/release/staging/Applications
-          Scripts/create_dmg.sh "build/release/staging" "Mailbell" \
+          scripts/create_dmg.sh "build/release/staging" "Mailbell" \
             "Resources/AppInstallerIcon.icns" "Install Mailbell" "$DMG"
           codesign --force --timestamp --sign "$MAILBELL_CODE_SIGN_IDENTITY" "$DMG"
           codesign --verify --verbose=2 "$DMG"
-          Scripts/notarize.sh "$DMG"
+          scripts/notarize.sh "$DMG"
           spctl -a -t open --context context:primary-signature -vv "$DMG"
           hdiutil verify "$DMG" >/dev/null
 
@@ -194,7 +194,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           git checkout main
-          Scripts/make_appcast.sh "$VERSION" "${{ steps.version.outputs.build }}" \
+          scripts/make_appcast.sh "$VERSION" "${{ steps.version.outputs.build }}" \
             "artifacts/Mailbell-$VERSION.zip" "$SPARKLE_SIG_ATTRS"
           if ! git diff --quiet appcast.xml; then
             git add appcast.xml

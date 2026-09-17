@@ -266,7 +266,7 @@ Package.swift
 Sources/Mailbell/
 Tests/MailbellTests/
 Resources/
-Scripts/
+scripts/
 docs/
 ```
 

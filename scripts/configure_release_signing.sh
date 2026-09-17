@@ -2,7 +2,7 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-source Scripts/mailbell_env.sh
+source scripts/mailbell_env.sh
 mailbell_load_dotenv
 
 
@@ -61,7 +61,7 @@ fi
 
 # Notarization uses one notarytool Keychain profile shared by every app of the
 # owner, authenticated with the team App Store Connect API key. It is created
-# once per Mac; Scripts/notarize.sh reads NOTARY_PROFILE, default skd-notary.
+# once per Mac; scripts/notarize.sh reads NOTARY_PROFILE, default skd-notary.
 notary_profile="${NOTARY_PROFILE:-skd-notary}"
 printf '\nNotarization uses the shared Keychain profile %s.\n' "${notary_profile}"
 printf 'Create or replace it now with the team API key? [y/N]: '

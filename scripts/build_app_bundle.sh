@@ -7,7 +7,7 @@
 # bundle layout and signing order have exactly one definition.
 #
 # Usage:
-#   Scripts/build_app_bundle.sh --output <Mailbell.app> [options]
+#   scripts/build_app_bundle.sh --output <Mailbell.app> [options]
 # Options:
 #   --identity <id>       codesign identity; "-" (default) is ad-hoc
 #   --version <X.Y.Z>     release short version (requires --build-number)
@@ -23,7 +23,7 @@ VERSION=""
 BUILD_NUMBER=""
 ARCH="arm64"
 HARDENED=0
-PRODUCT="mailbell"
+PRODUCT="Mailbell"
 APP_NAME="Mailbell"
 
 usage() {
@@ -57,10 +57,10 @@ cp "$BIN_PATH/$PRODUCT" "$APP/Contents/MacOS/$APP_NAME"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 
 if [[ -n "$VERSION" ]]; then
-  Scripts/inject_bundle_config.sh --version "$VERSION" --build-number "$BUILD_NUMBER" \
+  scripts/inject_bundle_config.sh --version "$VERSION" --build-number "$BUILD_NUMBER" \
     "$APP/Contents/Info.plist" >/dev/null
 else
-  Scripts/inject_bundle_config.sh "$APP/Contents/Info.plist" >/dev/null
+  scripts/inject_bundle_config.sh "$APP/Contents/Info.plist" >/dev/null
 fi
 
 xcrun actool --compile "$APP/Contents/Resources" \

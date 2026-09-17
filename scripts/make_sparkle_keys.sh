@@ -2,7 +2,7 @@
 # One-time-per-machine setup: generate the Sparkle EdDSA signing key (stored in
 # your login Keychain) and write its public half into Resources/Info.plist. The
 # private key never leaves the Keychain and must never be committed.
-# Usage: Scripts/make_sparkle_keys.sh
+# Usage: scripts/make_sparkle_keys.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

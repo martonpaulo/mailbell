@@ -126,7 +126,7 @@ final class ReleaseMetadataScriptTests: XCTestCase {
         environment: [String: String] = [:]
     ) -> CommandResult {
         run(
-            [repositoryRoot().appendingPathComponent("Scripts/resolve_release_metadata.sh").path],
+            [repositoryRoot().appendingPathComponent("scripts/resolve_release_metadata.sh").path],
             currentDirectory: currentDirectory,
             environment: environment
         )

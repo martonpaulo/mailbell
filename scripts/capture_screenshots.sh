@@ -33,7 +33,7 @@ if [[ -n "${MAILBELL_APP:-}" ]]; then
   APP="$MAILBELL_APP"
 else
   APP="$CAPTURE_WORK/Mailbell.app"
-  Scripts/build_app_bundle.sh --output "$APP" --identity "-" --arch "$(uname -m)" >/dev/null
+  scripts/build_app_bundle.sh --output "$APP" --identity "-" --arch "$(uname -m)" >/dev/null
   /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $CAPTURE_BUNDLE_ID" "$APP/Contents/Info.plist"
   codesign --force --deep --sign - "$APP" >/dev/null 2>&1
   # Registered with LaunchServices, as any opened app is, so SMAppService finds it
