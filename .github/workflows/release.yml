@@ -57,12 +57,10 @@ jobs:
             exit 1
           }
 
-      # Releases are cut locally with `make release` until the signing secrets
-      # are configured here. Publishing nothing is safe; publishing an unsigned
-      # or credential-less build is not. So this gate skips the rest of the job
-      # rather than failing it, and every later step depends on the gate.
+      # Publishing an unsigned or credential-less build is never acceptable, and
+      # neither is an official tag that goes green without a release. A missing
+      # secret therefore fails the job before anything is built or published.
       - name: Check for official release credentials
-        id: gate
         env:
           CERT: ${{ secrets.DEVELOPER_ID_CERT_P12 }}
           CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_CERT_PASSWORD }}
@@ -81,15 +79,12 @@ jobs:
           [ -n "$SPARKLE_KEY" ] || missing+=(SPARKLE_PRIVATE_KEY)
           [ -n "$GOOGLE_CLIENT_ID" ] || missing+=(MAILBELL_GOOGLE_CLIENT_ID)
           if [ "${#missing[@]}" -ne 0 ]; then
-            echo "Skipping the CI release: missing secrets: ${missing[*]}" >&2
-            echo "Cut the release locally with 'make release' until they are configured." >&2
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "Official release blocked: missing secrets: ${missing[*]}" >&2
+            echo "Configure them, or cut the release locally with 'make release'." >&2
+            exit 1
           fi
 
       - name: Import Developer ID certificate
-        if: steps.gate.outputs.ready == 'true'
         env:
           CERT: ${{ secrets.DEVELOPER_ID_CERT_P12 }}
           CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_CERT_PASSWORD }}
@@ -114,7 +109,6 @@ jobs:
           echo "MAILBELL_CODE_SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
 
       - name: Build and sign the app
-        if: steps.gate.outputs.ready == 'true'
         env:
           MAILBELL_GOOGLE_CLIENT_ID: ${{ secrets.MAILBELL_GOOGLE_CLIENT_ID }}
           MAILBELL_GOOGLE_CLIENT_SECRET: ${{ secrets.MAILBELL_GOOGLE_CLIENT_SECRET }}
@@ -131,7 +125,6 @@ jobs:
       # The team App Store Connect API key is written to a private temporary file
       # for scripts/notarize.sh and removed by the always-run step at the end.
       - name: Write notary API key
-        if: steps.gate.outputs.ready == 'true'
         env:
           NOTARY_API_KEY: ${{ secrets.NOTARY_API_KEY }}
           NOTARY_API_KEY_ID: ${{ secrets.NOTARY_API_KEY_ID }}
@@ -148,7 +141,6 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Notarize, staple, and validate the app
-        if: steps.gate.outputs.ready == 'true'
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           APP="build/release/staging/Mailbell.app"
@@ -162,7 +154,6 @@ jobs:
           ditto -c -k --keepParent "$APP" "artifacts/Mailbell-$VERSION.zip"
 
       - name: Sign the update for Sparkle
-        if: steps.gate.outputs.ready == 'true'
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
@@ -173,7 +164,6 @@ jobs:
           echo "SPARKLE_SIG_ATTRS=$SIG" >> "$GITHUB_ENV"
 
       - name: Build, sign, and notarize the DMG
-        if: steps.gate.outputs.ready == 'true'
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           DMG="artifacts/Mailbell-$VERSION.dmg"
@@ -186,24 +176,7 @@ jobs:
           spctl -a -t open --context context:primary-signature -vv "$DMG"
           hdiutil verify "$DMG" >/dev/null
 
-      - name: Update the appcast on main
-        if: steps.gate.outputs.ready == 'true'
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          git checkout main
-          scripts/make-appcast.sh "$VERSION" "${{ steps.version.outputs.build }}" \
-            "artifacts/Mailbell-$VERSION.zip" "$SPARKLE_SIG_ATTRS"
-          if ! git diff --quiet appcast.xml; then
-            git add appcast.xml
-            git commit -m "chore(release): appcast entry for $VERSION"
-            git push origin main
-          fi
-
       - name: Create the GitHub release
-        if: steps.gate.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -223,6 +196,24 @@ jobs:
             "artifacts/Mailbell-$VERSION.zip" \
             --title "Mailbell $VERSION" \
             --notes-file release-notes.md
+
+      # After the release exists, so the appcast never advertises an archive
+      # that cannot be downloaded yet.
+      - name: Update the appcast on main
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+          scripts/make-appcast.sh "$VERSION" "${{ steps.version.outputs.build }}" \
+            "artifacts/Mailbell-$VERSION.zip" "$SPARKLE_SIG_ATTRS"
+          if ! git diff --quiet appcast.xml; then
+            git add appcast.xml
+            git commit -m "chore(release): appcast entry for $VERSION"
+            git pull --rebase origin main
+            git push origin main
+          fi
 
       - name: Remove notary API key
         if: always()
