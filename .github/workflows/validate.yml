@@ -44,7 +44,7 @@ jobs:
           # Everything the compiler, the test suite or packaging can see. The
           # workflow itself is included: a change to how the build runs has to
           # be able to run the build.
-          if echo "${changed}" | grep -qE '^(Sources/|Tests/|scripts/|Support/|Package\.swift|Package\.resolved|Makefile|\.swiftlint\.yml|\.github/workflows/ci\.yml)'; then
+          if echo "${changed}" | grep -qE '^(Sources/|Tests/|scripts/|Support/|Package\.swift|Package\.resolved|Makefile|\.swiftlint\.yml|\.github/workflows/validate\.yml)'; then
             echo "code=true" >> "$GITHUB_OUTPUT"
           else
             echo "code=false" >> "$GITHUB_OUTPUT"
