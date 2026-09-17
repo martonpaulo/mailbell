@@ -26,7 +26,7 @@ mailbell_is_allowed_env_key() {
     MAILBELL_GOOGLE_CLIENT_SECRET|\
     MAILBELL_BUNDLE_ID|\
     MAILBELL_CODE_SIGN_IDENTITY|\
-    MAILBELL_NOTARY_KEYCHAIN_PROFILE)
+    NOTARY_PROFILE)
       return 0
       ;;
     *)
@@ -66,7 +66,7 @@ allowed = {
     "MAILBELL_GOOGLE_CLIENT_SECRET",
     "MAILBELL_BUNDLE_ID",
     "MAILBELL_CODE_SIGN_IDENTITY",
-    "MAILBELL_NOTARY_KEYCHAIN_PROFILE",
+    "NOTARY_PROFILE",
 }
 
 path = Path(sys.argv[1])

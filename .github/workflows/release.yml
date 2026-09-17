@@ -66,18 +66,18 @@ jobs:
         env:
           CERT: ${{ secrets.DEVELOPER_ID_CERT_P12 }}
           CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_CERT_PASSWORD }}
-          NOTARY_APPLE_ID: ${{ secrets.NOTARIZATION_APPLE_ID }}
-          NOTARY_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
-          NOTARY_TEAM_ID: ${{ secrets.NOTARIZATION_TEAM_ID }}
+          NOTARY_API_KEY: ${{ secrets.NOTARY_API_KEY }}
+          NOTARY_API_KEY_ID: ${{ secrets.NOTARY_API_KEY_ID }}
+          NOTARY_API_ISSUER_ID: ${{ secrets.NOTARY_API_ISSUER_ID }}
           SPARKLE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
           GOOGLE_CLIENT_ID: ${{ secrets.MAILBELL_GOOGLE_CLIENT_ID }}
         run: |
           missing=()
           [ -n "$CERT" ] || missing+=(DEVELOPER_ID_CERT_P12)
           [ -n "$CERT_PASSWORD" ] || missing+=(DEVELOPER_ID_CERT_PASSWORD)
-          [ -n "$NOTARY_APPLE_ID" ] || missing+=(NOTARIZATION_APPLE_ID)
-          [ -n "$NOTARY_PASSWORD" ] || missing+=(NOTARIZATION_PASSWORD)
-          [ -n "$NOTARY_TEAM_ID" ] || missing+=(NOTARIZATION_TEAM_ID)
+          [ -n "$NOTARY_API_KEY" ] || missing+=(NOTARY_API_KEY)
+          [ -n "$NOTARY_API_KEY_ID" ] || missing+=(NOTARY_API_KEY_ID)
+          [ -n "$NOTARY_API_ISSUER_ID" ] || missing+=(NOTARY_API_ISSUER_ID)
           [ -n "$SPARKLE_KEY" ] || missing+=(SPARKLE_PRIVATE_KEY)
           [ -n "$GOOGLE_CLIENT_ID" ] || missing+=(MAILBELL_GOOGLE_CLIENT_ID)
           if [ "${#missing[@]}" -ne 0 ]; then
@@ -128,26 +128,31 @@ jobs:
             --version "$VERSION" --build-number "${{ steps.version.outputs.build }}"
           ditto -c -k --keepParent "build/release/staging/Mailbell.app" "artifacts/Mailbell-$VERSION.zip"
 
-      - name: Notarize, staple, and validate the app
+      # The team App Store Connect API key is written to a private temporary file
+      # for Scripts/notarize.sh and removed by the always-run step at the end.
+      - name: Write notary API key
         if: steps.gate.outputs.ready == 'true'
         env:
-          APPLE_ID: ${{ secrets.NOTARIZATION_APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.NOTARIZATION_TEAM_ID }}
+          NOTARY_API_KEY: ${{ secrets.NOTARY_API_KEY }}
+          NOTARY_API_KEY_ID: ${{ secrets.NOTARY_API_KEY_ID }}
+          NOTARY_API_ISSUER_ID: ${{ secrets.NOTARY_API_ISSUER_ID }}
+        run: |
+          umask 077
+          KEY_PATH="$RUNNER_TEMP/notary/AuthKey.p8"
+          mkdir -p "$(dirname "$KEY_PATH")"
+          printf '%s\n' "$NOTARY_API_KEY" > "$KEY_PATH"
+          {
+            echo "NOTARY_API_KEY_PATH=$KEY_PATH"
+            echo "NOTARY_API_KEY_ID=$NOTARY_API_KEY_ID"
+            echo "NOTARY_API_ISSUER_ID=$NOTARY_API_ISSUER_ID"
+          } >> "$GITHUB_ENV"
+
+      - name: Notarize, staple, and validate the app
+        if: steps.gate.outputs.ready == 'true'
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           APP="build/release/staging/Mailbell.app"
-          RESULT=$(xcrun notarytool submit "artifacts/Mailbell-$VERSION.zip" \
-            --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" \
-            --wait --output-format json)
-          STATUS=$(jq -r '.status' <<< "$RESULT")
-          SUBMISSION_ID=$(jq -r '.id' <<< "$RESULT")
-          if [ "$STATUS" != "Accepted" ]; then
-            echo "Apple notarization rejected the app (status: $STATUS, id: $SUBMISSION_ID)." >&2
-            xcrun notarytool log "$SUBMISSION_ID" \
-              --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" || true
-            exit 1
-          fi
+          Scripts/notarize.sh "artifacts/Mailbell-$VERSION.zip"
           xcrun stapler staple "$APP"
           xcrun stapler validate "$APP"
           codesign --verify --deep --strict --verbose=2 "$APP"
@@ -169,10 +174,6 @@ jobs:
 
       - name: Build, sign, and notarize the DMG
         if: steps.gate.outputs.ready == 'true'
-        env:
-          APPLE_ID: ${{ secrets.NOTARIZATION_APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.NOTARIZATION_TEAM_ID }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           DMG="artifacts/Mailbell-$VERSION.dmg"
@@ -181,19 +182,7 @@ jobs:
             "Resources/AppInstallerIcon.icns" "Install Mailbell" "$DMG"
           codesign --force --timestamp --sign "$MAILBELL_CODE_SIGN_IDENTITY" "$DMG"
           codesign --verify --verbose=2 "$DMG"
-          RESULT=$(xcrun notarytool submit "$DMG" \
-            --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" \
-            --wait --output-format json)
-          STATUS=$(jq -r '.status' <<< "$RESULT")
-          SUBMISSION_ID=$(jq -r '.id' <<< "$RESULT")
-          if [ "$STATUS" != "Accepted" ]; then
-            echo "Apple notarization rejected the DMG (status: $STATUS, id: $SUBMISSION_ID)." >&2
-            xcrun notarytool log "$SUBMISSION_ID" \
-              --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" || true
-            exit 1
-          fi
-          xcrun stapler staple "$DMG"
-          xcrun stapler validate "$DMG"
+          Scripts/notarize.sh "$DMG"
           spctl -a -t open --context context:primary-signature -vv "$DMG"
           hdiutil verify "$DMG" >/dev/null
 
@@ -234,3 +223,7 @@ jobs:
             "artifacts/Mailbell-$VERSION.zip" \
             --title "Mailbell $VERSION" \
             --notes-file release-notes.md
+
+      - name: Remove notary API key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/notary"

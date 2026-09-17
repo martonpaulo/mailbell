@@ -5,7 +5,6 @@ cd "$(dirname "$0")/.."
 source Scripts/mailbell_env.sh
 mailbell_load_dotenv
 
-DEFAULT_NOTARY_PROFILE="mailbell-notary"
 
 echo "Available Developer ID Application certificates:"
 
@@ -60,54 +59,48 @@ if [[ "${selected_identity}" != Developer\ ID\ Application:* ]]; then
   exit 1
 fi
 
-notary_profile="${MAILBELL_NOTARY_KEYCHAIN_PROFILE:-${DEFAULT_NOTARY_PROFILE}}"
-printf 'Notarytool Keychain profile name [%s]: ' "${notary_profile}"
-IFS= read -r profile_choice
-profile_choice="$(mailbell_trim "${profile_choice}")"
-if [[ -n "${profile_choice}" ]]; then
-  notary_profile="${profile_choice}"
-fi
+# Notarization uses one notarytool Keychain profile shared by every app of the
+# owner, authenticated with the team App Store Connect API key. It is created
+# once per Mac; Scripts/notarize.sh reads NOTARY_PROFILE, default skd-notary.
+notary_profile="${NOTARY_PROFILE:-skd-notary}"
+printf '\nNotarization uses the shared Keychain profile %s.\n' "${notary_profile}"
+printf 'Create or replace it now with the team API key? [y/N]: '
+IFS= read -r create_profile
+create_profile="$(mailbell_trim "${create_profile}")"
+if [[ "${create_profile}" == [yY] ]]; then
+  printf 'Path to the AuthKey_<id>.p8 file: '
+  IFS= read -r key_path
+  key_path="$(mailbell_trim "${key_path}")"
+  key_path="${key_path/#\~/${HOME}}"
+  if [[ ! -f "${key_path}" ]]; then
+    echo "error: API key file not found: ${key_path}" >&2
+    exit 1
+  fi
 
-if [[ -z "${notary_profile}" || "${notary_profile}" == *[[:space:]]* ]]; then
-  echo "error: notary profile name must be non-empty and contain no spaces" >&2
-  exit 1
-fi
+  printf 'API key ID: '
+  IFS= read -r key_id
+  key_id="$(mailbell_trim "${key_id}")"
+  printf 'Issuer ID: '
+  IFS= read -r issuer_id
+  issuer_id="$(mailbell_trim "${issuer_id}")"
+  if [[ -z "${key_id}" || -z "${issuer_id}" ]]; then
+    echo "error: the API key ID and the issuer ID are both required" >&2
+    exit 1
+  fi
 
-printf 'Apple ID for notarization: '
-IFS= read -r apple_id
-apple_id="$(mailbell_trim "${apple_id}")"
-if [[ -z "${apple_id}" ]]; then
-  echo "error: Apple ID is required to create the notarytool profile" >&2
-  exit 1
+  echo "Creating or updating notarytool Keychain profile '${notary_profile}'."
+  xcrun notarytool store-credentials "${notary_profile}" \
+    --key "${key_path}" \
+    --key-id "${key_id}" \
+    --issuer "${issuer_id}"
+else
+  echo "Keeping the existing profile. To create it later:"
+  echo "  xcrun notarytool store-credentials ${notary_profile} --key <AuthKey.p8 path> --key-id <key id> --issuer <issuer uuid>"
 fi
-
-printf 'Apple Developer Team ID: '
-IFS= read -r team_id
-team_id="$(mailbell_trim "${team_id}")"
-if [[ -z "${team_id}" ]]; then
-  echo "error: Team ID is required to create the notarytool profile" >&2
-  exit 1
-fi
-
-printf 'App-specific password for notarization (input hidden): '
-IFS= read -r -s app_password
-printf '\n'
-if [[ -z "${app_password}" ]]; then
-  echo "error: app-specific password is required to create the notarytool profile" >&2
-  exit 1
-fi
-
-echo "Creating or updating notarytool Keychain profile '${notary_profile}'."
-xcrun notarytool store-credentials "${notary_profile}" \
-  --apple-id "${apple_id}" \
-  --team-id "${team_id}" \
-  --password "${app_password}"
 
 mailbell_update_dotenv_values \
-  MAILBELL_CODE_SIGN_IDENTITY "${selected_identity}" \
-  MAILBELL_NOTARY_KEYCHAIN_PROFILE "${notary_profile}"
+  MAILBELL_CODE_SIGN_IDENTITY "${selected_identity}"
 
-echo "Updated .env signing keys:"
+echo "Updated .env signing key:"
 echo "  MAILBELL_CODE_SIGN_IDENTITY"
-echo "  MAILBELL_NOTARY_KEYCHAIN_PROFILE"
-echo "Secrets were stored by notarytool in the Keychain profile, not in .env."
+echo "Notary credentials live in the Keychain profile, not in .env."

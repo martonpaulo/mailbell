@@ -306,7 +306,10 @@ the visible menu projection have one owner each in `EmailStore`.
   installed bundle that ships both a feed URL and a public key.
 - **Signing material is never committed.** The Sparkle EdDSA private key lives in
   the login Keychain; only the public key ships in the bundle. Developer ID
-  identity and notary credentials come from local environment/Keychain.
+  identity comes from local environment/Keychain. Notarization runs through
+  `Scripts/notarize.sh`, a verbatim copy of the owner's canonical script: CI
+  authenticates with the team App Store Connect API key (`NOTARY_API_KEY*`
+  secrets), a Mac with the shared `skd-notary` Keychain profile.
 - Releases are tagged `vX.Y.Z`; the tag must match `CFBundleShortVersionString`.
   The appcast is regenerated from the built, signed archive and committed before
   the GitHub Release is published.

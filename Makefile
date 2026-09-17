@@ -28,7 +28,7 @@ export MAILBELL_GOOGLE_CLIENT_ID
 export MAILBELL_GOOGLE_CLIENT_SECRET
 export MAILBELL_BUNDLE_ID
 export MAILBELL_CODE_SIGN_IDENTITY
-export MAILBELL_NOTARY_KEYCHAIN_PROFILE
+export NOTARY_PROFILE
 export MAILBELL_DOTENV_PATH
 
 BOLD  := \033[1m
@@ -87,7 +87,7 @@ icons: ## Regenerate AppIcon PNGs and AppIcon.icns from Resources/logo.png
 require-oauth-config: ## Verify the release Google OAuth credentials are available
 	@Scripts/inject_bundle_config.sh --check
 
-setup-release-signing: ## Configure Developer ID identity and notarytool Keychain profile
+setup-release-signing: ## Configure the Developer ID identity and the shared notarytool Keychain profile
 	@Scripts/configure_release_signing.sh
 
 sparkle-keys: ## Generate the Sparkle EdDSA key (Keychain) and write the public key
@@ -109,11 +109,18 @@ release: icons ## Build, sign, notarize, and staple a tagged release DMG
 			echo "hint: run make setup-release-signing once on the release Mac" >&2; \
 			exit 1; \
 		fi; \
-		if [[ -z "$${MAILBELL_NOTARY_KEYCHAIN_PROFILE:-}" ]]; then \
-			echo "error: set MAILBELL_NOTARY_KEYCHAIN_PROFILE in .env or your shell" >&2; \
-			echo "hint: run make setup-release-signing once on the release Mac" >&2; \
-			exit 1; \
-		fi; \
+		notarize() { \
+			mkdir -p artifacts/notarization; \
+			local log="artifacts/notarization/notarytool-$$(date +%Y%m%d-%H%M%S).log"; \
+			if Scripts/notarize.sh "$$1" 2>&1 | tee "$${log}"; then \
+				rm -f "$${log}"; \
+				rmdir artifacts/notarization 2>/dev/null || true; \
+			else \
+				echo "error: notarization failed; log kept at $${log}" >&2; \
+				echo "hint: run make setup-release-signing once on the release Mac" >&2; \
+				exit 1; \
+			fi; \
+		}; \
 		plist_version="$$($(PLISTBUDDY) -c "Print :CFBundleShortVersionString" $(INFO_PLIST))"; \
 		plist_build="$$($(PLISTBUDDY) -c "Print :CFBundleVersion" $(INFO_PLIST))"; \
 		if [[ "$${plist_version}" != "$${VERSION}" ]]; then \
@@ -138,7 +145,7 @@ release: icons ## Build, sign, notarize, and staple a tagged release DMG
 		rm -f "$${update_zip}"; \
 		ditto -c -k --keepParent "$${app_bundle}" "$${update_zip}"; \
 		printf "$(BOLD)[4/13]$(RESET) Notarizing the update archive\n"; \
-		Scripts/notarize_release.sh "$${update_zip}"; \
+		notarize "$${update_zip}"; \
 		printf "$(BOLD)[5/13]$(RESET) Stapling and re-archiving the app\n"; \
 		xcrun stapler staple "$${app_bundle}"; \
 		xcrun stapler validate "$${app_bundle}"; \
@@ -155,7 +162,7 @@ release: icons ## Build, sign, notarize, and staple a tagged release DMG
 		$(CODESIGN) --force --timestamp --sign "$${MAILBELL_CODE_SIGN_IDENTITY}" "$${final_dmg}"; \
 		$(CODESIGN) --verify --verbose=2 "$${final_dmg}"; \
 		printf "$(BOLD)[10/13]$(RESET) Notarizing DMG\n"; \
-		Scripts/notarize_release.sh "$${final_dmg}"; \
+		notarize "$${final_dmg}"; \
 		printf "$(BOLD)[11/13]$(RESET) Verifying final DMG\n"; \
 		hdiutil verify "$${final_dmg}" >/dev/null; \
 		spctl -a -t open --context context:primary-signature -vv "$${final_dmg}"; \

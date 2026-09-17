@@ -58,7 +58,7 @@ Install to `/Applications` rather than running the unbundled binary: macOS only 
 | `make refresh-icons` | Reinstall and flush the macOS icon caches after an icon change |
 | `make dmg` | Build an ad-hoc signed drag-and-drop DMG |
 | `make icons` | Regenerate the AppIcon PNGs and `.icns` from `Resources/logo.png` |
-| `make setup-release-signing` | Configure the Developer ID identity and the `notarytool` Keychain profile |
+| `make setup-release-signing` | Configure the Developer ID identity and the shared `skd-notary` Keychain profile |
 | `make sparkle-keys` | Generate the Sparkle EdDSA key into the Keychain |
 | `make require-oauth-config` | Verify the release Google OAuth credentials are available |
 | `make release` | Build, sign, notarize and staple a tagged release DMG |
@@ -69,21 +69,21 @@ Install to `/Applications` rather than running the unbundled binary: macOS only 
 <br />
 
 ## 🔐 Secrets and variables
-Names only: the values live in your shell, the Keychain, or the repository's Actions secrets, and `validate.yml` and `deploy.yml` read none of them.
+Names only: the values live in your shell, the Keychain, or the repository's Actions secrets, `validate.yml` and `deploy.yml` read none of them, and `notary-check.yml` only authenticates the three `NOTARY_API_*` secrets.
 
 | Name | Where | What for |
 | --- | --- | --- |
 | `MAILBELL_GOOGLE_CLIENT_ID` | `.env` locally, Actions secret for a release | Required. The Google Desktop OAuth client ID the build signs in with |
 | `DEVELOPER_ID_CERT_P12` | Actions secret, `release.yml` | Required for a release. Base64 of a PKCS#12 holding only the Developer ID Application identity |
 | `DEVELOPER_ID_CERT_PASSWORD` | Actions secret, `release.yml` | Required for a release. That PKCS#12's export password |
-| `NOTARIZATION_APPLE_ID` | Actions secret, `release.yml` | Required for a release. The Apple Developer account email |
-| `NOTARIZATION_PASSWORD` | Actions secret, `release.yml` | Required for a release. The app-specific password used for notarization |
-| `NOTARIZATION_TEAM_ID` | Actions secret, `release.yml` | Required for a release. The Apple Developer Team ID |
+| `NOTARY_API_KEY` | Actions secret, `release.yml` | Required for a release. The team App Store Connect API key (`.p8`, Developer role) used by `Scripts/notarize.sh` |
+| `NOTARY_API_KEY_ID` | Actions secret, `release.yml` | Required for a release. That key's Key ID |
+| `NOTARY_API_ISSUER_ID` | Actions secret, `release.yml` | Required for a release. The App Store Connect Issuer ID |
 | `SPARKLE_PRIVATE_KEY` | Actions secret, `release.yml` | Required for a release. The Sparkle EdDSA private key (`generate_keys -x`) |
 | `MAILBELL_GOOGLE_CLIENT_SECRET` | `.env` locally, Actions secret for a release | Optional for Desktop clients. That OAuth client's secret |
 | `MAILBELL_BUNDLE_ID` | `.env` locally | Optional. May only restate the identifier already in `Resources/Info.plist`; packaging rejects a different value |
 | `MAILBELL_CODE_SIGN_IDENTITY` | `.env` locally | Optional. The signing identity label for a signed local build |
-| `MAILBELL_NOTARY_KEYCHAIN_PROFILE` | `.env` locally | Optional. The name of an existing `notarytool` Keychain profile |
+| `NOTARY_PROFILE` | `.env` or shell locally, `Scripts/notarize.sh` | Optional. The `notarytool` Keychain profile `make release` uses; defaults to the shared `skd-notary` |
 
 ---
 
@@ -184,7 +184,7 @@ Every default and the reasoning behind it is in
 One-time on the release Mac:
 
 ```bash
-make setup-release-signing   # Developer ID identity + notarytool Keychain profile
+make setup-release-signing   # Developer ID identity + shared skd-notary Keychain profile
 make sparkle-keys            # Sparkle EdDSA key into the login Keychain
 ```
 
@@ -197,7 +197,7 @@ git tag v0.1.0 && make release
 
 `make release` refuses a dirty worktree, a tag that disagrees with the plist version, or a build
 number that disagrees with the derived one. It builds, signs with Developer ID, notarizes and
-staples both the app archive and the DMG, signs the update for Sparkle, and writes the `appcast.xml`
+staples both the app archive and the DMG through `Scripts/notarize.sh`, signs the update for Sparkle, and writes the `appcast.xml`
 entry. Commit the appcast, push the tag, and attach the DMG and ZIP to the GitHub Release.
 
 > **Exporting the certificate:** `security export -t identities` dumps *every* identity in the login
