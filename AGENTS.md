@@ -10,8 +10,10 @@ specific `AGENTS.md` inside a subtree overrides this one for that subtree.
 
 ## Project identity and policy
 
-- Project name: `mailbell`
-- Public name: `Mailbell`
+- Display name: `Mailbell`
+- Code name: `Mailbell`
+- Slug: `mailbell`
+- Identifier name: `mailbell`
 - Repository: `martonpaulo/mailbell` (public); `origin` is the owner's fork.
 - Benefit-first description: Gmail notifications in your macOS menu bar — instant IMAP IDLE alerts, a review queue you can clear in one click, no server in between.
 - Public identifiers: app/bundle `com.perso.mailbell`; SwiftPM executable `mailbell`; installed app `Mailbell.app`.
