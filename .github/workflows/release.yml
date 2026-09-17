@@ -167,7 +167,7 @@ jobs:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          SIGN=$(find .build/artifacts -name sign_update -type f | head -1)
+          SIGN=$(find .build/artifacts -path '*/bin/sign_update' -not -path '*old_dsa*' -type f | head -1)
           test -n "$SIGN" || { echo "sign_update not found" >&2; exit 1; }
           SIG=$(echo "$SPARKLE_PRIVATE_KEY" | "$SIGN" --ed-key-file - "artifacts/Mailbell-$VERSION.zip")
           echo "SPARKLE_SIG_ATTRS=$SIG" >> "$GITHUB_ENV"
