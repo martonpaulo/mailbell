@@ -22,7 +22,7 @@ specific `AGENTS.md` inside a subtree overrides this one for that subtree.
 - Branch policy: work on `main` unless the owner explicitly requests a branch. A branch workflow is an exception, not the default.
 - Commit policy: create a focused Conventional Commit when the authorized durable change is complete and validated. Commit only task files; a commit for one issue ends with `(#<issue number>)`.
 - Push policy: only on explicit owner request, to `origin`; never to `upstream`.
-- Merge policy: squash only for an explicitly authorized PR merge. An issue plan or review never authorizes merging.
+- Merge policy: merge commit only, `gh pr merge <number> --merge --delete-branch`, so every branch commit reaches `main` (martonpaulo/skill-deck#277), and only for an explicitly authorized PR merge. An issue plan or review never authorizes merging.
 - Delete branches after merge: disabled; preserve the existing repository setting. Delete a branch only when separately authorized.
 - Product versioning: user-visible SemVer `X.Y.Z`, canonical in `Resources/Info.plist`; version/build changes occur only during an explicit release request. Tags use `vX.Y.Z`; the internal build derives from the version through the existing release metadata script.
 - Release policy: direct Developer ID signed, notarized, stapled DMG and Sparkle update archive. Signing/OAuth configuration stays private; tokens and private update keys stay in Keychain. Setup does not cut a release or change a version.
@@ -33,7 +33,6 @@ specific `AGENTS.md` inside a subtree overrides this one for that subtree.
 - Issue metadata: preserve this repository's `bug`, `enhancement`, and `documentation` types and existing `priority:`, `evidence:`, `effort:`, and `status:` dimensions. Whole-taxonomy renames/deletions require an approved grooming mapping. With agent automation disabled, orchestrator projection labels are not required; a decision issue remains unassigned and unestimated with `status: needs-decision`.
 - Skills baseline revision: `7cfc324fcded57145c36cc678977c070ed800692`
 - Skills baseline applied: `2026-09-09`
-- Skills baseline divergence `merge-template-superseded` at `7cfc324fcded57145c36cc678977c070ed800692`: The owner approved squash-only on 2026-09-09, following the delegated publishing-conventions owner whose 2026-09-03 rule supersedes the template's older merge-commit wording.
 
 ## Skills ownership
 
