@@ -22,7 +22,7 @@ final class UpdateManagerTests: XCTestCase {
 
     func testShippedInfoPlistDeclaresAWorkingUpdateFeed() throws {
         let plistURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-            .appendingPathComponent("Resources/Info.plist")
+            .appendingPathComponent("Support/Info.plist")
         let data = try Data(contentsOf: plistURL)
         let plist = try XCTUnwrap(
             try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Regenerate AppIcon.appiconset PNGs and Resources/AppIcon.icns from Resources/logo.png.
+# Regenerate AppIcon.appiconset PNGs and Support/AppIcon.icns from Support/logo.png.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-MASTER="Resources/logo.png"
-APPICONSET="Resources/Assets.xcassets/AppIcon.appiconset"
-ICNS="Resources/AppIcon.icns"
+MASTER="Support/logo.png"
+APPICONSET="Support/Assets.xcassets/AppIcon.appiconset"
+ICNS="Support/AppIcon.icns"
 WORK_ROOT=".build/icon-gen"
 
 if [[ ! -f "${MASTER}" ]]; then

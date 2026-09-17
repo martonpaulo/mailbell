@@ -58,7 +58,7 @@ TAG="${valid_tags[0]}"
 VERSION="${TAG#v}"
 
 # Derived from the version so every release path agrees: this script, the CI
-# workflow, and CFBundleVersion in Resources/Info.plist. A commit count would
+# workflow, and CFBundleVersion in Support/Info.plist. A commit count would
 # differ between a local build and CI for the same tag.
 IFS=. read -r VERSION_MAJOR VERSION_MINOR VERSION_PATCH <<< "${VERSION}"
 BUILD_NUMBER="$(( VERSION_MAJOR * 10000 + VERSION_MINOR * 100 + VERSION_PATCH ))"

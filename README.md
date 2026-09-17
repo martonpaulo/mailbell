@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/social-card.jpg" width="100%" alt="Mailbell: Gmail notifications in your macOS menu bar">
+<img src="site/social-card.jpg" width="100%" alt="Mailbell: Gmail notifications in your macOS menu bar">
 
 # Mailbell
 
@@ -57,7 +57,7 @@ Install to `/Applications` rather than running the unbundled binary: macOS only 
 | `make uninstall` | Remove the installed app bundle |
 | `make refresh-icons` | Reinstall and flush the macOS icon caches after an icon change |
 | `make dmg` | Build an ad-hoc signed drag-and-drop DMG |
-| `make icons` | Regenerate the AppIcon PNGs and `.icns` from `Resources/logo.png` |
+| `make icons` | Regenerate the AppIcon PNGs and `.icns` from `Support/logo.png` |
 | `make setup-release-signing` | Configure the Developer ID identity and the shared `skd-notary` Keychain profile |
 | `make sparkle-keys` | Generate the Sparkle EdDSA key into the Keychain |
 | `make require-oauth-config` | Verify the release Google OAuth credentials are available |
@@ -81,7 +81,7 @@ Names only: the values live in your shell, the Keychain, or the repository's Act
 | `NOTARY_API_ISSUER_ID` | Actions secret, `release.yml` | Required for a release. The App Store Connect Issuer ID |
 | `SPARKLE_PRIVATE_KEY` | Actions secret, `release.yml` | Required for a release. The Sparkle EdDSA private key (`generate_keys -x`) |
 | `MAILBELL_GOOGLE_CLIENT_SECRET` | `.env` locally, Actions secret for a release | Optional for Desktop clients. That OAuth client's secret |
-| `MAILBELL_BUNDLE_ID` | `.env` locally | Optional. May only restate the identifier already in `Resources/Info.plist`; packaging rejects a different value |
+| `MAILBELL_BUNDLE_ID` | `.env` locally | Optional. May only restate the identifier already in `Support/Info.plist`; packaging rejects a different value |
 | `MAILBELL_CODE_SIGN_IDENTITY` | `.env` locally | Optional. The signing identity label for a signed local build |
 | `NOTARY_PROFILE` | `.env` or shell locally, `scripts/notarize.sh` | Optional. The `notarytool` Keychain profile `make release` uses; defaults to the shared `skd-notary` |
 
@@ -188,7 +188,7 @@ make setup-release-signing   # Developer ID identity + shared skd-notary Keychai
 make sparkle-keys            # Sparkle EdDSA key into the login Keychain
 ```
 
-Per release: bump `CFBundleShortVersionString` in `Resources/Info.plist`, add a `CHANGELOG.md`
+Per release: bump `CFBundleShortVersionString` in `Support/Info.plist`, add a `CHANGELOG.md`
 entry, commit, then
 
 ```bash

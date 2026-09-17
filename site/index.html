@@ -13,8 +13,8 @@
        preload fetches a different width than the one the page then draws.
        sizes follows styles/main.css: .shot img is 788px wide, capped by main's
        100% width minus two 1.5rem gutters below 836px. -->
-  <link rel="preload" as="image" href="assets/screenshots/general.webp"
-        imagesrcset="assets/screenshots/general-480.webp 480w, assets/screenshots/general-800.webp 800w, assets/screenshots/general.webp 1576w"
+  <link rel="preload" as="image" href="screenshots/general.webp"
+        imagesrcset="screenshots/general-480.webp 480w, screenshots/general-800.webp 800w, screenshots/general.webp 1576w"
         imagesizes="(max-width: 836px) calc(100vw - 48px), 788px"
         fetchpriority="high">
   <link rel="icon" href="favicon.ico" sizes="48x48">
@@ -86,8 +86,8 @@
       </div>
 
       <figure class="shot">
-        <img src="assets/screenshots/general.webp"
-          srcset="assets/screenshots/general-480.webp 480w, assets/screenshots/general-800.webp 800w, assets/screenshots/general.webp 1576w"
+        <img src="screenshots/general.webp"
+          srcset="screenshots/general-480.webp 480w, screenshots/general-800.webp 800w, screenshots/general.webp 1576w"
           sizes="(max-width: 836px) calc(100vw - 48px), 788px"
           width="788" height="628" loading="eager" decoding="async"
           alt="Mailbell's General settings: a menu bar count toggle, Open Mailbell at login, automatic update checks with the installed version, and Restore Defaults.">

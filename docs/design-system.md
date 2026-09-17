@@ -265,9 +265,10 @@ Mailbell intentionally uses the standard SwiftPM project shape:
 Package.swift
 Sources/Mailbell/
 Tests/MailbellTests/
-Resources/
+Support/
 scripts/
 docs/
+site/
 ```
 
 This matches SwiftPM defaults: the package manifest lives at the root, the executable target has its sources under `Sources/Mailbell`, and the test target has its tests under `Tests/MailbellTests`. `Package.swift` uses explicit `path` values because the executable target is named `mailbell` while the source folder is capitalized as `Mailbell`.

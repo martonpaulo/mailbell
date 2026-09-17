@@ -14,22 +14,22 @@ fi
 
 # The bundle identifier is fixed: Keychain and UserDefaults ownership derive
 # from it, so a change silently orphans every user's accounts and tokens.
-BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" Resources/Info.plist)
+BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" Support/Info.plist)
 [ "$BUNDLE_ID" = "com.perso.mailbell" ] \
     || note "bundle id must be com.perso.mailbell (got $BUNDLE_ID)"
 
 # The menu bar app must stay accessory-style.
-[ "$(/usr/libexec/PlistBuddy -c "Print :LSUIElement" Resources/Info.plist)" = "true" ] \
+[ "$(/usr/libexec/PlistBuddy -c "Print :LSUIElement" Support/Info.plist)" = "true" ] \
     || note "LSUIElement must be true so Mailbell stays out of the Dock"
 
 # Sparkle needs both halves of its contract, over HTTPS.
-FEED=$(/usr/libexec/PlistBuddy -c "Print :SUFeedURL" Resources/Info.plist 2>/dev/null || echo "")
-SPARKLE_KEY=$(/usr/libexec/PlistBuddy -c "Print :SUPublicEDKey" Resources/Info.plist 2>/dev/null || echo "")
+FEED=$(/usr/libexec/PlistBuddy -c "Print :SUFeedURL" Support/Info.plist 2>/dev/null || echo "")
+SPARKLE_KEY=$(/usr/libexec/PlistBuddy -c "Print :SUPublicEDKey" Support/Info.plist 2>/dev/null || echo "")
 case "$FEED" in
     https://*) ;;
     *) note "SUFeedURL must be an https appcast URL (got '$FEED')" ;;
 esac
-[ -n "$SPARKLE_KEY" ] || note "SUPublicEDKey must ship in Resources/Info.plist"
+[ -n "$SPARKLE_KEY" ] || note "SUPublicEDKey must ship in Support/Info.plist"
 
 # No credentials or signing material are ever committed.
 if git ls-files 2>/dev/null | grep -qiE '\.(p12|pem)$|_priv$|^\.env$'; then
@@ -59,25 +59,25 @@ if [ -f .env.example ] && grep -qE '^[A-Z_]+=.+' .env.example; then
 fi
 
 # Release credentials are injected at packaging time, never checked in.
-grep -q 'MailbellGoogleClientID' scripts/inject_bundle_config.sh \
+grep -q 'MailbellGoogleClientID' scripts/inject-bundle-config.sh \
     || note "packaging must inject the OAuth client into the bundle plist"
 
 # Sparkle is embedded and nested-signed by exactly one script, so no packaging
 # path can ship an unsigned updater.
-grep -q 'Sparkle.framework' scripts/build_app_bundle.sh \
+grep -q 'Sparkle.framework' scripts/build-app-bundle.sh \
     || note "the shared bundle builder must embed Sparkle.framework"
-grep -q 'XPCServices/Downloader.xpc' scripts/build_app_bundle.sh \
+grep -q 'XPCServices/Downloader.xpc' scripts/build-app-bundle.sh \
     || note "the shared bundle builder must sign Sparkle's nested XPC services"
 for target in install dmg release; do
     grep -qE "^${target}:" Makefile || note "Makefile must define the $target target"
 done
 if grep -qE '^\s+@?cp .*Contents/MacOS' Makefile; then
-    note "packaging paths must go through scripts/build_app_bundle.sh"
+    note "packaging paths must go through scripts/build-app-bundle.sh"
 fi
 
 # The public beta must be honest about Google's review status everywhere it
 # tells users what to expect.
-for page in README.md docs/index.html docs/privacy.html docs/terms.html; do
+for page in README.md site/index.html site/privacy.html site/terms.html; do
     [ -f "$page" ] || { note "missing public document $page"; continue; }
     grep -qi 'unverified' "$page" \
         || note "$page must disclose the unverified Google OAuth status"
@@ -93,7 +93,7 @@ if [ -f "$settings_copy" ]; then
         || note "$settings_copy must state Google's 100-new-user cap"
 fi
 # An "unlimited" claim is only allowed when it is being denied.
-if grep -hiE 'unlimited' README.md docs/*.html 2>/dev/null \
+if grep -hiE 'unlimited' README.md site/*.html 2>/dev/null \
     | grep -viE '\b(no|not|never|without|cannot)\b' | grep -q .; then
     note "public copy must not promise unlimited use before Google verification"
 fi
@@ -106,7 +106,7 @@ fi
 # Download is the last item in the header nav, fleet-wide.
 expected_navigation="Features|Privacy|Terms|Download"
 expected_footer="Source|Issues|Releases"
-for page in docs/index.html docs/privacy.html docs/terms.html; do
+for page in site/index.html site/privacy.html site/terms.html; do
     [ -f "$page" ] || continue
     navigation=$(sed -n '/<nav aria-label="Page sections">/,/<\/nav>/p' "$page" \
         | sed -E 's/<svg[^>]*>.*<\/svg>//g' \
@@ -192,14 +192,14 @@ else
 fi
 
 # A release tag must be able to match the shipped version.
-PLIST_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Resources/Info.plist)
+PLIST_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Support/Info.plist)
 echo "$PLIST_VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' \
     || note "CFBundleShortVersionString must be X.Y.Z (got $PLIST_VERSION)"
 
 # The website names the shipped version on its download buttons, so a release
 # that forgets the site fails here instead of shipping a page that advertises
 # the previous version.
-for page in docs/index.html; do
+for page in site/index.html; do
     grep -Fq "Download Mailbell $PLIST_VERSION" "$page" \
         || note "$page must name the shipped version on its download button (Download Mailbell $PLIST_VERSION)"
     grep -Fq "releases/tag/v$PLIST_VERSION" "$page" \
@@ -208,11 +208,11 @@ done
 
 # The 404 page is part of the site, not a bare fallback: same header, same
 # footer, same design.
-if [ ! -f docs/404.html ]; then
+if [ ! -f site/404.html ]; then
     note "website must ship a 404 page"
 else
     for marker in 'class="site-header"' 'class="site-footer"' 'styles/main.css'; do
-        grep -Fq "$marker" docs/404.html || note "docs/404.html must carry $marker"
+        grep -Fq "$marker" site/404.html || note "site/404.html must carry $marker"
     done
 fi
 
@@ -227,7 +227,7 @@ while IFS= read -r line; do
         *) note "external link without the external-link icon: $(printf '%s' "$line" | cut -c1-80)" ;;
     esac
 done < <(grep -hoE '<a [^>]*href="https?://[^"]+"[^>]*>[^<]*(<svg[^>]*>.*</svg>)?</a>' \
-    docs/index.html docs/privacy.html docs/terms.html docs/404.html 2>/dev/null || true)
+    site/index.html site/privacy.html site/terms.html site/404.html 2>/dev/null || true)
 
 # The published appcast must describe the shipped app.
 if [ -f appcast.xml ]; then

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # One-time-per-machine setup: generate the Sparkle EdDSA signing key (stored in
-# your login Keychain) and write its public half into Resources/Info.plist. The
+# your login Keychain) and write its public half into Support/Info.plist. The
 # private key never leaves the Keychain and must never be committed.
-# Usage: scripts/make_sparkle_keys.sh
+# Usage: scripts/make-sparkle-keys.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -15,8 +15,8 @@ GENERATE=$(find .build/artifacts -name generate_keys -type f 2>/dev/null | head 
 PUBLIC_KEY=$("$GENERATE" -p 2>/dev/null | tr -d '[:space:]')
 [ -n "$PUBLIC_KEY" ] || { echo "failed to read the Sparkle public key" >&2; exit 1; }
 
-/usr/libexec/PlistBuddy -c "Set :SUPublicEDKey $PUBLIC_KEY" Resources/Info.plist 2>/dev/null \
-    || /usr/libexec/PlistBuddy -c "Add :SUPublicEDKey string $PUBLIC_KEY" Resources/Info.plist
+/usr/libexec/PlistBuddy -c "Set :SUPublicEDKey $PUBLIC_KEY" Support/Info.plist 2>/dev/null \
+    || /usr/libexec/PlistBuddy -c "Add :SUPublicEDKey string $PUBLIC_KEY" Support/Info.plist
 
-echo "SUPublicEDKey written to Resources/Info.plist: $PUBLIC_KEY"
+echo "SUPublicEDKey written to Support/Info.plist: $PUBLIC_KEY"
 echo "The private key stays in your login Keychain. Never commit it."

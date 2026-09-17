@@ -11,7 +11,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-OUT_DIR="${1:-docs/assets/screenshots}"
+OUT_DIR="${1:-site/screenshots}"
 CAPTURE_BUNDLE_ID="com.perso.mailbell.capture"
 LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 # Pane index matches the tab order: General, Notifications, Accounts, About.
@@ -33,7 +33,7 @@ if [[ -n "${MAILBELL_APP:-}" ]]; then
   APP="$MAILBELL_APP"
 else
   APP="$CAPTURE_WORK/Mailbell.app"
-  scripts/build_app_bundle.sh --output "$APP" --identity "-" --arch "$(uname -m)" >/dev/null
+  scripts/build-app-bundle.sh --output "$APP" --identity "-" --arch "$(uname -m)" >/dev/null
   /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $CAPTURE_BUNDLE_ID" "$APP/Contents/Info.plist"
   codesign --force --deep --sign - "$APP" >/dev/null 2>&1
   # Registered with LaunchServices, as any opened app is, so SMAppService finds it
@@ -127,7 +127,7 @@ for pane in $PANES; do
   kill "$APP_PID" 2>/dev/null || true
 done
 
-# The hero's srcset and imagesrcset in docs/index.html list exactly these
+# The hero's srcset and imagesrcset in site/index.html list exactly these
 # widths. There is no 1200 px width: resampled, it weighs more than the
 # full-size lossless file, so a phone would pay more for fewer pixels.
 if [[ " $PANES " == *" 0 "* ]]; then

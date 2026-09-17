@@ -81,8 +81,8 @@ final class AppcastScriptTests: XCTestCase {
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
-                .appendingPathComponent("scripts/make_appcast.sh"),
-            to: scripts.appendingPathComponent("make_appcast.sh")
+                .appendingPathComponent("scripts/make-appcast.sh"),
+            to: scripts.appendingPathComponent("make-appcast.sh")
         )
         return workspace
     }
@@ -96,7 +96,7 @@ final class AppcastScriptTests: XCTestCase {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/bash")
         process.arguments = [
-            workspace.appendingPathComponent("scripts/make_appcast.sh").path,
+            workspace.appendingPathComponent("scripts/make-appcast.sh").path,
             version,
             "999",
             "/tmp/\(archive)",

@@ -17,7 +17,7 @@ final class ReleaseMetadataScriptTests: XCTestCase {
         let values = parseAssignments(result.stdout)
         XCTAssertEqual(values["VERSION"], "1.2.3")
         // major * 10000 + minor * 100 + patch, matching the release workflow
-        // and CFBundleVersion in Resources/Info.plist.
+        // and CFBundleVersion in Support/Info.plist.
         XCTAssertEqual(values["BUILD_NUMBER"], "10203")
         XCTAssertEqual(values["DMG_NAME"], "Mailbell-1.2.3.dmg")
         XCTAssertEqual(values["DMG_VOLUME_NAME"], "Install Mailbell")
@@ -126,7 +126,7 @@ final class ReleaseMetadataScriptTests: XCTestCase {
         environment: [String: String] = [:]
     ) -> CommandResult {
         run(
-            [repositoryRoot().appendingPathComponent("scripts/resolve_release_metadata.sh").path],
+            [repositoryRoot().appendingPathComponent("scripts/resolve-release-metadata.sh").path],
             currentDirectory: currentDirectory,
             environment: environment
         )

@@ -15,7 +15,7 @@ specific `AGENTS.md` inside a subtree overrides this one for that subtree.
 - Repository: `martonpaulo/mailbell` (public); `origin` is the owner's fork.
 - Benefit-first description: Gmail notifications in your macOS menu bar — instant IMAP IDLE alerts, a review queue you can clear in one click, no server in between.
 - Public identifiers: app/bundle `com.perso.mailbell`; SwiftPM executable `mailbell`; installed app `Mailbell.app`.
-- Landing page: `https://mailbell.martonpaulo.com/`, owned by Marton Paulo; static files under `docs/` (with `docs/CNAME` naming the host), hosted by this repository's GitHub Pages workflow. The move from `martonpaulo.com/mailbell/` to this subdomain was decided by the owner on 2026-09-09 with no redirect from the old path; any further domain or DNS change requires a separate explicit request.
+- Landing page: `https://mailbell.martonpaulo.com/`, owned by Marton Paulo; static files under `site/` (with `site/CNAME` naming the host), hosted by this repository's GitHub Pages workflow. The move from `martonpaulo.com/mailbell/` to this subdomain was decided by the owner on 2026-09-09 with no redirect from the old path; any further domain or DNS change requires a separate explicit request.
 - License: MIT; preserve copyright 2026 samzong and 2026 Marton Paulo and all existing third-party notices.
 - Development language: English. Product copy: English only; English fallback, no additional locales or localization framework until explicitly requested.
 - Browser acceptance targets: Chromium and WebKit/Safari for the public site and OAuth callback HTML. Use existing compatible browser tooling; no new browser manager or CI matrix is implied. Verify native Safari behavior manually when tooling cannot establish it.
@@ -24,7 +24,7 @@ specific `AGENTS.md` inside a subtree overrides this one for that subtree.
 - Push policy: only on explicit owner request, to `origin`; never to `upstream`.
 - Merge policy: merge commit only, `gh pr merge <number> --merge --delete-branch`, so every branch commit reaches `main` (martonpaulo/skill-deck#277), and only for an explicitly authorized PR merge. An issue plan or review never authorizes merging.
 - Delete branches after merge: disabled; preserve the existing repository setting. Delete a branch only when separately authorized.
-- Product versioning: user-visible SemVer `X.Y.Z`, canonical in `Resources/Info.plist`; version/build changes occur only during an explicit release request. Tags use `vX.Y.Z`; the internal build derives from the version through the existing release metadata script.
+- Product versioning: user-visible SemVer `X.Y.Z`, canonical in `Support/Info.plist`; version/build changes occur only during an explicit release request. Tags use `vX.Y.Z`; the internal build derives from the version through the existing release metadata script.
 - Release policy: direct Developer ID signed, notarized, stapled DMG and Sparkle update archive. Signing/OAuth configuration stays private; tokens and private update keys stay in Keychain. Setup does not cut a release or change a version.
 - Agent automation: `disabled`
 - Agent clients: root `AGENTS.md` is canonical; retain `CLAUDE.md -> AGENTS.md`. No Gemini or Antigravity adapter is selected. Do not install automation, caller workflows, roles, hooks, or authentication prerequisites while automation is disabled.
@@ -313,8 +313,9 @@ the visible menu projection have one owner each in `EmailStore`.
 - Releases are tagged `vX.Y.Z`; the tag must match `CFBundleShortVersionString`.
   The appcast is regenerated from the built, signed archive and committed before
   the GitHub Release is published.
-- The website under `docs/` is the public landing page, privacy policy, and
-  terms. It is deployed by GitHub Pages from `main`.
+- The website under `site/` is the public landing page, privacy policy, and
+  terms. It is deployed by GitHub Pages from `main`. `docs/` holds developer
+  documentation only and is never published.
 
 ## Conventions
 

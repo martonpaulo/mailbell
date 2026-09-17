@@ -45,7 +45,7 @@ done
 # reporting an identifier the produced app would not have.
 if [[ -z "${PLIST_PATH}" ]]; then
   if [[ "${CHECK_ONLY}" -eq 1 ]]; then
-    PLIST_PATH="$(cd "$(dirname "$0")/.." && pwd)/Resources/Info.plist"
+    PLIST_PATH="$(cd "$(dirname "$0")/.." && pwd)/Support/Info.plist"
   else
     usage
     exit 2

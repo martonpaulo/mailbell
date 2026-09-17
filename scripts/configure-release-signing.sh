@@ -2,7 +2,7 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-source scripts/mailbell_env.sh
+source scripts/mailbell-env.sh
 mailbell_load_dotenv
 
 

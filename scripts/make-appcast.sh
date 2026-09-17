@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Prepends a release entry to appcast.xml (creating it if missing).
-# Usage: scripts/make_appcast.sh <version> <build-number> <archive-path> <signature-attrs>
+# Usage: scripts/make-appcast.sh <version> <build-number> <archive-path> <signature-attrs>
 #   signature-attrs is sign_update's output: sparkle:edSignature="..." length="..."
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-VERSION="${1:?usage: scripts/make_appcast.sh <version> <build-number> <archive-path> <signature-attrs>}"
+VERSION="${1:?usage: scripts/make-appcast.sh <version> <build-number> <archive-path> <signature-attrs>}"
 BUILD_NUMBER="${2:?missing build number}"
 ARCHIVE_PATH="${3:?missing archive path}"
 SIGNATURE_ATTRS="${4:?missing signature attributes}"

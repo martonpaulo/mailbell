@@ -7,7 +7,7 @@
 # bundle layout and signing order have exactly one definition.
 #
 # Usage:
-#   scripts/build_app_bundle.sh --output <Mailbell.app> [options]
+#   scripts/build-app-bundle.sh --output <Mailbell.app> [options]
 # Options:
 #   --identity <id>       codesign identity; "-" (default) is ad-hoc
 #   --version <X.Y.Z>     release short version (requires --build-number)
@@ -54,13 +54,13 @@ BIN_PATH="$(swift build -c release --arch "$ARCH" --product "$PRODUCT" --show-bi
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
 cp "$BIN_PATH/$PRODUCT" "$APP/Contents/MacOS/$APP_NAME"
-cp Resources/Info.plist "$APP/Contents/Info.plist"
+cp Support/Info.plist "$APP/Contents/Info.plist"
 
 if [[ -n "$VERSION" ]]; then
-  scripts/inject_bundle_config.sh --version "$VERSION" --build-number "$BUILD_NUMBER" \
+  scripts/inject-bundle-config.sh --version "$VERSION" --build-number "$BUILD_NUMBER" \
     "$APP/Contents/Info.plist" >/dev/null
 else
-  scripts/inject_bundle_config.sh "$APP/Contents/Info.plist" >/dev/null
+  scripts/inject-bundle-config.sh "$APP/Contents/Info.plist" >/dev/null
 fi
 
 xcrun actool --compile "$APP/Contents/Resources" \
@@ -68,7 +68,7 @@ xcrun actool --compile "$APP/Contents/Resources" \
   --minimum-deployment-target 26.0 \
   --app-icon AppIcon \
   --output-partial-info-plist /dev/null \
-  Resources/Assets.xcassets >/dev/null
+  Support/Assets.xcassets >/dev/null
 
 # ditto preserves the framework's symlink structure; cp -R would break it and
 # Sparkle's signature with it.
@@ -95,7 +95,7 @@ codesign --verify --deep --strict "$APP"
 # The produced bundle, not just the source plist, must carry the canonical
 # identity: Keychain items and UserDefaults keys are derived from it, so a
 # second identifier silently orphans the user's data.
-CANONICAL_BUNDLE_ID="$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" Resources/Info.plist)"
+CANONICAL_BUNDLE_ID="$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" Support/Info.plist)"
 BUILT_BUNDLE_ID="$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Contents/Info.plist")"
 if [[ "$BUILT_BUNDLE_ID" != "$CANONICAL_BUNDLE_ID" ]]; then
   echo "error: packaged bundle identifier is $BUILT_BUNDLE_ID, expected $CANONICAL_BUNDLE_ID" >&2

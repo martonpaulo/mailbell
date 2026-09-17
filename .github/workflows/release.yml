@@ -51,9 +51,9 @@ jobs:
               exit 1
             }
           fi
-          PLIST_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Resources/Info.plist)
+          PLIST_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Support/Info.plist)
           test "$PLIST_VERSION" = "${{ steps.version.outputs.version }}" || {
-            echo "Tag version does not match Resources/Info.plist ($PLIST_VERSION)." >&2
+            echo "Tag version does not match Support/Info.plist ($PLIST_VERSION)." >&2
             exit 1
           }
 
@@ -122,7 +122,7 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           mkdir -p build/release/staging artifacts
-          scripts/build_app_bundle.sh \
+          scripts/build-app-bundle.sh \
             --output "build/release/staging/Mailbell.app" \
             --identity "$MAILBELL_CODE_SIGN_IDENTITY" --hardened \
             --version "$VERSION" --build-number "${{ steps.version.outputs.build }}"
@@ -178,8 +178,8 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           DMG="artifacts/Mailbell-$VERSION.dmg"
           ln -sfn /Applications build/release/staging/Applications
-          scripts/create_dmg.sh "build/release/staging" "Mailbell" \
-            "Resources/AppInstallerIcon.icns" "Install Mailbell" "$DMG"
+          scripts/create-dmg.sh "build/release/staging" "Mailbell" \
+            "Support/AppInstallerIcon.icns" "Install Mailbell" "$DMG"
           codesign --force --timestamp --sign "$MAILBELL_CODE_SIGN_IDENTITY" "$DMG"
           codesign --verify --verbose=2 "$DMG"
           scripts/notarize.sh "$DMG"
@@ -194,7 +194,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           git checkout main
-          scripts/make_appcast.sh "$VERSION" "${{ steps.version.outputs.build }}" \
+          scripts/make-appcast.sh "$VERSION" "${{ steps.version.outputs.build }}" \
             "artifacts/Mailbell-$VERSION.zip" "$SPARKLE_SIG_ATTRS"
           if ! git diff --quiet appcast.xml; then
             git add appcast.xml

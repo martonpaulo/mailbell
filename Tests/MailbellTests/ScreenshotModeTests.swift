@@ -71,7 +71,7 @@ final class ScreenshotModeTests: XCTestCase {
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
-                .appendingPathComponent("scripts/capture_screenshots.sh"),
+                .appendingPathComponent("scripts/capture-screenshots.sh"),
             encoding: .utf8
         )
 
