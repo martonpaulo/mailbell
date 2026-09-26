@@ -113,6 +113,7 @@ does not restate it.
 | Ellipsis | Buttons that open a window, sheet or app; menu items only when more input follows; never on links | [interface.md](interface.md#copy) | [#61](https://github.com/martonpaulo/mailbell/issues/61) |
 | App credit | Two credit lines in `NSHumanReadableCopyright`; `LICENSE` and `NOTICE.md` unchanged | [AGENTS.md](../AGENTS.md), "Copyright" | [#73](https://github.com/martonpaulo/mailbell/issues/73) |
 | Bundle identifier | `com.martonpaulo.mailbell` from v0.4.0; preferences copied once, Keychain tokens not migrated | [AGENTS.md](../AGENTS.md), "Public identifiers" | [#47](https://github.com/martonpaulo/mailbell/issues/47) |
+| Menu bar dropdown | A native menu derived from one presentation type; sender-first rows grouped by account; conversations as the one counting unit | [interface.md](interface.md#menu) | [#69](https://github.com/martonpaulo/mailbell/issues/69) |
 | README drift | Tracked in its own issue, apart from baseline alignment | [README.md](../README.md) | [#55](https://github.com/martonpaulo/mailbell/issues/55) |
 
 ## Accepted evidence gaps

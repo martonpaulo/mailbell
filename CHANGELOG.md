@@ -8,6 +8,16 @@ All notable changes to Mailbell are documented here. This project follows
 
 ### Changed
 
+- **The menu shows who wrote each message.** Each row shows the sender, with
+  the subject and time below it, and conversations are grouped under each
+  account's address when you watch more than one. The menu counts
+  conversations everywhere, states what All Conversations reaches, and asks
+  before Mark All as Read in Gmail… marks messages the menu does not show.
+- **Problems appear at the top of the menu.** An expired sign-in, a connection
+  error with its reason, notifications that are turned off, or a failed Mark as
+  Read now shows in the menu with the action that fixes it.
+- **Menu commands say where they act:** Open in Gmail, Mark as Read in Gmail,
+  Dismiss (Keep Unread in Gmail), Check for New Mail, Resume Watching.
 - **Mailbell now identifies itself to macOS as `com.martonpaulo.mailbell`.**
   Your settings, watched accounts, and the mail you already handled carry
   over. macOS treats the new identifier as a new app, so after you update:
@@ -27,6 +37,11 @@ All notable changes to Mailbell are documented here. This project follows
     has them off, and Mailbell no longer asks for a Dock badge it never showed.
   - The sign-in note names the exact link on Google's warning screen:
     "Go to Mailbell (unsafe)".
+
+### Fixed
+
+- **Mark All as Read reaches every conversation Mailbell holds.** With more than
+  50 conversations for one account, it marked only the ones the menu showed.
 
 ## [0.3.1] - 2026-09-09
 

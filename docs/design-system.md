@@ -33,7 +33,7 @@ Allowed exceptions inside the notifier boundary:
 - A macOS menu bar item shows aggregate connection state and an optional grouped pending count.
 - The user signs in with one or more Google accounts through OAuth.
 - New Gmail inbox messages create native macOS notifications with sender, subject, and a sanitized body preview when available.
-- The menu shows an `Awaiting Review` section with one item per Gmail thread when thread IDs are available.
+- The menu shows the conversations to review, one row per Gmail thread when thread IDs are available ([interface.md](interface.md#menu)).
 - Opening any pending item opens Gmail Web, not an in-app mailbox.
 - Clicking a notification opens Gmail Web using the account's configured browser.
 - Pending items can be opened, dismissed, or marked as read from the menu.

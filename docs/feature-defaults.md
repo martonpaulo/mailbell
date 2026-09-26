@@ -58,7 +58,7 @@ independently of whether a message can stay in the retained window.
 
 Show the retained/shown scope and an account-specific overflow notice with an
 Open Gmail action; do not invent a total count of unknown Gmail mail. Existing
-Check Now explicitly refills the recent window in bounded batches, and relaunch
+Check for New Mail explicitly refills the recent window in bounded batches, and relaunch
 rebuilds it from Gmail and existing handled history. Do not automatically refill
 older capacity-excluded mail just because an action freed space: clearing the
 queue must not immediately reveal another historical window. Fresh arrivals
@@ -66,7 +66,9 @@ and read-state reconciliation continue through existing IDLE handling.
 
 Bulk actions use a stable snapshot of **all retained messages**, including those
 outside the visible rows, and disclose their retained-message count before
-activation. They never reach capacity-excluded Gmail messages. Conversation
+activation. Mark All as Read confirms first when that reach includes messages
+the menu does not show, and both results are counted in messages (Decided on
+#69). They never reach capacity-excluded Gmail messages. Conversation
 actions likewise affect only captured retained members, preserving issue #22's
 late-arrival protections. Explicit dismissals remain suppressed while their
 bounded history records exist; eviction is never treated as dismissal.

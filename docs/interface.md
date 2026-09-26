@@ -22,6 +22,44 @@ permission, which outranks unread mail. The alert symbol replaces the bell, so
 the app never looks idle while nothing is monitored or no alert can get through.
 Decided on #54 (the denied-permission level; #72 implements it).
 
+## Menu
+
+The dropdown is a native menu (`MenuBarExtra` with the menu style), never a
+custom window or popover. Decided on #54; #69 implements option A.
+
+- **One owner.** `MenuPresentation` (MailbellKit) decides every item, its
+  order, copy and state; `MenuContent` only renders it. Decided on #69.
+- **Order.** Problem rows, then the queue (a section header "N conversations
+  to review", the All Conversations submenu, Check for New Mail, then one
+  group per account), then Accounts, Check for Updates… (hidden without an
+  updater), Settings… (⌘,) and Quit Mailbell (⌘Q). With no account: "No Gmail
+  account", Add Gmail Account…, Settings… and Quit.
+- **Rows.** The sender is the title and "subject · time" the native subtitle.
+  The sender carries the message count when a conversation holds more than
+  one. A row's submenu holds Open in Gmail, Mark as Read in Gmail (hidden when
+  the row cannot be marked), Dismiss (Keep Unread in Gmail), then the sender
+  with address, "To <account> · <time>", the full subject when the row cut it,
+  and at most three preview lines.
+- **Groups.** One native section header per account address, only when there
+  is more than one account; each group ends with its overflow line.
+- **One counting unit.** The menu bar count, its accessibility label, the queue
+  header and each account's submenu count conversations. Messages appear only
+  where a bulk action's reach is stated ("Includes 37 messages in 12
+  conversations.") and in its result.
+- **Confirmation.** Mark All as Read in Gmail… confirms with a standard alert
+  only when it reaches messages the menu does not show; single-row actions
+  never confirm.
+- **Problems.** A problem row is a disabled item with an alert symbol, a plain
+  title and a subtitle, followed by its fix: sign-in expired (Sign In Again…),
+  a connection error with its reason (Reconnect), notifications off (Open
+  System Settings), a saved-accounts read error, a sign-in error, a build
+  without its OAuth client. The last queue action, including a failed single
+  mark, is one disabled line under the queue header.
+- **Native only.** Regular weight, no coloured text, one line per item, and no
+  custom views (`NSMenuItem.view`). Every title, subtitle and preview line is cut
+  to 60 characters with "…", because a native menu is as wide as its widest
+  item.
+
 ## Settings
 
 - Settings stays small and native: three panes, each owning one question.
