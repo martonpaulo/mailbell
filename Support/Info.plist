@@ -10,8 +10,6 @@
 	<string>Mailbell</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
-	<key>CFBundleIconName</key>
-	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.martonpaulo.mailbell</string>
 	<key>CFBundleInfoDictionaryVersion</key>
