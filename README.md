@@ -27,7 +27,7 @@ network traffic outside Gmail itself is the update check through
 <br />
 
 ## 🌱 Quick Start
-Requires **macOS 26 or later** and the **Swift 6.2** toolchain; `make check` also uses SwiftLint and SwiftFormat.
+Requires **macOS 26 or later** and the **Swift 6.2** toolchain; `make check` also uses SwiftLint and swift-format.
 
 ```bash
 git clone https://github.com/martonpaulo/mailbell.git
@@ -53,7 +53,7 @@ Every packaged build goes through `scripts/package-with-oauth.sh`: it writes the
 | `make run` | Build and run the debug executable, unbundled; notifications need `make install` |
 | `make test` | Run the test suite |
 | `make lint` | Run SwiftLint |
-| `make format` | Format the sources with SwiftFormat |
+| `make format` | Format the sources with swift-format |
 | `make validate` | Check the repository invariants (`scripts/validate.sh`) |
 | `make install` | Copy `build/Mailbell.app` from `make app` into `/Applications` |
 | `make uninstall` | Remove the installed app bundle |

@@ -47,7 +47,7 @@ Change an established identifier, license, visibility, branch, versioning, local
 
 ## Build and validate
 
-Use `make` targets, never hand-rolled equivalents; `make help` lists them. `make check` runs `build`, `lint`, `test` and `validate` and fails on any compiler warning. `make app` / `make dmg` build `build/Mailbell.app` and the branded DMG, ad-hoc unless `DEVELOPER_ID_IDENTITY` is set. `make install` copies that bundle into `/Applications`, the only way to exercise notifications. No Make target publishes: only the tag workflow does. Logs and generated artifacts go under `artifacts/` (ignored).
+Use `make` targets, never hand-rolled equivalents; `make help` lists them. `make check` runs `build`, `lint`, `test` and `validate` and fails on any compiler warning. `make lint` runs SwiftLint, then swift-format; `make format` is the only target that rewrites sources. `make app` / `make dmg` build `build/Mailbell.app` and the branded DMG, ad-hoc unless `DEVELOPER_ID_IDENTITY` is set. `make install` copies that bundle into `/Applications`, the only way to exercise notifications. No Make target publishes: only the tag workflow does. Logs and generated artifacts go under `artifacts/` (ignored).
 
 ## Mailbell rules
 

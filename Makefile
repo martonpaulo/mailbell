@@ -49,11 +49,14 @@ build: ## Build (CONFIGURATION=debug|release); fails on any warning in a project
 test: ## Tests; fails on any warning or a test defaults suite leaked into ~/Library/Preferences
 	@scripts/check-test-defaults-leak.sh scripts/fail-on-warnings.sh -- swift test
 
-lint: ## SwiftLint; read-only, fails on any finding
-	@swiftlint lint --quiet --strict Sources Tests
+# Both tools read the repository-root .swiftlint.yml and .swift-format, which are unchanged
+# copies of the shared skill-deck files; --strict turns every warning into a failure.
+lint: ## SwiftLint, then swift-format lint; read-only, fails on any finding
+	@swiftlint lint --strict --quiet
+	@swift format lint --strict --recursive $(SWIFT_SOURCES)
 
-format: ## Format the sources with SwiftFormat (the only target that edits sources)
-	@swiftformat Sources Tests
+format: ## Rewrite the sources with swift-format (the only target that edits sources)
+	@swift format format --in-place --recursive $(SWIFT_SOURCES)
 
 validate: ## Repository invariants and the static site (scripts/validate.sh)
 	@scripts/validate.sh
