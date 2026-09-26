@@ -88,6 +88,21 @@ could act on the wrong message, or quietly stop watching, are closed.
   Google.** Removing it in Mailbell deletes your tokens locally; it does not
   tell Google anything.
 
+## 0.2.0 — 2026-08-18
+
+Mailbell can now alert you without a sound.
+
+> **Google OAuth unverified beta.** Unchanged from 0.1.0: Google shows an
+> "unverified app" screen during sign-in and limits unverified clients to
+> **100 new users**.
+
+### Added
+
+- **A setting to turn notification sounds off.** Settings › Notifications has
+  "Play notification sounds", on by default. When it is off, every Mailbell
+  notification (new mail, sign-in and test) arrives silently but still shows.
+  macOS settings still decide whether Mailbell may play sounds at all.
+
 ## 0.1.2 — 2026-07-26
 
 An expired sign-in now reaches you instead of waiting to be noticed.
