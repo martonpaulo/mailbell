@@ -33,18 +33,19 @@ enum LoginItemStatus: Equatable {
         }
     }
 
-    static func from(_ status: SMAppService.Status) -> LoginItemStatus {
+    /// On macOS 26 a bundled app that has never registered reads `notFound`, not
+    /// `notRegistered`, so a packaged app shows Off and lets `register()` decide.
+    /// Only an unbundled executable (`swift run`, the test host) cannot register.
+    static func from(_ status: SMAppService.Status, isPackagedApp: Bool) -> LoginItemStatus {
         switch status {
-        case .notRegistered:
-            return .disabled
         case .enabled:
             return .enabled
         case .requiresApproval:
             return .requiresApproval
-        case .notFound:
-            return .unavailable
+        case .notRegistered, .notFound:
+            return isPackagedApp ? .disabled : .unavailable
         @unknown default:
-            return .unavailable
+            return isPackagedApp ? .disabled : .unavailable
         }
     }
 }
@@ -52,11 +53,9 @@ enum LoginItemStatus: Equatable {
 /// Start-at-login via SMAppService. Only works for a registered (bundled) app.
 enum LoginItem {
     static var status: LoginItemStatus {
-        // A capture runs a throwaway bundle that SMAppService does not know, which would
-        // publish an "Unavailable" warning no installed copy ever shows. Captures present
-        // a fresh install's state instead, the way they pin every other fixture.
+        // Captures present a fresh install's state, the way they pin every other fixture.
         if ScreenshotMode.isEnabled { return .disabled }
-        return LoginItemStatus.from(SMAppService.mainApp.status)
+        return LoginItemStatus.from(SMAppService.mainApp.status, isPackagedApp: AppIdentity.isPackagedApp)
     }
 
     static var isEnabled: Bool {
