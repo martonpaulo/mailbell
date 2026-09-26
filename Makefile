@@ -9,6 +9,7 @@ BUILD_DIR  := .build
 APP_BUNDLE := /Applications/$(APP_NAME).app
 INFO_PLIST := Support/Info.plist
 ARCH       ?= arm64
+CONFIGURATION ?= debug
 
 RELEASE_DIR := $(BUILD_DIR)/release
 RELEASE_STAGING := $(RELEASE_DIR)/staging
@@ -38,8 +39,8 @@ RESET := \033[0m
 
 .PHONY: build app run test lint format validate check
 
-build: ## Build debug artifacts
-	@$(SWIFT) build -c debug
+build: ## Build; fails on any compiler warning in a project file
+	@scripts/fail-on-warnings.sh -- $(SWIFT) build -c $(CONFIGURATION)
 
 app: require-oauth-config icons ## Package an ad-hoc signed build/Mailbell.app and its update archive
 	@scripts/package-with-oauth.sh --identity "$(CODE_SIGN_IDENTITY)" --arch $(ARCH) --force
@@ -47,8 +48,8 @@ app: require-oauth-config icons ## Package an ad-hoc signed build/Mailbell.app a
 run: build ## Run the debug executable (unbundled; notifications need 'make install')
 	@$(BUILD_DIR)/debug/$(PRODUCT)
 
-test: ## Run tests; fails when a run leaks a test defaults suite into ~/Library/Preferences
-	@scripts/check-test-defaults-leak.sh $(SWIFT) test
+test: ## Run tests; fails on any compiler warning or a test defaults suite leaked into ~/Library/Preferences
+	@scripts/check-test-defaults-leak.sh scripts/fail-on-warnings.sh -- $(SWIFT) test
 
 lint: ## Run SwiftLint
 	@$(SWIFTLINT) lint --quiet --strict Sources Tests
