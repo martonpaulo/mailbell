@@ -19,11 +19,11 @@ enum ScreenshotMode {
     /// short enough to stay legible when published at half its pixel width.
     static let windowSize = NSSize(width: 720, height: 560)
 
-    /// Printed once the window is on screen, sized, and active. A capture taken
+    /// The last line of the canonical capture protocol (`scripts/lib/capture.sh`),
+    /// printed once the window is on screen, sized, and active. A capture taken
     /// before this draws an inactive window: grey traffic lights and dimmed
     /// controls.
-    static let readyMarker = "MAILBELL_SCREENSHOT_READY"
-    static let windowIDPrefix = "MAILBELL_SCREENSHOT_WINDOW_ID="
+    static let readyLine = "READY"
 
     /// SwiftUI restores the last selected Settings tab and the last window
     /// frame from UserDefaults, so a capture would otherwise depend on whatever
@@ -75,13 +75,11 @@ enum ScreenshotMode {
         arguments.contains(launchArgument)
     }
 
-    static func windowIDLine(_ windowNumber: Int) -> String {
-        "\(windowIDPrefix)\(windowNumber)"
-    }
-
-    static func parseWindowID(_ line: String) -> Int? {
-        guard line.hasPrefix(windowIDPrefix) else { return nil }
-        return Int(line.dropFirst(windowIDPrefix.count).trimmingCharacters(in: .whitespaces))
+    /// The capture protocol's lines for a window: its backing scale, which the
+    /// library requires to be 2x, then its number for `screencapture -l`, then
+    /// readiness.
+    static func protocolLines(scale: CGFloat, windowNumber: Int) -> [String] {
+        ["SCALE \(scale)", "WINDOW_ID \(windowNumber)", readyLine]
     }
 
     /// Finds Settings, pins its size, brings it forward, and reports it.
@@ -123,7 +121,17 @@ enum ScreenshotMode {
     @MainActor
     static func prepare(window: NSWindow, emit: @escaping (String) -> Void = emitLine) {
         window.setContentSize(windowSize)
-        window.center()
+        // The capture library needs a 2x window, and the main screen may be a 1x
+        // external display beside a Retina one.
+        if let screen = captureScreen(in: NSScreen.screens) {
+            let visible = screen.visibleFrame
+            window.setFrameOrigin(NSPoint(
+                x: visible.midX - window.frame.width / 2,
+                y: visible.midY - window.frame.height / 2
+            ))
+        } else {
+            window.center()
+        }
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
 
@@ -139,10 +147,20 @@ enum ScreenshotMode {
                 window.title = ""
                 window.displayIfNeeded()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    emit(windowIDLine(Int(window.windowNumber)))
-                    emit(readyMarker)
+                    protocolLines(scale: window.backingScaleFactor, windowNumber: window.windowNumber)
+                        .forEach(emit)
                 }
             }
+        }
+    }
+
+    /// The screen with the highest backing scale; the first such screen, so the
+    /// main screen wins a tie.
+    @MainActor
+    static func captureScreen(in screens: [NSScreen]) -> NSScreen? {
+        screens.reduce(nil) { best, screen in
+            guard let best, best.backingScaleFactor >= screen.backingScaleFactor else { return screen }
+            return best
         }
     }
 

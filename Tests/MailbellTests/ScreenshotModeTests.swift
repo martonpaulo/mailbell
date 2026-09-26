@@ -56,15 +56,15 @@ final class ScreenshotModeTests: XCTestCase {
         XCTAssertEqual(defaults.integer(forKey: ScreenshotMode.selectedTabDefaultsKey), 1)
     }
 
-    func testTheReportedWindowIDRoundTrips() {
-        let line = ScreenshotMode.windowIDLine(4321)
-
-        XCTAssertEqual(ScreenshotMode.parseWindowID(line), 4321)
-        XCTAssertNil(ScreenshotMode.parseWindowID(ScreenshotMode.readyMarker))
-        XCTAssertNil(ScreenshotMode.parseWindowID("MAILBELL_SCREENSHOT_WINDOW_ID=not-a-number"))
+    /// scripts/lib/capture.sh reads these exact lines, and READY last.
+    func testTheWindowIsReportedInTheCanonicalCaptureProtocol() {
+        XCTAssertEqual(
+            ScreenshotMode.protocolLines(scale: 2, windowNumber: 4321),
+            ["SCALE 2.0", "WINDOW_ID 4321", "READY"]
+        )
     }
 
-    func testTheCaptureScriptNeverStripsTheShadow() throws {
+    func testTheCaptureGoesThroughTheCanonicalLibrary() throws {
         let script = try String(
             contentsOf: URL(fileURLWithPath: #filePath)
                 .deletingLastPathComponent()
@@ -74,8 +74,7 @@ final class ScreenshotModeTests: XCTestCase {
             encoding: .utf8
         )
 
-        XCTAssertTrue(script.contains("screencapture -x -l"), "must capture the real on-screen window by id")
-        XCTAssertFalse(script.contains("screencapture -o"), "-o removes the window shadow")
-        XCTAssertTrue(script.contains("-lossless"), "published pixels must be identical to the capture")
+        XCTAssertTrue(script.contains(". scripts/lib/capture.sh"), "the capture protocol lives in the library")
+        XCTAssertFalse(script.contains("--deep"), "only the outer bundle is re-signed")
     }
 }
