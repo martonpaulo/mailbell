@@ -20,14 +20,35 @@ enum SettingsCopy {
 
     enum Startup {
         static let sectionTitle = String(localized: "Startup", comment: "Settings section header")
-        static let openAtLoginTitle = String(localized: "Open Mailbell at login")
-        static let openAtLoginDescription = String(localized: "Mailbell watches for mail only while it is running.")
-        static let loginItemTitle = String(localized: "Login item")
-        // SystemSettings.open launches the app; macOS decides which pane is
-        // showing, so the label promises only what actually happens and the
-        // route is given as guidance instead.
-        static let openLoginItemsSettings = String(localized: "Open System Settings…")
-        static let loginItemsRoute = String(localized: "In System Settings, go to General → Login Items & Extensions.")
+        static let launchAtLoginTitle = String(localized: "Launch at login")
+        // SMAppService.openSystemSettingsLoginItems() opens this pane itself,
+        // so the label names it (#31).
+        static let openLoginItemsSettings = String(localized: "Open Login Items Settings")
+        static let requiresApprovalExplanation = String(
+            localized: "Mailbell is waiting for your approval in System Settings › General › Login Items & Extensions."
+        )
+        static let unavailableExplanation = String(
+            localized: "Launch at login is available when Mailbell runs from the Applications folder."
+        )
+        static let changeFailed = String(
+            localized: "Mailbell couldn't change this setting. Open Mailbell from the Applications folder and try again."
+        )
+
+        /// Shown under the toggle; nil when the toggle says everything. A failed
+        /// change outranks the status explanation.
+        static func note(for status: LoginItemStatus, failed: Bool) -> String? {
+            if failed {
+                return changeFailed
+            }
+            switch status {
+            case .enabled, .disabled:
+                return nil
+            case .requiresApproval:
+                return requiresApprovalExplanation
+            case .unavailable:
+                return unavailableExplanation
+            }
+        }
     }
 
     enum Updates {

@@ -7,19 +7,19 @@ final class SettingsPresentationTests: XCTestCase {
 
     func testSystemSettingsLabelsPromiseOnlyWhatTheButtonDoes() {
         // SystemSettings.open launches the app; macOS decides which pane shows.
-        for label in [
-            SettingsCopy.Startup.openLoginItemsSettings,
-            SettingsCopy.Notifications.openSystemSettings
-        ] {
-            XCTAssertEqual(label, "Open System Settings\u{2026}")
-            XCTAssertFalse(label.contains("Login Items"), label)
-            XCTAssertFalse(label.contains("Notification Settings"), label)
-            XCTAssertTrue(label.hasSuffix("\u{2026}"), "opening another app takes an ellipsis: \(label)")
-        }
+        let label = SettingsCopy.Notifications.openSystemSettings
+        XCTAssertEqual(label, "Open System Settings\u{2026}")
+        XCTAssertFalse(label.contains("Notification Settings"), label)
+    }
+
+    func testTheLoginItemsLabelNamesThePaneTheAPIOpens() {
+        // SMAppService.openSystemSettingsLoginItems() opens Login Items itself,
+        // and a plain open takes no ellipsis (#61).
+        XCTAssertEqual(SettingsCopy.Startup.openLoginItemsSettings, "Open Login Items Settings")
     }
 
     func testTheRouteToEachPreferenceIsStatedAsGuidance() {
-        XCTAssertTrue(SettingsCopy.Startup.loginItemsRoute.contains("Login Items"))
+        XCTAssertTrue(SettingsCopy.Startup.requiresApprovalExplanation.contains("Login Items"))
         XCTAssertTrue(SettingsCopy.Notifications.notificationsRoute.contains("Notifications"))
     }
 

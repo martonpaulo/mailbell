@@ -20,31 +20,30 @@ extension SettingsView {
     }
 
     var startupSection: some View {
-        Section {
+        let launchAtLogin = appState.launchAtLogin
+        return Section {
+            // The binding, not onChange: the toggle shows the status macOS
+            // reports, and only a click requests a change. A refreshed status
+            // never flows back into a change handler.
             SettingsToggleRow(
-                title: SettingsCopy.Startup.openAtLoginTitle,
-                description: SettingsCopy.Startup.openAtLoginDescription,
-                isOn: $launchAtLogin
+                title: SettingsCopy.Startup.launchAtLoginTitle,
+                isOn: Binding(
+                    get: { launchAtLogin.status.isOn },
+                    set: { launchAtLogin.request($0) }
+                )
             )
-            .onChange(of: launchAtLogin) { _, newValue in
-                LoginItem.set(newValue)
-                refreshLoginItemStatus()
+            .disabled(!launchAtLogin.status.allowsChange)
+
+            // Shown only when macOS disagrees with the toggle or cannot apply it.
+            if let note = SettingsCopy.Startup.note(for: launchAtLogin.status, failed: launchAtLogin.failed) {
+                SettingsStatusValue(note, tone: .warning, context: SettingsCopy.Startup.launchAtLoginTitle)
             }
 
-            if loginItemNeedsAttention {
-                SettingsRow(
-                    title: SettingsCopy.Startup.loginItemTitle,
-                    description: [loginItemStatus.detail, SettingsCopy.Startup.loginItemsRoute]
-                        .compactMap { $0 }
-                        .joined(separator: " ")
-                ) {
-                    loginItemStatusValue
-                }
-
-                // Section-scoped: inside the box, as its own last row.
+            // Section-scoped: inside the box, as its own last row.
+            if launchAtLogin.status.offersLoginItemsSettings {
                 SettingsActionRow {
                     Button(SettingsCopy.Startup.openLoginItemsSettings) {
-                        SystemSettings.open()
+                        launchAtLogin.openLoginItemsSettings()
                     }
                 }
             }

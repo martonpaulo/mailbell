@@ -272,16 +272,6 @@
         }
       }
     },
-    "Approve Mailbell in System Settings > General > Login Items." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Approve Mailbell in System Settings > General > Login Items."
-          }
-        }
-      }
-    },
     "Authorizing…" : {
       "localizations" : {
         "en" : {
@@ -854,16 +844,6 @@
         }
       }
     },
-    "In System Settings, go to General → Login Items & Extensions." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In System Settings, go to General → Login Items & Extensions."
-          }
-        }
-      }
-    },
     "In System Settings, go to Notifications, then choose Mailbell." : {
       "localizations" : {
         "en" : {
@@ -880,16 +860,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inbox"
-          }
-        }
-      }
-    },
-    "Install and run Mailbell.app to manage start at login." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Install and run Mailbell.app to manage start at login."
           }
         }
       }
@@ -944,6 +914,26 @@
         }
       }
     },
+    "Launch at login" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Launch at login"
+          }
+        }
+      }
+    },
+    "Launch at login is available when Mailbell runs from the Applications folder." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Launch at login is available when Mailbell runs from the Applications folder."
+          }
+        }
+      }
+    },
     "Legal" : {
       "comment" : "Settings section header",
       "localizations" : {
@@ -961,16 +951,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "License"
-          }
-        }
-      }
-    },
-    "Login item" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Login item"
           }
         }
       }
@@ -1005,12 +985,12 @@
         }
       }
     },
-    "Mailbell can start when you sign in." : {
+    "Mailbell couldn't change this setting. Open Mailbell from the Applications folder and try again." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mailbell can start when you sign in."
+            "value" : "Mailbell couldn't change this setting. Open Mailbell from the Applications folder and try again."
           }
         }
       }
@@ -1041,6 +1021,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mailbell is notified as mail arrives. Checking manually is only useful after a connection problem."
+          }
+        }
+      }
+    },
+    "Mailbell is waiting for your approval in System Settings › General › Login Items & Extensions." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mailbell is waiting for your approval in System Settings › General › Login Items & Extensions."
           }
         }
       }
@@ -1091,26 +1081,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mailbell stopped watching this account. Choose Sign In Again in the Mailbell menu."
-          }
-        }
-      }
-    },
-    "Mailbell watches for mail only while it is running." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mailbell watches for mail only while it is running."
-          }
-        }
-      }
-    },
-    "Mailbell will not start automatically." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mailbell will not start automatically."
           }
         }
       }
@@ -1426,12 +1396,12 @@
         }
       }
     },
-    "Open Mailbell at login" : {
+    "Open Login Items Settings" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open Mailbell at login"
+            "value" : "Open Login Items Settings"
           }
         }
       }
@@ -1603,16 +1573,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Report an Issue"
-          }
-        }
-      }
-    },
-    "Requires approval" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Requires approval"
           }
         }
       }

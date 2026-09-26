@@ -1,36 +1,33 @@
 import Foundation
 import ServiceManagement
 
+/// The launch-at-login state Settings shows: what macOS holds for the login
+/// item, never the requested value and never a stored copy of it.
 enum LoginItemStatus: Equatable {
-    case disabled
+    /// Registered and approved: Mailbell opens at login.
     case enabled
+    /// Not registered.
+    case disabled
+    /// Registered, but macOS waits for approval in Login Items settings.
     case requiresApproval
+    /// Cannot be registered from this binary (an unbundled executable).
     case unavailable
 
-    var title: String {
-        switch self {
-        case .disabled:
-            String(localized: "Disabled")
-        case .enabled:
-            String(localized: "Enabled")
-        case .requiresApproval:
-            String(localized: "Requires approval")
-        case .unavailable:
-            String(localized: "Unavailable")
-        }
+    /// The toggle is on whenever Mailbell is registered, including while
+    /// approval is pending: turning it off is then what unregisters.
+    var isOn: Bool {
+        self == .enabled || self == .requiresApproval
     }
 
-    var detail: String {
-        switch self {
-        case .disabled:
-            String(localized: "Mailbell will not start automatically.")
-        case .enabled:
-            String(localized: "Mailbell can start when you sign in.")
-        case .requiresApproval:
-            String(localized: "Approve Mailbell in System Settings > General > Login Items.")
-        case .unavailable:
-            String(localized: "Install and run Mailbell.app to manage start at login.")
-        }
+    /// `unavailable` is only reported while nothing is registered, so a
+    /// registration can always be removed.
+    var allowsChange: Bool {
+        self != .unavailable
+    }
+
+    /// Only a pending approval has a native recovery destination.
+    var offersLoginItemsSettings: Bool {
+        self == .requiresApproval
     }
 
     /// On macOS 26 a bundled app that has never registered reads `notFound`, not
@@ -50,27 +47,84 @@ enum LoginItemStatus: Equatable {
     }
 }
 
-/// Start-at-login via SMAppService. Only works for a registered (bundled) app.
+/// The outcome of a requested launch-at-login change: the status read back
+/// after the call, and whether the request failed. A `register()` that throws
+/// but leaves the item awaiting approval is not a failure.
+struct LoginItemChange: Equatable {
+    let status: LoginItemStatus
+    let failed: Bool
+}
+
+/// Launch at login through `SMAppService.mainApp`.
+///
+/// Every result is read back from `SMAppService.Status`, never assumed from the
+/// request. Reading the status has no side effect; only `set(_:)`, which runs
+/// for the person's own change, registers or unregisters.
 enum LoginItem {
+    /// The ServiceManagement boundary. Tests substitute it so no automated run
+    /// can touch this Mac's real login items.
+    struct Service {
+        var status: () -> SMAppService.Status
+        var register: () throws -> Void
+        var unregister: () throws -> Void
+        var openLoginItemsSettings: () -> Void
+
+        static var system: Service {
+            Service(
+                status: { SMAppService.mainApp.status },
+                register: { try SMAppService.mainApp.register() },
+                unregister: { try SMAppService.mainApp.unregister() },
+                openLoginItemsSettings: { SMAppService.openSystemSettingsLoginItems() }
+            )
+        }
+    }
+
+    /// Reads the registration; never registers or unregisters anything.
     static var status: LoginItemStatus {
         // Captures present a fresh install's state, the way they pin every other fixture.
         if ScreenshotMode.isEnabled { return .disabled }
-        return LoginItemStatus.from(SMAppService.mainApp.status, isPackagedApp: AppIdentity.isPackagedApp)
+        return status(service: .system, isPackagedApp: AppIdentity.isPackagedApp)
     }
 
-    static var isEnabled: Bool {
-        status == .enabled
+    /// Only the person's change calls this.
+    @discardableResult
+    static func set(_ enabled: Bool) -> LoginItemChange {
+        set(enabled, service: .system, isPackagedApp: AppIdentity.isPackagedApp)
     }
 
-    static func set(_ enabled: Bool) {
+    /// The native recovery destination for `requiresApproval`.
+    static func openLoginItemsSettings() {
+        Service.system.openLoginItemsSettings()
+    }
+
+    static func status(service: Service, isPackagedApp: Bool) -> LoginItemStatus {
+        LoginItemStatus.from(service.status(), isPackagedApp: isPackagedApp)
+    }
+
+    /// Performs the change, then reads the status back: the result is what
+    /// macOS holds. A thrown error matters only when the status read afterwards
+    /// does not match the request.
+    static func set(_ enabled: Bool, service: Service, isPackagedApp: Bool) -> LoginItemChange {
+        let current = status(service: service, isPackagedApp: isPackagedApp)
+        // Registering an unbundled executable would schedule the bare binary at
+        // login, so it is refused before the no-op check can report success.
+        if enabled && !isPackagedApp {
+            return LoginItemChange(status: current, failed: true)
+        }
+        guard current.isOn != enabled else {
+            return LoginItemChange(status: current, failed: false)
+        }
         do {
             if enabled {
-                try SMAppService.mainApp.register()
+                try service.register()
             } else {
-                try SMAppService.mainApp.unregister()
+                try service.unregister()
             }
         } catch {
-            Log.app.error("Failed to update login item: \(Log.detail(error), privacy: .public)")
+            // The status read below decides whether the request took effect.
+            Log.app.error("Login item change threw: \(Log.detail(error), privacy: .private)")
         }
+        let after = status(service: service, isPackagedApp: isPackagedApp)
+        return LoginItemChange(status: after, failed: after.isOn != enabled)
     }
 }

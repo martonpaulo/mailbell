@@ -31,16 +31,20 @@ final class AppState {
     let supervisor: AccountSupervisor
     private let updateManager: UpdateManager
     let notificationManager: NotificationManager
+    let launchAtLogin: LaunchAtLoginModel
     @ObservationIgnored var notificationAuthorizationTask: Task<Void, Never>?
+    @ObservationIgnored private var activationTask: Task<Void, Never>?
 
     init(
         settingsStore: AppSettingsStore = AppSettingsStore(),
         updateManager: UpdateManager = UpdateManager(),
-        notificationManager: NotificationManager = NotificationManager()
+        notificationManager: NotificationManager = NotificationManager(),
+        launchAtLogin: LaunchAtLoginModel = LaunchAtLoginModel()
     ) {
         self.settingsStore = settingsStore
         self.updateManager = updateManager
         self.notificationManager = notificationManager
+        self.launchAtLogin = launchAtLogin
         showPendingCount = settingsStore.showPendingCount
         includeSpam = settingsStore.includeSpam
         playNotificationSounds = settingsStore.playNotificationSounds
@@ -66,10 +70,22 @@ final class AppState {
             await self?.supervisor.openWebmail(accountID: accountID, url: url)
         }
         refreshNotificationAuthorizationState()
+        observeActivation()
     }
 
     deinit {
         notificationAuthorizationTask?.cancel()
+        activationTask?.cancel()
+    }
+
+    /// System-owned state can change while Mailbell is in the background (in
+    /// System Settings), so it is read again whenever Mailbell becomes active.
+    private func observeActivation() {
+        activationTask = Task { [weak self] in
+            for await _ in NotificationCenter.default.notifications(named: NSApplication.didBecomeActiveNotification) {
+                self?.launchAtLogin.refresh()
+            }
+        }
     }
 
     var hasAccounts: Bool {

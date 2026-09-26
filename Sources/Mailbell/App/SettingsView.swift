@@ -45,8 +45,6 @@ enum SettingsTab: CaseIterable, Identifiable {
 
 struct SettingsView: View {
     let appState: AppState
-    @State var launchAtLogin = LoginItem.isEnabled
-    @State var loginItemStatus = LoginItem.status
     @State var webmailBrowsers: [BrowserCandidate] = []
     @State var chromeProfiles: [ChromeProfileCandidate] = []
     @State var didLoadWebmailOptions = false
@@ -160,32 +158,9 @@ struct SettingsView: View {
         }
     }
 
-    var loginItemStatusValue: SettingsStatusValue {
-        switch loginItemStatus {
-        case .enabled:
-            SettingsStatusValue(loginItemStatus.title, tone: .success, context: SettingsCopy.Startup.loginItemTitle)
-        case .disabled:
-            SettingsStatusValue(loginItemStatus.title, tone: .inactive, context: SettingsCopy.Startup.loginItemTitle)
-        case .requiresApproval, .unavailable:
-            SettingsStatusValue(loginItemStatus.title, tone: .warning, context: SettingsCopy.Startup.loginItemTitle)
-        }
-    }
-
-    /// The toggle already reports the ordinary case. A separate status row earns
-    /// its space only when the system disagrees with what the toggle says.
-    var loginItemNeedsAttention: Bool {
-        loginItemStatus == .requiresApproval || loginItemStatus == .unavailable
-    }
-
     func refreshBehaviorState() {
         appState.refreshNotificationAuthorizationState()
-        refreshLoginItemStatus()
-    }
-
-    @MainActor
-    func refreshLoginItemStatus() {
-        loginItemStatus = LoginItem.status
-        launchAtLogin = loginItemStatus == .enabled || loginItemStatus == .requiresApproval
+        appState.launchAtLogin.refresh()
     }
 
     func pendingCount(accountID: UUID) -> Int {
