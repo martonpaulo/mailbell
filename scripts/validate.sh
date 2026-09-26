@@ -67,18 +67,27 @@ fi
 grep -q 'MailbellGoogleClientID' scripts/inject-bundle-config.sh \
     || note "packaging must inject the OAuth client into the bundle plist"
 
-# Sparkle is embedded and nested-signed by exactly one script, so no packaging
-# path can ship an unsigned updater.
-grep -q 'Sparkle.framework' scripts/build-app-bundle.sh \
-    || note "the shared bundle builder must embed Sparkle.framework"
-grep -q 'XPCServices/Downloader.xpc' scripts/build-app-bundle.sh \
-    || note "the shared bundle builder must sign Sparkle's nested XPC services"
+# Every packaging path goes through scripts/package-with-oauth.sh, which injects the OAuth
+# client for one run of the canonical scripts/package-app.sh and restores Support/Info.plist.
+# A direct package-app.sh call would ship a bundle without the client.
+for caller in Makefile .github/workflows/release.yml scripts/capture-screenshots.sh; do
+    if grep -vE '^[[:space:]]*#' "$caller" | grep -q 'package-app\.sh'; then
+        note "$caller must package through scripts/package-with-oauth.sh, not scripts/package-app.sh"
+    fi
+done
 for target in install dmg release; do
     grep -qE "^${target}:" Makefile || note "Makefile must define the $target target"
 done
 if grep -qE '^\s+@?cp .*Contents/MacOS' Makefile; then
-    note "packaging paths must go through scripts/build-app-bundle.sh"
+    note "packaging paths must go through scripts/package-with-oauth.sh"
 fi
+# The client is injected only for the length of a packaging run; a key left in the source
+# plist means an interrupted run, and committing it would publish the client.
+for key in MailbellGoogleClientID MailbellGoogleClientSecret; do
+    if /usr/libexec/PlistBuddy -c "Print :$key" Support/Info.plist >/dev/null 2>&1; then
+        note "Support/Info.plist carries $key from an interrupted packaging run; run git checkout -- Support/Info.plist"
+    fi
+done
 
 # The public beta must be honest about Google's review status everywhere it
 # tells users what to expect.

@@ -8,13 +8,8 @@ APP_NAME   := Mailbell
 BUILD_DIR  := .build
 APP_BUNDLE := /Applications/$(APP_NAME).app
 INFO_PLIST := Support/Info.plist
-INSTALLER_ICON := Support/AppInstallerIcon.icns
 ARCH       ?= arm64
 
-DMG_DIR     := $(BUILD_DIR)/dmg
-DMG_STAGING := $(DMG_DIR)/staging
-DMG_VOLUME_NAME := Install $(APP_NAME)
-DMG_PATH    := $(BUILD_DIR)/$(DMG_VOLUME_NAME).dmg
 RELEASE_DIR := $(BUILD_DIR)/release
 RELEASE_STAGING := $(RELEASE_DIR)/staging
 
@@ -46,10 +41,10 @@ RESET := \033[0m
 build: ## Build debug artifacts
 	@$(SWIFT) build -c debug
 
-app: ## Build the debug executable product
-	@$(SWIFT) build -c debug --product $(PRODUCT)
+app: require-oauth-config icons ## Package an ad-hoc signed build/Mailbell.app and its update archive
+	@scripts/package-with-oauth.sh --identity "$(CODE_SIGN_IDENTITY)" --arch $(ARCH) --force
 
-run: app ## Run the debug executable (unbundled; notifications need 'make install')
+run: build ## Run the debug executable (unbundled; notifications need 'make install')
 	@$(BUILD_DIR)/debug/$(PRODUCT)
 
 test: ## Run tests; fails when a run leaks a test defaults suite into ~/Library/Preferences
@@ -112,7 +107,7 @@ release: icons ## Build, sign, notarize, and staple a tagged release DMG
 		notarize() { \
 			mkdir -p artifacts/notarization; \
 			local log="artifacts/notarization/notarytool-$$(date +%Y%m%d-%H%M%S).log"; \
-			if scripts/notarize.sh "$$1" 2>&1 | tee "$${log}"; then \
+			if scripts/notarize.sh --artifact "$$1" 2>&1 | tee "$${log}"; then \
 				rm -f "$${log}"; \
 				rmdir artifacts/notarization 2>/dev/null || true; \
 			else \
@@ -134,42 +129,36 @@ release: icons ## Build, sign, notarize, and staple a tagged release DMG
 		final_dmg="$(BUILD_DIR)/$${DMG_NAME}"; \
 		update_zip="artifacts/$(APP_NAME)-$${VERSION}.zip"; \
 		app_bundle="$(RELEASE_STAGING)/$(APP_NAME).app"; \
-		printf "\n$(BOLD)[1/13]$(RESET) Building signed release app for $(ARCH)\n"; \
+		printf "\n$(BOLD)[1/11]$(RESET) Building signed release app for $(ARCH)\n"; \
 		mkdir -p "$(RELEASE_STAGING)" artifacts; \
-		scripts/build-app-bundle.sh --output "$${app_bundle}" \
-			--identity "$${MAILBELL_CODE_SIGN_IDENTITY}" --hardened \
-			--version "$${VERSION}" --build-number "$${BUILD_NUMBER}" --arch $(ARCH); \
-		printf "$(BOLD)[2/13]$(RESET) Verifying app signature\n"; \
+		scripts/package-with-oauth.sh --output "$${app_bundle}" --archive "$${update_zip}" \
+			--identity "$${MAILBELL_CODE_SIGN_IDENTITY}" \
+			--version "$${VERSION}" --build-number "$${BUILD_NUMBER}" --arch $(ARCH) --force >/dev/null; \
+		printf "$(BOLD)[2/11]$(RESET) Verifying app signature\n"; \
 		$(CODESIGN) --verify --deep --strict --verbose=2 "$${app_bundle}"; \
-		printf "$(BOLD)[3/13]$(RESET) Creating the Sparkle update archive\n"; \
-		rm -f "$${update_zip}"; \
-		ditto -c -k --keepParent "$${app_bundle}" "$${update_zip}"; \
-		printf "$(BOLD)[4/13]$(RESET) Notarizing the update archive\n"; \
+		printf "$(BOLD)[3/11]$(RESET) Notarizing the update archive\n"; \
 		notarize "$${update_zip}"; \
-		printf "$(BOLD)[5/13]$(RESET) Stapling and re-archiving the app\n"; \
+		printf "$(BOLD)[4/11]$(RESET) Stapling and re-archiving the app\n"; \
 		xcrun stapler staple "$${app_bundle}"; \
 		xcrun stapler validate "$${app_bundle}"; \
 		rm -f "$${update_zip}"; \
 		ditto -c -k --keepParent "$${app_bundle}" "$${update_zip}"; \
-		printf "$(BOLD)[6/13]$(RESET) Adding Applications shortcut\n"; \
-		ln -sfn /Applications "$(RELEASE_STAGING)/Applications"; \
-		printf "$(BOLD)[7/13]$(RESET) Creating release DMG\n"; \
-		rm -f "$${final_dmg}"; \
-		scripts/create-dmg.sh "$(RELEASE_STAGING)" "$(APP_NAME)" "$(INSTALLER_ICON)" "$${DMG_VOLUME_NAME}" "$${final_dmg}"; \
-		printf "$(BOLD)[8/13]$(RESET) Cleaning release staging files\n"; \
+		printf "$(BOLD)[5/11]$(RESET) Creating release DMG\n"; \
+		scripts/make-dmg.sh --app "$${app_bundle}" --output "$${final_dmg}" --version "$${VERSION}" --force >/dev/null; \
+		printf "$(BOLD)[6/11]$(RESET) Cleaning release staging files\n"; \
 		rm -rf "$(RELEASE_DIR)"; \
-		printf "$(BOLD)[9/13]$(RESET) Signing DMG with Developer ID\n"; \
+		printf "$(BOLD)[7/11]$(RESET) Signing DMG with Developer ID\n"; \
 		$(CODESIGN) --force --timestamp --sign "$${MAILBELL_CODE_SIGN_IDENTITY}" "$${final_dmg}"; \
 		$(CODESIGN) --verify --verbose=2 "$${final_dmg}"; \
-		printf "$(BOLD)[10/13]$(RESET) Notarizing DMG\n"; \
+		printf "$(BOLD)[8/11]$(RESET) Notarizing DMG\n"; \
 		notarize "$${final_dmg}"; \
-		printf "$(BOLD)[11/13]$(RESET) Verifying final DMG\n"; \
+		printf "$(BOLD)[9/11]$(RESET) Verifying final DMG\n"; \
 		hdiutil verify "$${final_dmg}" >/dev/null; \
 		spctl -a -t open --context context:primary-signature -vv "$${final_dmg}"; \
-		printf "$(BOLD)[12/13]$(RESET) Signing the update archive for Sparkle\n"; \
+		printf "$(BOLD)[10/11]$(RESET) Signing the update archive for Sparkle\n"; \
 		sig="$$(scripts/sign-sparkle-update.sh "$${update_zip}")"; \
 		scripts/make-appcast.sh "$${VERSION}" "$${BUILD_NUMBER}" "$${update_zip}" "$${sig}"; \
-		printf "$(BOLD)[13/13]$(RESET) Release artifacts ready\n"; \
+		printf "$(BOLD)[11/11]$(RESET) Release artifacts ready\n"; \
 		cp -f "$${final_dmg}" "artifacts/$$(basename "$${final_dmg}")"; \
 		printf "$(GREEN)[ok]$(RESET) DMG: artifacts/%s\n" "$$(basename "$${final_dmg}")"; \
 		printf "$(GREEN)[ok]$(RESET) Update archive: %s\n" "$${update_zip}"; \
@@ -185,25 +174,13 @@ refresh-icons: install ## Reinstall and flush macOS icon caches for Mailbell
 	@-killall Finder >/dev/null 2>&1
 	@printf "$(GREEN)[ok]$(RESET) Icon cache refreshed for %s\n" "$(APP_BUNDLE)"
 
-dmg: require-oauth-config icons ## Build an ad-hoc signed drag-and-drop DMG
-	@printf "\n$(BOLD)[1/4]$(RESET) Building local packaged app for $(ARCH)\n"
-	@rm -rf $(DMG_STAGING)
-	@mkdir -p $(DMG_STAGING)
-	@scripts/build-app-bundle.sh --output $(DMG_STAGING)/$(APP_NAME).app \
-		--identity "$(CODE_SIGN_IDENTITY)" --arch $(ARCH)
-	@printf "$(BOLD)[2/4]$(RESET) Adding Applications shortcut\n"
-	@ln -sfn /Applications $(DMG_STAGING)/Applications
-	@printf "$(BOLD)[3/4]$(RESET) Creating standard macOS installer DMG\n"
-	@rm -f "$(DMG_PATH)"
-	@scripts/create-dmg.sh "$(DMG_STAGING)" "$(APP_NAME)" "$(INSTALLER_ICON)" "$(DMG_VOLUME_NAME)" "$(DMG_PATH)"
-	@printf "$(BOLD)[4/4]$(RESET) Cleaning temporary DMG staging files\n"
-	@rm -rf $(DMG_DIR)
-	@printf "$(GREEN)[ok]$(RESET) DMG created: %s\n" "$(DMG_PATH)"
+dmg: app ## Build an ad-hoc signed drag-and-drop DMG in artifacts/ (needs Node 24 or older)
+	@scripts/make-dmg.sh --force
 
 install: require-oauth-config icons ## Install an ad-hoc signed app bundle to /Applications
 	@printf "\n$(BOLD)[1/2]$(RESET) Building local packaged app for $(ARCH)\n"
-	@scripts/build-app-bundle.sh --output $(APP_BUNDLE) \
-		--identity "$(CODE_SIGN_IDENTITY)" --arch $(ARCH)
+	@scripts/package-with-oauth.sh --output $(APP_BUNDLE) \
+		--identity "$(CODE_SIGN_IDENTITY)" --arch $(ARCH) --force >/dev/null
 	@printf "$(BOLD)[2/2]$(RESET) Registering app with LaunchServices\n"
 	@-$(LSREGISTER) -f $(APP_BUNDLE) >/dev/null 2>&1
 	@printf "$(GREEN)[ok]$(RESET) Installed to %s\n" "$(APP_BUNDLE)"

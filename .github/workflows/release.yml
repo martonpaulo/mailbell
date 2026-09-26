@@ -114,13 +114,10 @@ jobs:
           MAILBELL_GOOGLE_CLIENT_SECRET: ${{ secrets.MAILBELL_GOOGLE_CLIENT_SECRET }}
           MAILBELL_BUNDLE_ID: com.perso.mailbell
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          mkdir -p build/release/staging artifacts
-          scripts/build-app-bundle.sh \
-            --output "build/release/staging/Mailbell.app" \
-            --identity "$MAILBELL_CODE_SIGN_IDENTITY" --hardened \
-            --version "$VERSION" --build-number "${{ steps.version.outputs.build }}"
-          ditto -c -k --keepParent "build/release/staging/Mailbell.app" "artifacts/Mailbell-$VERSION.zip"
+          # Packages build/Mailbell.app and artifacts/Mailbell-$VERSION.zip, stamped with the
+          # tag commit's date as AppReleaseDate.
+          scripts/package-with-oauth.sh --identity "$MAILBELL_CODE_SIGN_IDENTITY" \
+            --version "${{ steps.version.outputs.version }}" --build-number "${{ steps.version.outputs.build }}"
 
       # The team App Store Connect API key is written to a private temporary file
       # for scripts/notarize.sh and removed by the always-run step at the end.
@@ -143,8 +140,8 @@ jobs:
       - name: Notarize, staple, and validate the app
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          APP="build/release/staging/Mailbell.app"
-          scripts/notarize.sh "artifacts/Mailbell-$VERSION.zip"
+          APP="build/Mailbell.app"
+          scripts/notarize.sh --artifact "artifacts/Mailbell-$VERSION.zip"
           xcrun stapler staple "$APP"
           xcrun stapler validate "$APP"
           codesign --verify --deep --strict --verbose=2 "$APP"
@@ -163,16 +160,20 @@ jobs:
           SIG=$(echo "$SPARKLE_PRIVATE_KEY" | "$SIGN" --ed-key-file - "artifacts/Mailbell-$VERSION.zip")
           echo "SPARKLE_SIG_ATTRS=$SIG" >> "$GITHUB_ENV"
 
+      # appdmg 0.6.6, which scripts/make-dmg.sh runs, is verified only up to Node 24; pinned
+      # so the runner image's default Node can never change the result.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+
       - name: Build, sign, and notarize the DMG
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           DMG="artifacts/Mailbell-$VERSION.dmg"
-          ln -sfn /Applications build/release/staging/Applications
-          scripts/create-dmg.sh "build/release/staging" "Mailbell" \
-            "Support/AppInstallerIcon.icns" "Install Mailbell" "$DMG"
+          scripts/make-dmg.sh --version "$VERSION"
           codesign --force --timestamp --sign "$MAILBELL_CODE_SIGN_IDENTITY" "$DMG"
           codesign --verify --verbose=2 "$DMG"
-          scripts/notarize.sh "$DMG"
+          scripts/notarize.sh --artifact "$DMG"
           spctl -a -t open --context context:primary-signature -vv "$DMG"
           hdiutil verify "$DMG" >/dev/null
 

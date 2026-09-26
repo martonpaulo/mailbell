@@ -40,6 +40,8 @@ Local builds need your **own** Google Desktop OAuth client, because the release 
 
 Install to `/Applications` rather than running the unbundled binary: macOS only delivers notifications to a real app bundle.
 
+Every packaged build goes through `scripts/package-with-oauth.sh`: it writes the OAuth client into `Support/Info.plist` for one run of `scripts/package-app.sh` and restores the file afterwards. `make dmg` and `make release` build the disk image with appdmg, which needs **Node 24 or older** first on `PATH` (for example `nvm use 24`).
+
 <br />
 
 ## 🛠 Commands
@@ -47,8 +49,8 @@ Install to `/Applications` rather than running the unbundled binary: macOS only 
 | --- | --- |
 | `make check` | Run the full gate before a commit: `build`, `lint`, `test`, `validate` |
 | `make build` | Build the debug artifacts |
-| `make app` | Build the debug executable product |
-| `make run` | Run the debug executable, unbundled; notifications need `make install` |
+| `make app` | Package an ad-hoc signed `build/Mailbell.app` and its update archive in `artifacts/` |
+| `make run` | Build and run the debug executable, unbundled; notifications need `make install` |
 | `make test` | Run the test suite |
 | `make lint` | Run SwiftLint |
 | `make format` | Format the sources with SwiftFormat |
@@ -56,7 +58,7 @@ Install to `/Applications` rather than running the unbundled binary: macOS only 
 | `make install` | Install an ad-hoc signed app bundle to `/Applications` |
 | `make uninstall` | Remove the installed app bundle |
 | `make refresh-icons` | Reinstall and flush the macOS icon caches after an icon change |
-| `make dmg` | Build an ad-hoc signed drag-and-drop DMG |
+| `make dmg` | Build an ad-hoc signed drag-and-drop DMG at `artifacts/Mailbell-<version>.dmg`; needs Node 24 or older |
 | `make icons` | Regenerate the AppIcon PNGs and `.icns` from `Support/logo.png` |
 | `make setup-release-signing` | Configure the Developer ID identity and the shared `skd-notary` Keychain profile |
 | `make sparkle-keys` | Generate the Sparkle EdDSA key into the Keychain |
@@ -190,7 +192,7 @@ make sparkle-keys            # Sparkle EdDSA key into the login Keychain
 ```
 
 Per release: bump `CFBundleShortVersionString` in `Support/Info.plist`, add a `CHANGELOG.md`
-entry, commit, then
+entry, commit, then, with Node 24 or older first on `PATH`,
 
 ```bash
 git tag v0.1.0 && make release
@@ -198,7 +200,7 @@ git tag v0.1.0 && make release
 
 `make release` refuses a dirty worktree, a tag that disagrees with the plist version, or a build
 number that disagrees with the derived one. It builds, signs with Developer ID, notarizes and
-staples both the app archive and the DMG through `scripts/notarize.sh`, signs the update for Sparkle, and writes the `appcast.xml`
+staples both the app archive and the DMG (`artifacts/Mailbell-<version>.dmg`) through `scripts/notarize.sh --artifact`, signs the update for Sparkle, and writes the `appcast.xml`
 entry. Commit the appcast, push the tag, and attach the DMG and ZIP to the GitHub Release.
 
 > **Exporting the certificate:** `security export -t identities` dumps *every* identity in the login
