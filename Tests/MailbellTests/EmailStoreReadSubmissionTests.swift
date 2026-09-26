@@ -134,11 +134,7 @@ final class EmailStoreReadSubmissionTests: XCTestCase {
     }
 
     private func makeAccount() -> MailAccount {
-        MailAccount(
-            id: UUID(uuidString: "44444444-4444-4444-4444-444444444444")!,
-            providerID: .gmail,
-            email: "account@example.com"
-        )
+        EmailStoreFixture.makeAccount(id: "44444444-4444-4444-4444-444444444444")
     }
 
     private func makeHeader(uid: Int, gmMessageId: String, gmThreadId: String? = nil) -> MessageHeader {

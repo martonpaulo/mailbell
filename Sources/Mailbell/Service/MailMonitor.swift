@@ -31,7 +31,6 @@ protocol AccountMonitoring: AnyObject {
     func setIncludeSpam(_ includeSpam: Bool)
 }
 
-// swiftlint:disable type_body_length
 /// Runs one account's IMAP connection state machine:
 /// token refresh, IMAP connect/select/IDLE, gap-fill on reconnect, and token revocation.
 final class MailMonitor: AccountMonitoring, @unchecked Sendable {
@@ -373,8 +372,6 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
         ]
     }
 }
-
-// swiftlint:enable type_body_length
 
 struct MonitoredMailbox: Equatable {
     let role: MessageMailbox

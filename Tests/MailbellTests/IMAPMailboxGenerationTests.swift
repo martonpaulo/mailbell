@@ -146,11 +146,7 @@ final class IMAPMailboxGenerationTests: XCTestCase {
     }
 
     private func makeAccount() -> MailAccount {
-        MailAccount(
-            id: UUID(uuidString: "22222222-2222-2222-2222-222222222222")!,
-            providerID: .gmail,
-            email: "account@example.com"
-        )
+        EmailStoreFixture.makeAccount(id: "22222222-2222-2222-2222-222222222222")
     }
 
     private func makeHeader(uid: Int, gmMessageId: String, uidValidity: Int) -> MessageHeader {

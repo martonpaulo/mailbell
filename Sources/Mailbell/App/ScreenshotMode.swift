@@ -112,11 +112,10 @@ enum ScreenshotMode {
         prepare(window: window, emit: emit)
     }
 
-    /// stdout is a pipe when a script drives this, so it is block-buffered and
-    /// the readiness marker would not arrive until exit.
+    /// stdout is a pipe when a script drives this, so buffered output would hold
+    /// the readiness marker until exit; FileHandle writes the descriptor directly.
     static func emitLine(_ line: String) {
-        print(line)
-        fflush(stdout)
+        FileHandle.standardOutput.write(Data((line + "\n").utf8))
     }
 
     @MainActor

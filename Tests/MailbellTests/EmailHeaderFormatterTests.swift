@@ -173,7 +173,7 @@ final class EmailHeaderFormatterTests: XCTestCase {
     }
 
     func testTimeTextConvertsUTCHeaderCommentToLocalTime() throws {
-        let localTimeZone = TimeZone(secondsFromGMT: -3 * 60 * 60)!
+        let localTimeZone = try XCTUnwrap(TimeZone(secondsFromGMT: -3 * 60 * 60))
         let calendar = gregorianCalendar(timeZone: localTimeZone)
         let now = try XCTUnwrap(DateComponents(
             calendar: calendar,
@@ -211,7 +211,7 @@ final class EmailHeaderFormatterTests: XCTestCase {
         return calendar
     }
 
-    private static let utcTimeZone = TimeZone(secondsFromGMT: 0)!
+    private static let utcTimeZone = TimeZone.gmt
 
     private var utcTimeZone: TimeZone {
         Self.utcTimeZone
@@ -224,7 +224,7 @@ final class EmailHeaderFormatterTests: XCTestCase {
     }
 
     private func date(year: Int, month: Int, day: Int, hour: Int, minute: Int) -> Date {
-        DateComponents(
+        let components = DateComponents(
             calendar: utcGregorianCalendar,
             timeZone: utcTimeZone,
             year: year,
@@ -232,6 +232,10 @@ final class EmailHeaderFormatterTests: XCTestCase {
             day: day,
             hour: hour,
             minute: minute
-        ).date!
+        )
+        guard let date = components.date else {
+            preconditionFailure("fixture date components \(components) do not form a date")
+        }
+        return date
     }
 }

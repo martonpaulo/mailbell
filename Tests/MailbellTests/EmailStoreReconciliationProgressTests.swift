@@ -188,11 +188,7 @@ final class EmailStoreReconciliationProgressTests: XCTestCase {
     }
 
     private func makeAccount() -> MailAccount {
-        MailAccount(
-            id: UUID(uuidString: "33333333-3333-3333-3333-333333333333")!,
-            providerID: .gmail,
-            email: "account@example.com"
-        )
+        EmailStoreFixture.makeAccount(id: "33333333-3333-3333-3333-333333333333")
     }
 
     private func makeSnapshot(unreadUIDs: Set<Int>) -> MailboxUnreadSnapshot {

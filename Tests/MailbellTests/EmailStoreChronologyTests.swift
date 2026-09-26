@@ -101,11 +101,7 @@ final class EmailStoreChronologyTests: XCTestCase {
     }
 
     private func makeAccount() -> MailAccount {
-        MailAccount(
-            id: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!,
-            providerID: .gmail,
-            email: "account@example.com"
-        )
+        EmailStoreFixture.makeAccount(id: "11111111-1111-1111-1111-111111111111")
     }
 
     private func makeHeader(

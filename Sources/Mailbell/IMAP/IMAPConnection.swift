@@ -21,7 +21,10 @@ final class IMAPConnection: IMAPClientTransport, @unchecked Sendable {
 
     init(host: String, port: UInt16) {
         self.host = NWEndpoint.Host(host)
-        self.port = NWEndpoint.Port(rawValue: port)!
+        guard let port = NWEndpoint.Port(rawValue: port) else {
+            preconditionFailure("IMAP port \(port) is not a valid network port")
+        }
+        self.port = port
         let tls = NWProtocolTLS.Options()
         let params = NWParameters(tls: tls)
         connection = NWConnection(host: self.host, port: self.port, using: params)

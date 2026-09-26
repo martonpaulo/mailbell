@@ -143,7 +143,7 @@ final class EmailStoreRetentionTests: XCTestCase {
         id: String = "66666666-6666-6666-6666-666666666666",
         email: String = "account@example.com"
     ) -> MailAccount {
-        MailAccount(id: UUID(uuidString: id)!, providerID: .gmail, email: email)
+        EmailStoreFixture.makeAccount(id: id, email: email)
     }
 
     private func makeHeader(uid: Int, gmThreadId: String? = nil) -> MessageHeader {

@@ -18,12 +18,14 @@ enum EmailStoreFixture {
         return defaults
     }
 
-    static func makeAccount() -> MailAccount {
-        MailAccount(
-            id: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!,
-            providerID: .gmail,
-            email: "account@example.com"
-        )
+    static func makeAccount(
+        id: String = "11111111-1111-1111-1111-111111111111",
+        email: String = "account@example.com"
+    ) -> MailAccount {
+        guard let uuid = UUID(uuidString: id) else {
+            preconditionFailure("fixture account id \(id) is not a UUID")
+        }
+        return MailAccount(id: uuid, providerID: .gmail, email: email)
     }
 
     static func makeHeader(

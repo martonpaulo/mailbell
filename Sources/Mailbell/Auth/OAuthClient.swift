@@ -74,7 +74,10 @@ final class OAuthClient {
             let redirectURI = await server.redirectURI
             Log.info("OAuth redirect URI: \(redirectURI)")
 
-            var comps = URLComponents(url: config.authEndpoint, resolvingAgainstBaseURL: false)!
+            guard var comps = URLComponents(url: config.authEndpoint, resolvingAgainstBaseURL: false) else {
+                await server.stop()
+                throw OAuthError.browserOpenFailed
+            }
             comps.queryItems = [
                 .init(name: "client_id", value: config.clientID),
                 .init(name: "redirect_uri", value: redirectURI),

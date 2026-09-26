@@ -1,7 +1,6 @@
 @testable import Mailbell
 import XCTest
 
-// swiftlint:disable:next type_body_length
 final class EmailStoreTests: XCTestCase {
     @MainActor
     func testAdmitsUnreadEmailWhenNotHandled() throws {

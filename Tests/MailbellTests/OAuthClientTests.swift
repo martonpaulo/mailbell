@@ -267,7 +267,9 @@ final class OAuthClientTests: XCTestCase {
         let authComponents = URLComponents(url: authURL, resolvingAgainstBaseURL: false)
         let redirect = authComponents?.queryItems?.first(where: { $0.name == "redirect_uri" })?.value
         let state = authComponents?.queryItems?.first(where: { $0.name == "state" })?.value
-        var callbackComponents = URLComponents(string: redirect!)!
+        guard let redirect, var callbackComponents = URLComponents(string: redirect) else {
+            preconditionFailure("the authorization URL carries no usable redirect_uri")
+        }
         callbackComponents.queryItems = [
             URLQueryItem(name: "state", value: state)
         ]
@@ -276,7 +278,10 @@ final class OAuthClientTests: XCTestCase {
             return URLQueryItem(name: parts[0], value: parts.count == 2 ? parts[1] : "")
         }
         callbackComponents.queryItems?.append(contentsOf: extraItems)
-        return callbackComponents.url!
+        guard let url = callbackComponents.url else {
+            preconditionFailure("the loopback callback query does not form a URL")
+        }
+        return url
     }
 }
 
@@ -359,12 +364,16 @@ private final class OAuthURLProtocolMock: URLProtocol {
 
         do {
             let response = try handler(request)
-            let http = HTTPURLResponse(
-                url: request.url!,
-                statusCode: response.statusCode,
-                httpVersion: "HTTP/1.1",
-                headerFields: response.headers
-            )!
+            guard let url = request.url,
+                  let http = HTTPURLResponse(
+                      url: url,
+                      statusCode: response.statusCode,
+                      httpVersion: "HTTP/1.1",
+                      headerFields: response.headers
+                  ) else {
+                client?.urlProtocol(self, didFailWithError: URLError(.badURL))
+                return
+            }
             client?.urlProtocol(self, didReceive: http, cacheStoragePolicy: .notAllowed)
             client?.urlProtocol(self, didLoad: response.data)
             client?.urlProtocolDidFinishLoading(self)
