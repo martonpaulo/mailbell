@@ -6,8 +6,11 @@ and keeping it small is a feature.
 ## Before you start
 
 Read [AGENTS.md](AGENTS.md). It is the durable policy for how this project is
-built: product boundary, OAuth and privacy rules, reliability contracts, UI
-rules, and the pattern-break protocol. It applies to humans and coding agents
+built: identity, release policy, the process rules, and the pattern-break
+protocol. It links to the product boundary in [docs/product.md](docs/product.md),
+the OAuth, privacy and reliability contracts in
+[docs/architecture.md](docs/architecture.md), and the UI rules in
+[docs/interface.md](docs/interface.md). It applies to humans and coding agents
 alike.
 
 ## Build and check

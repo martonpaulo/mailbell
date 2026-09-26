@@ -212,7 +212,8 @@ Pushing a `v*.*.*` tag runs the same flow in CI, using the secrets above. `workf
 the whole signing chain against an existing tag, so the pipeline can be exercised without inventing
 a version.
 
-Docs: [architecture](docs/architecture.md) · [feature defaults](docs/feature-defaults.md) ·
+Docs: [product](docs/product.md) · [architecture](docs/architecture.md) ·
+[interface](docs/interface.md) · [feature defaults](docs/feature-defaults.md) ·
 [contributing](CONTRIBUTING.md) · [security](SECURITY.md) · [agent policy](AGENTS.md)
 
 <br />

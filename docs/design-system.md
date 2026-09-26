@@ -247,7 +247,7 @@ When opening a pending thread group, use the first message that entered the pend
 ## macOS App Shape
 
 - SwiftUI app with `MenuBarExtra`.
-- Minimum target macOS 26, matching the local personal-use toolchain and avoiding older Settings compatibility paths.
+- Minimum target macOS 26 on Apple silicon; the reason is in [product.md](product.md#success-and-constraints).
 - Accessory-style app by default, with no Dock icon.
 - `Settings` scene for preferences.
 - `UNUserNotificationCenter` for notifications.
@@ -285,7 +285,7 @@ Source subfolders are ownership boundaries:
 - `Util`: small shared utilities.
 - `Webmail`: browser/profile discovery and opening.
 
-Refactor rule: keep this layout until a move reduces real coupling, isolates a reusable module, or prevents a correctness issue. Do not create local packages, extra targets, or renamed top-level folders just for visual symmetry. For this personal app, one executable target plus one test target is lower-cost and clearer than premature modularization.
+The package layout, including the `MailbellKit` library target for pure logic, is ruled in [AGENTS.md](../AGENTS.md), "Architecture" (Decided on #44). Do not create other local packages, targets, or renamed top-level folders just for visual symmetry.
 
 When a type grows large, prefer narrow extension files only when they map to a real feature boundary, such as account webmail actions or mark-as-read behavior.
 
@@ -312,4 +312,4 @@ Ad-hoc signing is sufficient for private local use and needs no Apple Developer 
 - **Accounts:** account collection with one runtime per enabled account. Gmail is the only supported provider.
 - **Browser:** per-account Webmail open preference: system default, selected browser, or optional Chrome profile.
 - **Deep link:** notification and pending item opens use Gmail thread links when `X-GM-THRID` is available. Generic account actions still open Gmail Web.
-- **Project structure:** keep the standard SwiftPM layout and current domain folders; no structural refactor is currently justified.
+- **Project structure:** the standard SwiftPM layout plus the `MailbellKit` library target; see [AGENTS.md](../AGENTS.md), "Architecture".

@@ -1,10 +1,24 @@
 # Architecture
 
-Mailbell is a single SwiftPM executable: a macOS 26+ accessory app with no
-backend of any kind. This document describes responsibilities, not a file
+Mailbell is a SwiftPM executable: a macOS 26+ accessory app with no backend of
+any kind. Its package layout is in [AGENTS.md](../AGENTS.md), "Architecture". This document describes responsibilities, not a file
 listing — names drift, contracts do not.
 
 ## Layers
+
+By responsibility:
+
+- **Auth** — OAuth config/client, PKCE, loopback redirect, token persistence,
+  Keychain wrapper.
+- **IMAP** — models, client, connection, parser, MIME header decoding,
+  body-preview sanitizing, and the read-flag command.
+- **Service** — runtime state machine, checkpoints, the pending review store,
+  unread reconciliation, and mark-as-read / bulk-action orchestration.
+- **Provider** — webmail URL and routing model.
+- **Notify** — native notification content and delivery.
+- **Webmail** — browser and Chrome-profile opening.
+- **App** — menu bar surface, Settings, login item, Sparkle, design tokens, and
+  presentation helpers.
 
 ### Auth
 
@@ -47,7 +61,7 @@ The runtime. One monitor per enabled account, supervised centrally.
   member, so a reply lifts the thread while the first-admitted message stays its
   representative. Groups the server gave no usable timestamp for follow the
   dated ones in admission order. The sender's own `Date` header is never
-  substituted for server receipt.
+  substituted for server receipt. Decided on #11.
 - **Dispositions** (`opened`, `markedRead`, `dismissed`) persist in UserDefaults,
   pruned to a bounded history. Dismissed items are suppressed; opened or marked-read items may reappear if still unread.
 - **Reconciliation** removes items read directly in Gmail Web and may admit
@@ -65,19 +79,26 @@ The runtime. One monitor per enabled account, supervised centrally.
 
 The menu bar extra, Settings, login item, Sparkle, and presentation helpers.
 
+- Sparkle is embedded only in the packaged app and only starts from a real
+  installed bundle that ships both a feed URL and a public key.
 - `AppState` is the only thing views observe. It owns no business rules; it
   mirrors supervisor state and forwards user intent.
-- The menu bar glyph has exactly one derivation with one precedence: **an account
-  that needs the user outranks unread mail.** Sign-in expired or a surfaced error
-  replaces the bell with an alert symbol, so the app can never look idle while it
-  is monitoring nothing.
+- The menu bar glyph has exactly one derivation; its precedence is in
+  [interface.md](interface.md#menu-bar-glyph).
 - Every visual constant comes from design tokens.
 
 ## Threading
 
 The supervisor, review store, and all UI state are `@MainActor`. IMAP work runs
 on its own connection tasks and crosses back through explicit `MainActor.run`
-boundaries. Nothing blocks the main actor.
+boundaries. Nothing blocks the main actor. Keep `@MainActor` and actor
+boundaries explicit and minimal; do not regress Swift 6 concurrency safety.
+
+## Ownership
+
+One home for each rule: menu-bar icon derivation, pending-item copy, status
+presentation, formatting, sorting, persistence, and defaults. No parallel
+implementations of the same rule.
 
 ## Network activity
 
@@ -88,6 +109,94 @@ Two destinations, both user-visible:
 
 There is no third. No analytics, no telemetry, no crash reporting, no Mailbell
 server.
+
+## OAuth and credentials
+
+Mailbell ships as a public beta whose Google OAuth client is **not yet verified
+by Google**.
+
+- Release builds embed the project's own Google Desktop OAuth client, injected
+  into `Info.plist` at packaging time from local configuration. End users never
+  create their own client.
+- Real credentials come only from local/private configuration: `.env`, shell
+  environment, or the injected bundle plist. **`.env` stays untracked.**
+  `.env.example` carries variable names with empty values.
+- Never commit a client ID or secret, and never add a remote credential download
+  path. Google treats installed-app client secrets as non-confidential, but they
+  still belong in local configuration, not in git.
+- A build without credentials must fail clearly and, in the UI, present a
+  **build/packaging error** — never instructions telling an end user to create a
+  Google Cloud client.
+- OAuth uses Google's desktop/installed-app flow with PKCE and the scopes the
+  IMAP implementation actually needs: `https://mail.google.com/`, `openid`, and
+  `email`. Treat the broad mail scope honestly; do not claim a narrower Gmail
+  API scope works for IMAP XOAUTH2.
+- Refresh tokens and the access-token cache belong in the macOS Keychain only.
+- Public copy (README, website, release notes, Settings) must state the
+  unverified-app screen and Google's 100-new-user cap for unverified clients,
+  and must not promise unlimited use before verification.
+
+## Data minimization
+
+- Never commit `.env`, credentials, tokens, signing material, logs containing
+  secrets, or generated release artifacts.
+- Never log tokens, OAuth codes, client secrets, IMAP auth payloads, raw message
+  bodies, attachments, or full provider responses.
+- Fetch only the smallest useful data: sender, subject, sent date, server
+  receipt time (`INTERNALDATE`), account, UID, RFC message ID, Gmail
+  thread/message identifiers when available, and a bounded sanitized text
+  preview.
+- Body preview fetches stay bounded and non-mutating (`BODY.PEEK[TEXT]<0.8192>`).
+  Never fetch attachments or full bodies.
+- Sanitize previews before UI/notification use: SwiftSoup for generic HTML
+  parsing and entity handling, then Mailbell's MIME-artifact, boilerplate, URL,
+  whitespace, length, and line-shape rules.
+- UserDefaults holds non-secret UI state, account metadata, webmail preferences,
+  IMAP checkpoints, and pruned handled-item dispositions only.
+- Keep Keychain and UserDefaults ownership DRY; no parallel persistence paths
+  for the same state.
+
+## Reliability contracts
+
+Preserve the IMAP IDLE reconnect model:
+
+- `UIDVALIDITY` plus `lastSeenUID` is the gap-fill checkpoint.
+- If `UIDVALIDITY` changes, rebaseline silently without notifying the backlog.
+- On reconnect with the same `UIDVALIDITY`, fetch fresh unread UIDs above the
+  checkpoint, admit all fresh items in bounded batches, and notify only the
+  newest capped set.
+- Never advance `lastSeenUID` past a fresh UID until its admission batch has been
+  fetched and offered to the pending store.
+- Threaded pending items count once in the menu when Gmail thread IDs exist;
+  notifications remain per message.
+- A read action fixes its set of members before the server round trip and
+  finalizes only that set. A reply that joins the thread while the request is in
+  flight was never marked on the server, so it stays pending. Decided on #22.
+- Unread reconciliation removes items read directly in Gmail Web and may admit
+  bounded unknown unread items missed while offline. Its bounded window skips
+  what is already pending **and** what has already been handled, so a wholly
+  dismissed newest window cannot consume every cycle's budget and starve older
+  unread mail. Handled records remember where the message lived; a record
+  without that location is backfilled the first time reconciliation meets it.
+- Server-side read marking uses `UID STORE +FLAGS.SILENT (\Seen)`. Bulk actions
+  use **one authenticated session per account**, never one connection per
+  message.
+- A message identity is `(mailbox name, UIDVALIDITY, UID)`, never a UID alone.
+  A read action checks the generation reported by its own `SELECT` before
+  issuing `STORE`, so a rebuilt mailbox that reused the number cannot be
+  mutated. Pending items from a superseded generation are dropped on
+  reconciliation rather than left actionable.
+- Refresh-token failure or revocation must surface as `reauthRequired` and must
+  raise the menu bar alert icon. Do not hide it behind silent retry loops.
+- Transient network failures may retry with bounded backoff but must not mask
+  credential failure.
+- Network recovery and sleep/wake force reconnects without broad polling.
+- One run owns an account at a time. A run suspends on the network repeatedly,
+  and cancelling its task does not stop the resumed continuation, so every
+  effect — owning a client, publishing status, moving checkpoints, admitting
+  messages — is gated on the run still being the current generation.
+- Do not introduce content polling as the new-mail mechanism; the IDLE re-arm
+  timer is not a polling loop. Keep re-arm below Gmail's server limit.
 
 ## Persistence map
 

@@ -1,12 +1,6 @@
 # Mailbell — Agent Policy
 
-Durable root policy for Mailbell. Follow it for all coding, UI, documentation,
-validation, packaging, git, and release-prep work in this repository. A more
-specific `AGENTS.md` inside a subtree overrides this one for that subtree.
-
-> This file documents **patterns and contracts**, not the current file layout.
-> Describe responsibilities, not exact file or folder names — names drift, and
-> stale structure docs are worse than none.
+Root rules for Mailbell; a subtree `AGENTS.md` overrides them for that subtree.
 
 ## Project identity and policy
 
@@ -14,361 +8,220 @@ specific `AGENTS.md` inside a subtree overrides this one for that subtree.
 - Code name: `Mailbell`
 - Slug: `mailbell`
 - Identifier name: `mailbell`
-- Repository: `martonpaulo/mailbell` (public); `origin` is the owner's fork.
 - Benefit-first description: Gmail notifications in your macOS menu bar — instant IMAP IDLE alerts, a review queue you can clear in one click, no server in between.
-- Public identifiers: app/bundle `com.perso.mailbell`; SwiftPM executable `mailbell`; installed app `Mailbell.app`.
-- Landing page: `https://mailbell.martonpaulo.com/`, owned by Marton Paulo; static files under `site/` (with `site/CNAME` naming the host), hosted by this repository's GitHub Pages workflow. The move from `martonpaulo.com/mailbell/` to this subdomain was decided by the owner on 2026-09-09 with no redirect from the old path; any further domain or DNS change requires a separate explicit request.
-- License: MIT; preserve copyright 2026 samzong and 2026 Marton Paulo and all existing third-party notices.
-- Development language: English. Product copy: English only; English fallback, no additional locales or localization framework until explicitly requested.
-- Browser acceptance targets: Chromium and WebKit/Safari for the public site and OAuth callback HTML. Use existing compatible browser tooling; no new browser manager or CI matrix is implied. Verify native Safari behavior manually when tooling cannot establish it.
-- Branch policy: work on `main` unless the owner explicitly requests a branch. A branch workflow is an exception, not the default.
-- Commit policy: create a focused Conventional Commit when the authorized durable change is complete and validated. Commit only task files; a commit for one issue ends with `(#<issue number>)`.
+- Repository: `martonpaulo/mailbell` (public); `origin` is the owner's fork, `upstream` the original project.
+- Public identifiers: bundle identifier `com.perso.mailbell`, becoming `com.martonpaulo.mailbell` in v0.4.0 with preferences copied once and Keychain tokens not migrated (Decided on #47); executable `mailbell`; app `Mailbell.app`.
+- Landing page: `https://mailbell.martonpaulo.com/`, owned by Marton Paulo, published from `site/` (`site/CNAME` names the host) by `deploy.yml`. A further domain or DNS change needs a separate explicit request.
+- License: `MIT`
+- Copyright: 2026 samzong and 2026 Marton Paulo; `LICENSE` and `NOTICE.md` keep both lines and every third-party notice. The app credit, `NSHumanReadableCopyright`, is two lines: `© 2026 Marton Paulo. Licensed under the MIT License.` and `Originally based on software by samzong.` (Decided on #73).
+- Development language: English.
+- Product copy: English only, read from one English-only String Catalog, `Support/Localizable.xcstrings`; no locale is added (Decided on #44; #61 adds it). The OAuth callback page stays an HTML template.
+- Browser acceptance targets: Chromium and WebKit/Safari for the site and the OAuth callback page; check native Safari by hand when tooling cannot.
+- Branch policy: work on `main` unless the owner explicitly requests a branch.
+- Commit policy: a focused Conventional Commit when the authorized change is complete and validated; commit only task files.
 - Push policy: only on explicit owner request, to `origin`; never to `upstream`.
-- Merge policy: merge commit only, `gh pr merge <number> --merge --delete-branch`, so every branch commit reaches `main` (martonpaulo/skill-deck#277), and only for an explicitly authorized PR merge. An issue plan or review never authorizes merging.
-- Delete branches after merge: disabled; preserve the existing repository setting. Delete a branch only when separately authorized.
-- Product versioning: user-visible SemVer `X.Y.Z`, canonical in `Support/Info.plist`; version/build changes occur only during an explicit release request. Tags use `vX.Y.Z`; the internal build derives from the version through the existing release metadata script.
-- Release policy: direct Developer ID signed, notarized, stapled DMG and Sparkle update archive. Signing/OAuth configuration stays private; tokens and private update keys stay in Keychain. Setup does not cut a release or change a version.
-- Agent clients: root `AGENTS.md` is canonical; retain `CLAUDE.md -> AGENTS.md`. No Gemini or Antigravity adapter is selected. Do not install agent automation, caller workflows, roles, hooks, or authentication prerequisites.
-- GitHub controls: secret scanning and push protection enabled; no required approving-review or status-check ruleset selected. Preserve the existing unprotected `main` setting.
-- GitHub topics: `gmail`, `gmail-imap`, `gmail-notifier`, `imap`, `imap-idle`, `keychain`, `macos`, `menu-bar`, `menu-bar-app`, `notifications`, `oauth2`, `pkce`, `productivity`, `sparkle`, `swift`, `swiftui`.
-- Issue metadata: preserve this repository's `bug`, `enhancement`, and `documentation` types and existing `priority:`, `evidence:`, `effort:`, and `status:` dimensions. Whole-taxonomy renames/deletions require an approved grooming mapping. With agent automation disabled, orchestrator projection labels are not required; a decision issue remains unassigned and unestimated with `status: needs-decision`.
+- Product versioning: SemVer `X.Y.Z` in `CFBundleShortVersionString` (`Support/Info.plist`); `scripts/resolve-release-metadata.sh` derives the build number; tags `vX.Y.Z`. Versions change only in an explicit release request.
+- Merge policy: merge commits only, every commit of the branch preserved. Never squash. Merge only an explicitly authorized pull request; an issue plan or review never authorizes it.
+- Commit subject: a commit made for an issue ends with `(#<issue number>)`.
+- Delete branches after merge: disabled on GitHub; delete one only on separate authorization.
+- GitHub controls: secret scanning and push protection on; no ruleset or required check; `main` unprotected.
+- GitHub topics: `gmail`, `gmail-imap`, `gmail-notifier`, `imap-idle`, `keychain`, `macos`, `menu-bar`, `menu-bar-app`, `notifications`, `oauth2`, `pkce`, `productivity`, `sparkle`, `swift`, `swiftui`.
+- Issue metadata: keep the `bug`, `enhancement`, `documentation` types and the `priority:`, `evidence:`, `effort:`, `status:` labels; renaming a whole dimension needs an approved grooming mapping. A decision issue stays unassigned with `status: needs-decision`.
+- Release, signing, and secret-storage policy: direct download, outside the Mac App Store. No field below is secret.
+  - Channel and artifacts: GitHub Releases: `Mailbell-<version>.dmg` (canonical) and `Mailbell-<version>.zip` (Sparkle update).
+  - Signing identity: `Developer ID Application: Marton Paulo (TBN79KU9ML)`.
+  - Team ID: `TBN79KU9ML`.
+  - Bundle identifier: `com.perso.mailbell` until v0.4.0.
+  - Build and package command: `scripts/package-with-oauth.sh` (the OAuth client around the canonical `scripts/package-app.sh`), then `scripts/make-dmg.sh`.
+  - Entitlements and hardened runtime: no entitlements file; hardened runtime on.
+  - Keychain profile: `skd-notary`, for local rehearsals; CI uses the `NOTARY_API_KEY*` secrets.
+  - Release workflow: `release.yml`, run by a `v*.*.*` tag on the current `main` commit, equal to `CFBundleShortVersionString`.
+  - Update feed: Sparkle `appcast.xml` at `SUFeedURL`, written by `release.yml` after the GitHub Release exists.
+  - Homebrew cask: none.
+  - Publishing authority: the owner, by pushing the tag; only artifacts verified in that run publish.
+  - Secrets: the six standard release secrets and `MAILBELL_GOOGLE_CLIENT_*` in GitHub; the Sparkle private key also in the login Keychain.
 - Skills baseline revision: `7cfc324fcded57145c36cc678977c070ed800692`
 - Skills baseline applied: `2026-09-09`
 
-## Skills ownership
-
-No repository-owned skills are currently installed. Do not copy personal skills
-into this repository. A future project skill owns its project-specific procedure;
-a general skill keeps the surrounding workflow. Unclaimed work follows normal
-skill triggering. `make` remains the owner of build and validation procedures.
-
-## Product
-
-Mailbell is a notification-first Gmail companion for the macOS menu bar. It is a
-native, accessory (menu-bar-only) app that runs entirely on the user's Mac.
-
-Keep the implemented boundary tight:
-
-- Notify on new Gmail mail (Inbox, and Spam when the user opts in).
-- Surface a bounded review queue in the menu with sanitized previews.
-- Open Gmail Web for reading and mail management, routed to the browser or
-  Chrome profile the user chose per account.
-- Act on the queue: open, mark as read on the server, dismiss locally, and the
-  same three as bulk actions over everything pending.
-- Full body viewing, reply, archive, delete, move, labels, compose, and
-  attachments are **not** implemented and are not implied roadmap.
-
-Each of those absent capabilities is allowed only as an explicit future product
-change that first defines data minimization, on-demand fetch rules, storage
-lifetime, scopes, UI and accessibility behavior, failure semantics, and tests.
-Do not prebuild unused models, generic repositories, attachment caches, compose
-systems, or Gmail API abstractions to look future-ready.
-
-**No backend, ever.** There is no Mailbell server. Do not add cloud relays,
-hosted backends, analytics, telemetry, public mail processing, or third-party
-notification services. The only network activity is Gmail itself and Sparkle
-update checks.
-
-The expected flow is:
-
-```text
-MenuBarExtra
--> Google OAuth desktop client with PKCE (compiled into the bundle at build time)
--> Keychain token storage
--> Gmail IMAP XOAUTH2 against imap.gmail.com:993
--> SELECT INBOX
--> IMAP IDLE
--> fetch minimal headers plus bounded sanitized text preview
--> admit/group pending items
--> UNUserNotificationCenter notification
--> Gmail Web through the account webmail opener
-```
+Change an established identifier, license, visibility, branch, versioning, localization, landing-page or release policy only through an explicit task describing the migration and its effects.
 
 ## Build and validate
 
-Prefer the smallest relevant check. Use `make` targets; do not hand-roll
-equivalents.
+Use `make` targets, never hand-rolled equivalents. `make check` runs `build`, `lint`, `test` and `validate` and fails on any compiler warning. `make install` puts an ad-hoc signed bundle in `/Applications`, the only way to exercise notifications. Logs and generated artifacts go under `artifacts/` (ignored).
 
-- `make build` — debug build, must be warning-free.
-- `make test` — unit tests.
-- `make lint` — SwiftLint.
-- `make validate` — repository invariants.
-- `make check` — build + lint + test + validate.
-- `make install` — ad-hoc signed bundle in `/Applications` (notifications need a
-  real bundle, so this is the only way to exercise them).
-- `make dmg` — ad-hoc signed installer DMG.
-- `make release` — signed, notarized, stapled release DMG plus the Sparkle
-  update archive and appcast entry. Requires a clean worktree on a `vX.Y.Z` tag.
+## Mailbell rules
 
-Task logs and generated release artifacts live under `artifacts/` (gitignored).
-Inspect a failed log before rerunning; never rerun an unchanged failing command.
+Each line is the non-negotiable; the linked document holds the rule.
 
-## Hard rules
+- **No backend, ever**; no reader or mail management ([product](docs/product.md)).
+- **Public, stable Apple APIs only**; SwiftUI first, AppKit only where SwiftUI lacks the surface.
+- **One bundle identifier**: Keychain and UserDefaults derive from it.
+- **OAuth and data** ([architecture](docs/architecture.md#oauth-and-credentials)): scopes `https://mail.google.com/`, `openid`, `email`; tokens in Keychain only; previews `BODY.PEEK[TEXT]<0.8192>`.
+- **Reliability** ([architecture](docs/architecture.md#reliability-contracts)): IMAP IDLE, never content polling; identity is (mailbox, `UIDVALIDITY`, UID).
+- **Interface** ([interface](docs/interface.md)): design tokens only; no business logic in views.
+- **Defaults** ([feature defaults](docs/feature-defaults.md)): one home for every default, each with a configurability decision.
 
-- **Public, stable Apple APIs only.** No private frameworks, no `_`-prefixed
-  SPI, no beta-only behavior.
-- **Native first.** SwiftUI for the menu and Settings; AppKit only where SwiftUI
-  does not cover the surface. Do not replace native controls with custom UI
-  unless there is clear product value and accessibility is preserved.
-- **One bundle identifier: `com.perso.mailbell`.** Keychain service names and
-  UserDefaults keys derive from it; changing it orphans user data.
-- **Keep business logic out of views.** Views render prepared state. Keep
-  expensive work out of SwiftUI `body` and never block the main actor.
-- **DRY.** One home for each rule: menu-bar icon derivation, pending-item copy,
-  status presentation, formatting, sorting, persistence, and defaults. No
-  parallel implementations of the same rule.
-- **Swift 6 concurrency.** Explicit, minimal `@MainActor` / actor boundaries; do
-  not regress concurrency safety.
-- **All visual constants come from design tokens.** No hardcoded sizes, insets,
-  radii, or font sizes in views. Prefer semantic token names.
+## Architecture
 
-## Architecture (by responsibility)
+See [docs/architecture.md](docs/architecture.md). Standard SwiftPM layout: `Sources/Mailbell`, `Tests/MailbellTests`, and pure logic in a `MailbellKit` library target (Decided on #44; #62 adds it). The app target is main-actor by default; warnings are errors. Add no other package, target, or top-level folder.
 
-- **Auth** — OAuth config/client, PKCE, loopback redirect, token persistence,
-  Keychain wrapper.
-- **IMAP** — models, client, connection, parser, MIME header decoding,
-  body-preview sanitizing, and the read-flag command.
-- **Service** — runtime state machine, checkpoints, the pending review store,
-  unread reconciliation, and mark-as-read / bulk-action orchestration.
-- **Provider** — webmail URL and routing model.
-- **Notify** — native notification content and delivery.
-- **Webmail** — browser and Chrome-profile opening.
-- **App** — menu bar surface, Settings, login item, Sparkle, design tokens, and
-  presentation helpers.
+## Instruction hierarchy and sources of truth
 
-Keep the SwiftPM structure standard: manifest at the root, the executable target
-under `Sources/Mailbell`, tests under `Tests/MailbellTests`. Do not add local
-packages, extra targets, or top-level folders for visual symmetry.
+- Follow the direct task, the most specific scoped instructions, this file, then general agreements. Read applicable instructions before editing.
+- Code is evidence of current behavior, `AGENTS.md` is normative for process, and an approved specification for desired behavior. Expose divergence among them; never resolve it silently.
+- When two sources disagree (issues, comments, this file, the agent's memory, the owner's current instruction), a newer trusted statement is the recommended side, never the decided one. Ask the owner before acting on either side and record the answer in the newer issue; `skd-agent-context-validation` owns the precedence.
+- Keep one canonical source per rule; other documents link to it.
+- Do not turn analysis, research, or a read-only audit into implementation without authorization.
+- The owner calls `issue-*` and `project-*` skills by name; `skd-*` skills are internal: offer one in plain words, never by name.
+- Be direct and evidence-based: state assumptions, risks, tradeoffs, blockers. Ask only about a material decision you cannot discover safely; otherwise make explicit, reversible assumptions.
+- Give concise progress updates during long-running work.
 
-## OAuth and credential rules
+## Long-running operations
 
-Mailbell ships as a public beta whose Google OAuth client is **not yet verified
-by Google**.
+For any command, process, browser action, integration, or delegated task likely to run long:
 
-- Release builds embed the project's own Google Desktop OAuth client, injected
-  into `Info.plist` at packaging time from local configuration. End users never
-  create their own client.
-- Real credentials come only from local/private configuration: `.env`, shell
-  environment, or the injected bundle plist. **`.env` stays untracked.**
-  `.env.example` carries variable names with empty values.
-- Never commit a client ID or secret, and never add a remote credential download
-  path. Google treats installed-app client secrets as non-confidential, but they
-  still belong in local configuration, not in git.
-- A build without credentials must fail clearly and, in the UI, present a
-  **build/packaging error** — never instructions telling an end user to create a
-  Google Cloud client.
-- OAuth uses Google's desktop/installed-app flow with PKCE and the scopes the
-  IMAP implementation actually needs: `https://mail.google.com/`, `openid`, and
-  `email`. Treat the broad mail scope honestly; do not claim a narrower Gmail
-  API scope works for IMAP XOAUTH2.
-- Refresh tokens and the access-token cache belong in the macOS Keychain only.
-- Public copy (README, website, release notes, Settings) must state the
-  unverified-app screen and Google's 100-new-user cap for unverified clients,
-  and must not promise unlimited use before verification.
+- Use the client's bounded yield, timeout, or status mechanism and wait for an observable
+  condition instead of an arbitrary sleep.
+- Keep the user informed at least once per minute when the client supports progress commentary.
+- Distinguish slow but progressing work from a stall using new output, state changes, resource
+  activity, the known duration of the current phase, or a tool-reported deadline. Elapsed time
+  alone is not evidence of a stall.
+- Inspect the current output and state before interrupting, retrying, or changing approach.
+- Interrupt only when there is evidence of no useful progress, a deadline has expired, or the
+  continued cost or risk is no longer justified.
+- After an interruption, explain what state or output was preserved, diagnose the likely cause,
+  and choose a narrower retry, a different tool, a smaller unit of work, or an explicit blocker.
+- Never rerun the same unchanged failure, and do not add a polling service, background job, timer,
+  or other infrastructure merely to satisfy this rule.
+- Keep termination thresholds task-specific. Workflow-specific wait tools and user-input
+  boundaries remain authoritative.
 
-## Security and data rules
+## Before editing
 
-- Never commit `.env`, credentials, tokens, signing material, logs containing
-  secrets, or generated release artifacts.
-- Never log tokens, OAuth codes, client secrets, IMAP auth payloads, raw message
-  bodies, attachments, or full provider responses.
-- Fetch only the smallest useful data: sender, subject, sent date, server
-  receipt time (`INTERNALDATE`), account, UID, RFC message ID, Gmail
-  thread/message identifiers when available, and a bounded sanitized text
-  preview.
-- Body preview fetches stay bounded and non-mutating (`BODY.PEEK[TEXT]<0.8192>`).
-  Never fetch attachments or full bodies.
-- Sanitize previews before UI/notification use: SwiftSoup for generic HTML
-  parsing and entity handling, then Mailbell's MIME-artifact, boilerplate, URL,
-  whitespace, length, and line-shape rules.
-- UserDefaults holds non-secret UI state, account metadata, webmail preferences,
-  IMAP checkpoints, and pruned handled-item dispositions only.
-- Keep Keychain and UserDefaults ownership DRY; no parallel persistence paths
-  for the same state.
+1. Check applicable instructions, Git status, and the current branch.
+2. Search for the behavior, callers, tests, contracts, and nearby patterns; read only the chunks the change needs.
+3. Distinguish verified facts, reasonable inferences, and unknowns, and define the source of truth before changing data or state.
+4. When the project records an upstream or reference project, consult it before planning. When
+   this project solves the problem differently, document the divergence and its reason.
+5. Make a short plan only for complex, risky, ambiguous, or multi-file work.
 
-## Reliability rules
+## Scope, reuse, and implementation
 
-Preserve the IMAP IDLE reconnect model:
+- Keep changes scoped to the requested result: no unrelated cleanup, redesign, dependency updates, broad refactors, or future work. Preserve behavior outside the task and unrelated or uncommitted user changes.
+- Reuse existing code, tokens, configuration, tests, and platform capabilities before creating new ones.
+- Follow the patterns this project already repeats. When a change would break a recorded pattern or establish a new one, stop and ask first, naming the existing pattern, the proposed one, and why the existing one does not fit. Deviating is allowed; deviating silently is not.
+- Mailbell's recorded patterns: one persistence path; no hardcoded dimension, new dependency, polling, view logic, backend, or broader OAuth scope.
+- Prefer the smallest correct, readable, reversible solution that is cheap to operate.
+- Keep one owner and one source of truth for each business rule, state, default, and copy value, outside presentation and adapter layers. Derive values instead of storing synchronized copies; model invalid states explicitly.
+- Add no dependency, service, layer, cache, timer, polling or background job without a current requirement and an owner.
+- Deliver large changes in reviewable, executable increments. Implement errors, states, accessibility, and tests with the behavior.
 
-- `UIDVALIDITY` plus `lastSeenUID` is the gap-fill checkpoint.
-- If `UIDVALIDITY` changes, rebaseline silently without notifying the backlog.
-- On reconnect with the same `UIDVALIDITY`, fetch fresh unread UIDs above the
-  checkpoint, admit all fresh items in bounded batches, and notify only the
-  newest capped set.
-- Never advance `lastSeenUID` past a fresh UID until its admission batch has been
-  fetched and offered to the pending store.
-- Threaded pending items count once in the menu when Gmail thread IDs exist;
-  notifications remain per message.
-- A read action fixes its set of members before the server round trip and
-  finalizes only that set. A reply that joins the thread while the request is in
-  flight was never marked on the server, so it stays pending.
-- Unread reconciliation removes items read directly in Gmail Web and may admit
-  bounded unknown unread items missed while offline. Its bounded window skips
-  what is already pending **and** what has already been handled, so a wholly
-  dismissed newest window cannot consume every cycle's budget and starve older
-  unread mail. Handled records remember where the message lived; a record
-  without that location is backfilled the first time reconciliation meets it.
-- Server-side read marking uses `UID STORE +FLAGS.SILENT (\Seen)`. Bulk actions
-  use **one authenticated session per account**, never one connection per
-  message.
-- A message identity is `(mailbox name, UIDVALIDITY, UID)`, never a UID alone.
-  A read action checks the generation reported by its own `SELECT` before
-  issuing `STORE`, so a rebuilt mailbox that reused the number cannot be
-  mutated. Pending items from a superseded generation are dropped on
-  reconciliation rather than left actionable.
-- Refresh-token failure or revocation must surface as `reauthRequired` and must
-  raise the menu bar alert icon. Do not hide it behind silent retry loops.
-- Transient network failures may retry with bounded backoff but must not mask
-  credential failure.
-- Network recovery and sleep/wake force reconnects without broad polling.
-- One run owns an account at a time. A run suspends on the network repeatedly,
-  and cancelling its task does not stop the resumed continuation, so every
-  effect — owning a client, publishing status, moving checkpoints, admitting
-  messages — is gated on the run still being the current generation.
-- Do not introduce content polling as the new-mail mechanism; the IDLE re-arm
-  timer is not a polling loop. Keep re-arm below Gmail's server limit.
+## Data, security, and destructive operations
 
-## UI and UX rules
+- Distinguish canonical data, reconstructible cache, transient state, and preferences. Persist or synchronize only data that must survive or cross devices; a cache never becomes a source of truth.
+- Use stable application-owned identifiers, and validate data at input and persistence boundaries.
+- Change a relational schema only through an explicit, tested, versioned migration, never manually in production. Use transactions or atomic writes when partial failure could leave inconsistent state.
+- Request only necessary permissions and scopes. Keep credentials, keys, signing material, personal data, and sensitive payloads out of the repository and logs.
+- Use structured subprocess arguments and validate destinations, redirects, and untrusted inputs.
+- Resolve an exact target before deletion, overwrite, interruption, or another hard-to-recover action. A clear request authorizes its exact resolved operation; ask again when the target is ambiguous, loss is difficult to recover, or effects exceed the named scope.
+- Prefer recoverable deletion. Never force-push or perform broad cleanup without explicit authorization.
 
-- Keep the app accessory-style and out of the Dock.
-- The menu bar glyph has one owner and one precedence: an account needing the
-  user (sign-in expired, surfaced error) outranks unread mail, so the alert
-  symbol replaces the bell rather than the app looking idle while nothing is
-  monitored.
-- Settings stays small and native: four panes, each owning one question —
-  **General** (how Mailbell presents itself: menu bar, startup, updates, reset),
-  **Notifications** (whether alerts get through), **Accounts** (which mailboxes
-  are watched, and everything about each account), **About** (what it is).
-  Never split one entity across panes: an account's status, routing, and removal
-  belong together.
-- **Controls carry meaning; pick the right one.** These follow what macOS
-  System Settings actually does, not invention:
-  - `Toggle` for a binary preference, labelled with a **stable description of
-    the enabled state**. A label that inverts with its own value
-    ("Disable Account") reads as its own opposite and is a defect.
-  - **Explanation belongs in the row, under its own label** (`SettingsRowLabel`),
-    the way System Settings explains FileVault, AirDrop, and AirPlay Receiver.
-    A section `footer` is for text about the group as a whole.
-  - `LabeledContent` / `SettingsRow` for **label to value** — status, counts,
-    versions — or label to a row-scoped control. A label that merely restates
-    its button ("Remove Account: Remove") is banned.
-  - **Action placement follows the action's scope**, and every action goes
-    through `SettingsActionRow` so alignment has one definition:
-    - *row-scoped* → in that row, trailing (System Settings: "Siri history"
-      `Delete Siri & Dictation History…`, "Recovery Key" `Show`);
-    - *section-scoped* → inside the box, as its own last row, trailing
-      (`Add User…`, `About AirDrop & Privacy…`);
-    - *pane-scoped* → below every box, trailing, in the last section's footer
-      (`Advanced…` in Privacy & Security).
-  - Buttons are sized to their content and trailing-aligned. Leading-aligned,
-    full-width buttons are not the platform convention.
-  - Append `…` when a control opens another window, view, or app (HIG,
-    *Buttons › Push buttons*).
-  - Destructive actions use `role: .destructive`, never a hand-applied red, and
-    anything irreversible confirms first.
-  - A status row earns its space only when it can disagree with the control
-    above it; otherwise it is noise.
-  These rules are enforced by `scripts/validate.sh` source-shape invariants.
-- Preserve native controls, keyboard navigation, focus, hover/pressed/disabled/
-  loading/error states, Dynamic Type, contrast, validation feedback, and safe
-  areas.
-- Before UI edits, briefly critique the current UI, then plan layout, controls,
-  states, accessibility, and verification.
-- Keep user-facing copy concise and consistent with nearby product language.
+## Product interface and accessibility
 
-## Feature defaults and configurability
+- Prefer native platform components and established patterns; custom UI must provide clear product value.
+- Before creating or changing an interface, a style, or a visual asset, name what the product should communicate and how it should feel to the person using it, from the product definition and brand decisions, and judge visual and copy choices by that intent. When none is recorded, state the one you infer and ask before a consequential visual change.
+- Define the layout and the loading, empty, error, disabled, and destructive states that apply. Include keyboard navigation, focus, screen-reader labels, scalable text, contrast, reduced motion, and non-color status cues in the same change.
+- Accessibility evidence is automated. Manual screen-reader passes are not run; the owner accepted that gap in `docs/product.md` under `## Accepted evidence gaps` (martonpaulo/skill-deck#266), so a missing pass never blocks completion.
+- Keep visible copy centralized and localized. Keep expensive work out of render paths and hot loops. Measure before claiming a performance problem.
 
-For every new user-facing behavior:
+## Code, comments, and documentation
 
-- Define its default explicitly, in the centralized settings defaults. Do not
-  duplicate fallback values in views, services, tests, or migrations.
-- Decide whether it is user-configurable and record why. Prefer a setting when
-  both states are legitimate preferences; do not add settings for bug fixes,
-  mandatory accessibility behavior, or single-outcome details.
-- Persist configurable preferences through the typed settings layer, which is the
-  runtime source of truth.
-- Preserve existing user choices on upgrade; migrate a stored value only when the
-  old representation is invalid.
-- Register every configurable preference so Restore Defaults resets it. Reset
-  must not touch accounts, Keychain tokens, permissions, or handled-item history.
+- Write code, comments, commits, filenames, tests, configuration, and developer documentation in English; product copy follows the localization strategy. Write human-facing English in plain international English that non-native readers understand: precise verbs, no idioms, short sentences.
+- Follow the existing formatter, linter, naming, layout, and architecture. Prefer clear types and simple control flow.
+- Comment non-obvious constraints, linking official documentation when a workaround must stay visible.
+- Update the smallest canonical documentation section when a durable contract changes; never create empty documentation.
+- Record a consequential decision in the canonical document that owns the rule, with the deciding
+  issue cited beside it as `Decided on #N`. No issue, wiki page or long-lived comment serves as a
+  decision register. Index those decisions in a `## Decision index` section of the product definition, one row each, pointing to the rule.
+- README: the recorded `Display name` is the H1. Links to the live project are allowed. The rest
+  follows the `project-setup` skill's `references/public-surface-style.md`.
+- Every fenced code block you create or materially edit has an explicit language identifier.
+- Preserve third-party licenses and notices in `NOTICE.md`. Maintain `CHANGELOG.md` when the project has public releases.
 
-A missing configurability decision is a review failure. See
-`docs/feature-defaults.md`. The approved queue-retention change is recorded
-there and implemented in `PendingQueueBudget`. Capacity eviction is not a
-handled disposition: Gmail remains authoritative, and retained membership and
-the visible menu projection have one owner each in `EmailStore`.
+## Durable project learning
 
-## Distribution and signing
+At wrap-up, propose recording a learning only when it is verified, specific to this project, likely
+to recur, and not already recorded, as the `project-setup` skill's `references/durable-learning.md`
+defines. A command that failed twice for the same cause qualifies: record the cause and working form.
 
-- Distribution is **direct download only**: a notarized, stapled DMG signed with
-  the stable Developer ID Application identity, plus Sparkle auto-update driven
-  by an appcast hosted from this repository.
-- Sparkle is embedded only in the packaged app and only starts from a real
-  installed bundle that ships both a feed URL and a public key.
-- **Signing material is never committed.** The Sparkle EdDSA private key lives in
-  the login Keychain; only the public key ships in the bundle. Developer ID
-  identity comes from local environment/Keychain. Notarization runs through
-  `scripts/notarize.sh`, a verbatim copy of the owner's canonical script: CI
-  authenticates with the team App Store Connect API key (`NOTARY_API_KEY*`
-  secrets), a Mac with the shared `skd-notary` Keychain profile.
-- Releases are tagged `vX.Y.Z`; the tag must match `CFBundleShortVersionString`.
-  The appcast is regenerated from the built, signed archive and committed before
-  the GitHub Release is published.
-- The website under `site/` is the public landing page, privacy policy, and
-  terms. It is deployed by GitHub Pages from `main`. `docs/` holds developer
-  documentation only and is never published.
+## Output shape
 
-## Conventions
+Shape every message so it can be acted on at once, including by a reader with ADHD. Adapted from
+[ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd) (MIT, Ayoub Ghriss).
 
-- Conventional Commits. **English everywhere** — code, comments, docs, copy,
-  errors, examples, file names.
-- Comments state constraints the code cannot show (Gmail quirks, why a bound
-  exists), not narration of what the code already says.
-- Human-readable code over cleverness. Small, well-named units.
-- Search first; read the smallest useful chunk; reuse existing code, patterns,
-  components, formatters, helpers, and Makefile targets before adding new ones.
-- No new dependencies unless clearly required, justified, and consistent with a
-  native, low-cost menu-bar app.
-- Add or update focused tests only for changed behavior, regressions,
-  persistence contracts, accessibility-critical flows, or validation-sensitive
-  code. Avoid tests that mirror implementation details or duplicate coverage.
-- Code establishes current behavior; this policy governs process; approved issue
-  specifications govern desired behavior. Surface contradictions explicitly, then
-  update the smallest canonical documentation section within the authorized scope.
+1. **Lead with the next action.** A command, path or snippet comes first; prose follows, if at all.
+2. **Number multi-step work.** One bounded action per step, the fewest steps that work.
+3. **End with one concrete next action** doable in under two minutes, when anything is left open.
+4. **Suppress tangents.** Finish the first thing; offer the second as a separate question.
+5. **Restate the state every turn**: what is done and what is next.
+6. **Give time estimates in concrete units**, never "some work".
+7. **Make completed work visible**: what now works and how to see it.
+8. **State errors plainly**: the cause, then the fix.
+9. **Keep lists short**: grouped, most relevant first, at most five per group, none dropped.
+10. **No preamble, no recap, no closing pleasantries.**
 
-## Pattern-break protocol
+The shape gives way for an explanation the user asks for, before a destructive action (confirm
+first), after repeated failures (name the doubtful assumption, ask one question), for real
+ambiguity or options (one question; two to four ranked options), and for a required format such
+as an attention card, an execution plan, a completion report, or machine-read output.
 
-This file is the source of truth for how Mailbell is built. **If a task seems to
-require breaking an established pattern** — a second persistence path, a
-hardcoded dimension, a new dependency, polling, business logic in a view, a
-backend, or a broader OAuth scope — **stop and confirm with the user before
-either forcing the change into the old pattern or defining a new one.** Name the
-pattern in tension, the options, and the tradeoff. Silent divergence is a defect.
-When a genuinely new pattern is agreed, document it here in the same turn.
+## User attention cards
 
-## Long-running work and durable learning
+When the user must notice and respond to a proposed follow-up, a material choice, a permission
+boundary, or a blocker, use exactly one of the four attention cards below. Their templates and
+full rules are in the `skd-grilling` skill's `references/attention-cards.md`. Never hide one inside a
+general summary, ordinary bullet list, or vague "human review" note.
 
-- Use bounded yields and observable progress for long operations. Inspect output
-  before interrupting or retrying; an unchanged failure is not a reason to rerun.
-- Keep progress updates at least once per minute during ongoing work when the
-  client supports them, and report actual failures and validation gaps.
-- Record only verified, recurring project constraints in an existing canonical
-  owner. Required task documentation belongs to the task; adjacent learning needs
-  an explicit owner-approved proposal before editing. Do not persist transcripts,
-  speculative conclusions, credentials, or machine-specific incident state.
+Render every visible heading, field label, explanation, option, recommendation, and reply token in
+the language already used with the user. Follow a later explicit change of language.
+Surround every card with a Markdown horizontal rule: a standalone `---` before its heading and
+another after its final response line. The emoji supplements the descriptive heading and never
+replaces it. Use one card per request, ending with an exact reply format.
 
-## Git and completion
+A card alone ends the turn without asking: also ask through the client's structured-question
+tool when it has one (`AskUserQuestion` in Claude Code). When several
+decisions are pending and the client can publish interactive HTML, the decision page that
+`skd-grilling` defines asks them instead.
 
-- Check `git status --short --branch` before editing and before the final reply.
-  Work on `main` unless the user asks otherwise.
-- Use focused Conventional Commits for durable changes. Commit only files that
-  belong to the task; leave unrelated dirty files untouched and report them.
-- Do not revert, overwrite, or discard user changes unless explicitly asked.
-- Do not push to the `upstream` remote (the original project) under any
-  circumstance.
-- Final report includes: changed files, validation performed, artifacts
-  kept/deleted, commit and push status, final `git status --short --branch`,
-  unrelated dirty files, and remaining risks.
+- **Proposed issue**: an evidence-backed improvement outside the accepted scope, not already
+  tracked. The card proposes backlog capture; it never authorizes creating or publishing the issue.
+- **Decision needed**: materially different outcomes. Show options and tradeoffs, recommend one.
+- **Approval needed**: one preferred action across a permission, publication, destructive, cost,
+  privacy, or external boundary. Name the exact target, expected change, risk, reversibility, and recovery path.
+- **Action needed**: work blocked by one user action. State what is blocked, why the agent cannot continue, the smallest unblocking action, and the observable condition for resumption.
+
+## Configuration and repository hygiene
+
+- Ignore secrets, local environments, logs, caches, and build output. Keep `.env.example` with every variable and a safe placeholder, and secrets only in the platform's secure store.
+- Add CI, dependency updates, release workflows, and signing only when distribution or risk requires them.
+- Workflows are `validate.yml` (`Validate`), `deploy.yml` (`Deploy`, started by Validate through `workflow_run`) and `release.yml` (`Release`), plus the macOS app's `notary-check.yml`; any other is a recorded exception. Do not add an image-optimisation bot.
+- The agent rules live in `AGENTS.md`, the one real file, at most 24,000 bytes (the most Antigravity CLI loads; `make validate` checks it); `CLAUDE.md` is a symlink to it. Do not create `GEMINI.md`, `.gemini/rules/agents.md`, or any other alias, and never commit `.claude/settings.local.json`.
+- Change the repository `homepage` only as the `project-setup` skill's `references/github-settings.md` describes.
+
+## Tests and validation
+
+- Add or update focused tests for changed behavior, regressions, persistence, migrations, security, and critical accessibility, at stable seams.
+- A behavioral bug fix includes a regression test proven to fail without the fix: run it against the unfixed code and see it fail before committing.
+- Run the smallest relevant check while iterating. Before each commit, run the full suite and repository validation when the full suite takes about 90 seconds or less; otherwise run the suites that cover a change or list its directory, let CI run the full suite, read its result before reporting done, and require zero failures and zero warnings. Use a real integration only when local tests cannot prove the contract.
+- When a change alters behavior, run the real application with its native diagnostics and observe the changed behavior. Green tests are not seeing it run.
+- Never claim a check passed unless it ran. Report skips, blockers, residual risk, what was verified manually, and what remains unverified.
+- A piped check reports the last command's status: `npm run lint | tail -3` exits 0 when lint fails. Run a gating check unpiped or with `set -o pipefail`. A check whose exit code you did not observe has not run.
+- Local browser tests (Playwright or similar) run one project and the targeted tests while iterating (`--project=<name> -g "<pattern>"`), always pass `--workers=1`, and do not launch one while the 1-minute load average is above 8; run the full browser suite only as the final step before commit. They apply to local runs, not to CI on dedicated runners.
+
+## Artifacts and processes
+
+- Temporary is the default; retention is an explicit exception. Remove only temporary files the current task created, keeping deliverables and failure evidence, never pre-existing artifacts, fixtures, baselines, or logs, and never version caches, logs, coverage, or build output.
+- Before ending the turn, stop every server, watcher, browser, simulator, container, worker, and other process the session started. Do not stop the user's pre-existing processes.
 
 ## Agent skill paths
 
@@ -378,3 +231,26 @@ When a genuinely new pattern is agreed, document it here in the same turn.
 - Research notes: `docs/research/` (create only when persisting research)
 - Handoffs: `.scratch/handoffs/`
 - Prototypes: `.scratch/prototypes/`
+
+## Git and releases
+
+- Follow the recorded branch, commit, push, and version policies. Check status and branch before editing and before the final report; leave unrelated changes untouched.
+- Use English Conventional Commits, one per concern, ending with the issue number, never the pull request's: `feat: add the export button (#54)`.
+- Merge with every commit: `gh pr merge <number> --merge --delete-branch`. Never squash.
+- Read the exact payload before a commit, push, published text, or release upload. Stop on a
+  credential, key, signing material, or sensitive personal value, never print it, and refuse a
+  plaintext secret even on request. A published value is revoked or rotated; deleting it does not
+  unpublish it. `skd-github-publishing-conventions` owns the gate.
+- Never force-push. If commit or push fails, report the exact failure.
+- Close an issue resolved as `completed` only with one signed closing comment on the issue that names the resolving commit, what was verified (checks, tests, manual runs), and what was not verified.
+- Release or change a version only when the task and recorded policy authorize it, through `project-release`.
+
+## Completion report
+
+Lead with the outcome, in the output shape above, and include:
+
+- what changed and why, and the files touched;
+- validation commands and results, with warnings, skips, and remaining risks;
+- what running the application verified, and what remains unverified;
+- each issue closed, with the resolving commit its closing comment names;
+- temporary artifacts kept or removed, commit, branch, push, and worktree status, and unrelated dirty files.

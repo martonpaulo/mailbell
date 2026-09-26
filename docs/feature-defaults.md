@@ -7,11 +7,17 @@ A missing decision is a review failure.
 
 - Defaults live in one place: the centralized settings defaults. Views,
   services, tests, and migrations never restate a fallback value.
+- Decide whether each behavior is user-configurable and record why here.
 - Prefer a setting when both states are legitimate user preferences.
 - Do **not** add a setting for a bug fix, a security behavior, an internal
   implementation detail, mandatory accessibility behavior, or anything with only
   one valid outcome.
+- Persist configurable preferences through the typed settings layer, which is
+  the runtime source of truth.
 - Every configurable preference is registered so Restore Defaults resets it.
+- Each Settings pane resets only its own preferences, from its last section.
+  Decided on #54, which supersedes the single Restore Defaults for every pane;
+  #74 implements it.
 - Reset never touches accounts, Keychain tokens, notification permission, the
   login item, IMAP checkpoints, or handled-message history.
 - Preserve existing user choices on upgrade; migrate a stored value only when the
@@ -19,9 +25,10 @@ A missing decision is a review failure.
 
 ## Queue limits
 
-The owner delegated the retention decision on 2026-09-09. This is the desired
-contract in [issue #27](https://github.com/martonpaulo/mailbell/issues/27), not a
-claim that the current runtime enforces it.
+The owner delegated the retention decision on 2026-09-09. Decided on #27;
+`PendingQueueBudget` implements it. Capacity eviction is not a handled
+disposition: Gmail remains authoritative, and retained membership and the
+visible menu projection have one owner each in `EmailStore`.
 
 | Boundary | Approved value | Configurable | Reason |
 |---|---|---|---|
@@ -71,11 +78,11 @@ and no Restore Defaults entry.
 | Behavior | Default | Configurable | Notes |
 |---|---|---|---|
 | Show review count in the menu bar | **on** | Yes — General | Hiding it keeps the glyph alone |
-| Play notification sounds | **on** | Yes — Notifications | Turning it off keeps notifications and the review queue visual-only |
+| Play notification sounds | **on** | Yes — General (Decided on #54) | Turning it off keeps notifications and the review queue visual-only |
 | Start at login | **off** | Yes — General | Real system state, read back from the login item |
 | Include Spam | **off** | Yes — Accounts | Turning it off also removes pending Spam items |
 | Webmail routing | System default browser | Yes — Accounts, per account | Chrome profiles are offered when present |
-| Automatic update checks | **on** | Yes — General | Inert in development builds |
+| Automatic update checks | **on** | Yes — About (Decided on #54) | Inert in development builds |
 
 ## Deliberately not configurable
 
