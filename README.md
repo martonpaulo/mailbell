@@ -59,7 +59,7 @@ Every packaged build goes through `scripts/package-with-oauth.sh`: it writes the
 | `make uninstall` | Remove the installed app bundle |
 | `make refresh-icons` | Reinstall and flush the macOS icon caches after an icon change |
 | `make dmg` | Build the drag-and-drop DMG at `artifacts/Mailbell-<version>.dmg` from `make app`; needs Node 24 or older |
-| `make icon` | Regenerate the app icon from `Support/logo.png` and the DMG background |
+| `make icon` | Redraw the app icon, site icons, installer icon and DMG background from `scripts/make-icon.swift` |
 | `make screenshots` | Capture the site's Settings screenshots from a throwaway bundle |
 | `make keys` | Once per machine: check the Sparkle key in the login Keychain against `SUPublicEDKey` |
 | `make appcast` | Add one `appcast.xml` entry from `VERSION`, `BUILD_NUMBER`, `ARCHIVE` and `SIGNATURE`, for a rehearsal or a recovery |

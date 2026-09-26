@@ -66,10 +66,13 @@ app: ## build/Mailbell.app and its update zip, with the OAuth client (signed wit
 dmg: app ## The branded DMG from build/Mailbell.app, with the committed art; needs Node 24 or older (FORCE=1 replaces)
 	@scripts/make-dmg.sh $(FORCE_FLAG)
 
-# The art is committed; regenerate it only after changing Support/logo.png or a generator. The
-# DMG background frames are intermediates in artifacts/.
-icon: ## Regenerate the app icon and the DMG background
-	scripts/generate-app-icon.sh
+# The art is committed; regenerate it only after changing a generator. scripts/make-icon.swift
+# draws every icon; the iconset and the DMG background frames are intermediates in artifacts/.
+icon: ## Regenerate the app icon, site icons, installer icon and DMG background
+	scripts/make-icon.swift artifacts/icon
+	iconutil -c icns artifacts/icon/AppIcon.iconset -o Support/AppIcon.icns
+	scripts/make-icon.swift --favicon site
+	scripts/render-installer-icon.swift
 	scripts/render-dmg-background.swift
 	tiffutil -cathidpicheck artifacts/dmg-bg.png artifacts/dmg-bg@2x.png \
 		-out Support/MailbellInstallerBackground.tiff
