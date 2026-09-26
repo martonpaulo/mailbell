@@ -58,6 +58,7 @@ nonisolated final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     private var includeSpam: Bool
     private var checkpoints: [MessageMailbox: CheckpointStore]
     let tokenProvider: AccountTokenProvider
+    let notifier: any MailNotifying
 
     private var client: IMAPClient?
     private var runTask: Task<Void, Never>?
@@ -76,9 +77,10 @@ nonisolated final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     /// IDLE re-arm window: below the 29-minute IMAP limit (RFC 2177).
     private let idleTimeout: TimeInterval = 25 * 60
 
-    init(account: MailAccount, config: OAuthConfig, includeSpam: Bool = false) {
+    init(account: MailAccount, config: OAuthConfig, includeSpam: Bool = false, notifier: any MailNotifying) {
         self.account = account
         self.includeSpam = includeSpam
+        self.notifier = notifier
         checkpoints = Self.checkpoints(accountID: account.id)
         tokenProvider = AccountTokenProvider(accountID: account.id, providerID: account.providerID, config: config)
     }

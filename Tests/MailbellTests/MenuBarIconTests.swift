@@ -67,6 +67,7 @@ final class MenuBarIconTests: XCTestCase {
         let store = AccountStore(userDefaults: defaults)
         try store.saveAccounts([account])
         let supervisor = AccountSupervisor(
+            notifier: RecordingNotifier(),
             configProvider: {
                 OAuthConfig(clientID: "dummy.apps.googleusercontent.com", clientSecret: nil)
             },

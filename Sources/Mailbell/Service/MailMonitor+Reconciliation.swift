@@ -64,7 +64,7 @@ nonisolated extension MailMonitor {
             else {
                 continue
             }
-            let result = await NotificationManager.shared.notify(header, account: account)
+            let result = await notifier.notify(header, account: account)
             delegate?.monitor(account.id, didNotify: header, result: result)
         }
     }

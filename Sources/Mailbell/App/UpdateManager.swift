@@ -1,19 +1,20 @@
 import Foundation
 import Sparkle
-import SwiftUI
+import Observation
 
 /// Wraps Sparkle for the direct-download build. The updater only starts from a
 /// real installed bundle that ships both a feed URL and a public key, so
 /// `swift run` and unsigned local builds stay completely inert and never reach
 /// the network.
 @MainActor
-final class UpdateManager: ObservableObject {
+@Observable
+final class UpdateManager {
     nonisolated static let feedURLKey = "SUFeedURL"
     nonisolated static let publicKeyKey = "SUPublicEDKey"
 
-    @Published private(set) var automaticallyChecksForUpdates: Bool
+    private(set) var automaticallyChecksForUpdates: Bool
 
-    private let controller: SPUStandardUpdaterController?
+    @ObservationIgnored private let controller: SPUStandardUpdaterController?
 
     init(bundle: Bundle = .main) {
         let feed = (bundle.object(forInfoDictionaryKey: Self.feedURLKey) as? String) ?? ""

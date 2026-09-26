@@ -21,6 +21,24 @@ final class MailMonitorReconciliationTests: XCTestCase {
     }
 
     @MainActor
+    func testNotifyPostsOnlyAdmittedMessagesChosenForNotificationThroughTheInjectedNotifier() async {
+        let account = MailAccount(providerID: .gmail, email: "account@example.com")
+        let notifier = RecordingNotifier()
+        let (monitor, _) = makeMonitor(account: account, store: makeStore(), notifier: notifier)
+        let admitted = makeHeader(uid: 1, gmMessageId: "admitted")
+        let notAdmitted = makeHeader(uid: 2, gmMessageId: "not-admitted")
+        let notChosen = makeHeader(uid: 3, gmMessageId: "not-chosen")
+
+        await monitor.notify(
+            headers: [admitted, notAdmitted, notChosen],
+            admittedIdentities: Set([admitted, notChosen].compactMap(\.imapIdentity)),
+            uidsToNotify: [1, 2]
+        )
+
+        XCTAssertEqual(notifier.notifiedHeaders.map(\.uid), [1])
+    }
+
+    @MainActor
     func testMailboxChangeReconcilesProviderUnreadAndRemovesExternallyReadPending() async throws {
         let account = MailAccount(providerID: .gmail, email: "account@example.com")
         let store = makeStore()
@@ -170,13 +188,18 @@ final class MailMonitorReconciliationTests: XCTestCase {
     }
 
     @MainActor
-    private func makeMonitor(account: MailAccount, store: EmailStore) -> (MailMonitor, ReconciliationDelegate) {
+    private func makeMonitor(
+        account: MailAccount,
+        store: EmailStore,
+        notifier: RecordingNotifier = RecordingNotifier()
+    ) -> (MailMonitor, ReconciliationDelegate) {
         let monitor = MailMonitor(
             account: account,
             config: OAuthConfig(
                 clientID: "dummy-local-client-id.apps.googleusercontent.com",
                 clientSecret: "dummy-local-client-secret"
-            )
+            ),
+            notifier: notifier
         )
         let delegate = ReconciliationDelegate(account: account, store: store)
         monitor.delegate = delegate

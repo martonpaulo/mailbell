@@ -174,6 +174,7 @@ final class AccountSupervisorTests: XCTestCase {
             saveData: { _, _ in throw AccountStore.AccountStoreError.saveFailed("disk full") }
         )
         let supervisor = AccountSupervisor(
+            notifier: RecordingNotifier(),
             accountStore: failingStore,
             emailStore: EmailStore(persistence: EmailStorePersistence(userDefaults: defaults)),
             monitorFactory: { account, _, includeSpam in

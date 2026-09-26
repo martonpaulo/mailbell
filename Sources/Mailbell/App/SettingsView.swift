@@ -44,7 +44,7 @@ enum SettingsTab: CaseIterable, Identifiable {
 }
 
 struct SettingsView: View {
-    @ObservedObject var appState: AppState
+    let appState: AppState
     @State var launchAtLogin = LoginItem.isEnabled
     @State var loginItemStatus = LoginItem.status
     @State var webmailBrowsers: [BrowserCandidate] = []

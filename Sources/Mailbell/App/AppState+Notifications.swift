@@ -6,8 +6,9 @@ import Foundation
 extension AppState {
     func refreshNotificationAuthorizationState(showStatusMessage: Bool = false) {
         notificationAuthorizationTask?.cancel()
+        let notificationManager = notificationManager
         notificationAuthorizationTask = Task { [weak self] in
-            let state = await NotificationManager.shared.authorizationState()
+            let state = await notificationManager.authorizationState()
             guard !Task.isCancelled else { return }
             self?.applyNotificationAuthorizationState(state)
             if showStatusMessage {
@@ -19,8 +20,9 @@ extension AppState {
 
     func requestNotificationAuthorization() {
         notificationAuthorizationTask?.cancel()
+        let notificationManager = notificationManager
         notificationAuthorizationTask = Task { [weak self] in
-            let state = await NotificationManager.shared.requestAuthorization()
+            let state = await notificationManager.requestAuthorization()
             guard !Task.isCancelled else { return }
             self?.applyNotificationAuthorizationState(state)
             self?.notificationTestMessage = nil
@@ -40,8 +42,8 @@ extension AppState {
             notificationTestMessage = nil
             notificationStatusMessage = nil
             defer { isSendingTestNotification = false }
-            let result = await NotificationManager.shared.notifyTest(account: accounts.first?.account)
-            let state = await NotificationManager.shared.authorizationState()
+            let result = await notificationManager.notifyTest(account: accounts.first?.account)
+            let state = await notificationManager.authorizationState()
             applyNotificationAuthorizationState(state)
             if let message = result.userMessage {
                 notificationTestMessage = message

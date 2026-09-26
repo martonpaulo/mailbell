@@ -127,6 +127,7 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
             XCTFail("Could not seed account store: \(error)")
         }
         let supervisor = AccountSupervisor(
+            notifier: RecordingNotifier(),
             configProvider: {
                 OAuthConfig(
                     clientID: "dummy-local-client-id.apps.googleusercontent.com",

@@ -4,43 +4,47 @@ import SwiftUI
 
 /// Observable UI state. Owns account supervision and exposes user actions.
 @MainActor
-final class AppState: ObservableObject {
-    @Published private(set) var status: MonitorStatus = .signedOut
-    @Published private(set) var accounts: [AccountRuntimeState] = []
-    @Published private(set) var lastError: String?
-    @Published private(set) var oauthSetupMessage: String?
-    @Published private(set) var isAuthorizing = false
-    @Published var isSendingTestNotification = false
-    @Published var notificationAuthorizationState: NotificationAuthorizationState = .unbundled
-    @Published var notificationStatusMessage: String?
-    @Published var notificationTestMessage: String?
-    @Published var manualRefreshMessage: String?
-    @Published private(set) var emailStoreItems: [EmailStoreItem] = []
-    @Published private(set) var pendingCountsByAccountID: [UUID: Int] = [:]
-    @Published private(set) var menuBarIconSystemImage = MenuBarIcon.idle
-    @Published private(set) var needsAttention = false
-    @Published private(set) var needsSignIn = false
-    @Published private(set) var isMarkingAllAsRead = false
-    @Published private(set) var bulkActionMessage: String?
-    @Published private(set) var showPendingCount: Bool
-    @Published private(set) var includeSpam: Bool
-    @Published private(set) var playNotificationSounds: Bool
+@Observable
+final class AppState {
+    private(set) var status: MonitorStatus = .signedOut
+    private(set) var accounts: [AccountRuntimeState] = []
+    private(set) var lastError: String?
+    private(set) var oauthSetupMessage: String?
+    private(set) var isAuthorizing = false
+    var isSendingTestNotification = false
+    var notificationAuthorizationState: NotificationAuthorizationState = .unbundled
+    var notificationStatusMessage: String?
+    var notificationTestMessage: String?
+    var manualRefreshMessage: String?
+    private(set) var emailStoreItems: [EmailStoreItem] = []
+    private(set) var pendingCountsByAccountID: [UUID: Int] = [:]
+    private(set) var menuBarIconSystemImage = MenuBarIcon.idle
+    private(set) var needsAttention = false
+    private(set) var needsSignIn = false
+    private(set) var isMarkingAllAsRead = false
+    private(set) var bulkActionMessage: String?
+    private(set) var showPendingCount: Bool
+    private(set) var includeSpam: Bool
+    private(set) var playNotificationSounds: Bool
 
     private let settingsStore: AppSettingsStore
     let supervisor: AccountSupervisor
     private let updateManager: UpdateManager
-    var notificationAuthorizationTask: Task<Void, Never>?
+    let notificationManager: NotificationManager
+    @ObservationIgnored var notificationAuthorizationTask: Task<Void, Never>?
 
     init(
         settingsStore: AppSettingsStore = AppSettingsStore(),
-        updateManager: UpdateManager = UpdateManager()
+        updateManager: UpdateManager = UpdateManager(),
+        notificationManager: NotificationManager = NotificationManager()
     ) {
         self.settingsStore = settingsStore
         self.updateManager = updateManager
+        self.notificationManager = notificationManager
         showPendingCount = settingsStore.showPendingCount
         includeSpam = settingsStore.includeSpam
         playNotificationSounds = settingsStore.playNotificationSounds
-        supervisor = AccountSupervisor(includeSpam: settingsStore.includeSpam)
+        supervisor = AccountSupervisor(notifier: notificationManager, includeSpam: settingsStore.includeSpam)
         supervisor.delegate = self
         accounts = supervisor.accountStates
         status = supervisor.aggregateStatus
@@ -52,13 +56,13 @@ final class AppState: ObservableObject {
         oauthSetupMessage = supervisor.oauthSetupMessage
         lastError = supervisor.accountStoreError
 
-        NotificationManager.shared.emailOpenHandler = { [weak self] emailID, accountID, url in
+        notificationManager.emailOpenHandler = { [weak self] emailID, accountID, url in
             await self?.supervisor.openEmail(id: emailID, accountID: accountID, url: url)
         }
-        NotificationManager.shared.emailDismissHandler = { [weak self] emailID in
+        notificationManager.emailDismissHandler = { [weak self] emailID in
             self?.supervisor.dismissEmail(id: emailID)
         }
-        NotificationManager.shared.webmailOpenHandler = { [weak self] accountID, url in
+        notificationManager.webmailOpenHandler = { [weak self] accountID, url in
             await self?.supervisor.openWebmail(accountID: accountID, url: url)
         }
         refreshNotificationAuthorizationState()
@@ -229,8 +233,9 @@ final class AppState: ObservableObject {
     }
 
     func setAutomaticallyChecksForUpdates(_ isEnabled: Bool) {
+        // UpdateManager is observable too, so a view reading
+        // automaticallyChecksForUpdates is invalidated by the updater's own change.
         updateManager.setAutomaticallyChecksForUpdates(isEnabled)
-        objectWillChange.send()
     }
 
     func checkForUpdates() {

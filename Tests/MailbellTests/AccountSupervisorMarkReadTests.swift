@@ -140,6 +140,7 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
         }
         let emailStore = emailStore ?? EmailStore(persistence: EmailStorePersistence(userDefaults: defaults))
         let supervisor = AccountSupervisor(
+            notifier: RecordingNotifier(),
             configProvider: {
                 OAuthConfig(
                     clientID: "dummy-local-client-id.apps.googleusercontent.com",

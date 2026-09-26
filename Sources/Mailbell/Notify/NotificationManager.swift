@@ -89,9 +89,7 @@ enum NotificationPostResult {
 }
 
 @MainActor
-final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
-    static let shared = NotificationManager()
-
+final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, MailNotifying {
     var emailOpenHandler: (@MainActor (String?, UUID?, URL) async -> Void)?
     var emailDismissHandler: (@MainActor (String?) async -> Void)?
     var webmailOpenHandler: (@MainActor (UUID?, URL) async -> Void)?
@@ -149,7 +147,9 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         return content
     }
 
-    override private init() {
+    /// Created once at launch, before `applicationDidFinishLaunching` returns,
+    /// so a notification response that launches the app finds its delegate.
+    override init() {
         super.init()
         if isBundled {
             notificationCenter.delegate = self

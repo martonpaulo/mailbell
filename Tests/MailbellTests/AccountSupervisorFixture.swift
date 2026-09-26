@@ -59,6 +59,7 @@ enum SupervisorFixture {
         }
         let emailStore = emailStore ?? EmailStore(persistence: EmailStorePersistence(userDefaults: defaults))
         return AccountSupervisor(
+            notifier: RecordingNotifier(),
             configProvider: configProvider,
             accountStore: store,
             emailStore: emailStore,

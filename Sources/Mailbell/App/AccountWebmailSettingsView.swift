@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AccountWebmailSettingsView: View {
-    @ObservedObject var appState: AppState
+    let appState: AppState
     let accountState: AccountRuntimeState
     let browsers: [BrowserCandidate]
     let chromeProfiles: [ChromeProfileCandidate]

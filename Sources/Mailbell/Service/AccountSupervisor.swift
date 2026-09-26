@@ -40,29 +40,30 @@ final class AccountSupervisor {
     var reconnectAllTask: Task<Void, Never>?
 
     init(
+        notifier: any MailNotifying,
         configProvider: @escaping () throws -> OAuthConfig = OAuthConfig.loadOrThrow,
         accountStore: AccountStore = AccountStore(),
         emailStore: EmailStore = EmailStore(),
         includeSpam: Bool = false,
-        monitorFactory: @escaping AccountMonitorFactory = { account, config, includeSpam in
-            MailMonitor(account: account, config: config, includeSpam: includeSpam)
-        },
+        monitorFactory: AccountMonitorFactory? = nil,
         emailReadMarker: @escaping EmailReadMarker = IMAPMessageReadMarker.markAsRead,
         webmailOpen: @escaping @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome = { url, account in
             await WebmailOpener.open(url: url, account: account)
         },
-        signInNeededNotifier: @escaping SignInNeededNotifier = { account in
-            Task { await NotificationManager.shared.notifySignInNeeded(account: account) }
-        }
+        signInNeededNotifier: SignInNeededNotifier? = nil
     ) {
         self.configProvider = configProvider
         self.accountStore = accountStore
         self.emailStore = emailStore
         self.includeSpam = includeSpam
-        self.monitorFactory = monitorFactory
+        self.monitorFactory = monitorFactory ?? { account, config, includeSpam in
+            MailMonitor(account: account, config: config, includeSpam: includeSpam, notifier: notifier)
+        }
         self.emailReadMarker = emailReadMarker
         self.webmailOpen = webmailOpen
-        self.signInNeededNotifier = signInNeededNotifier
+        self.signInNeededNotifier = signInNeededNotifier ?? { account in
+            Task { await notifier.notifySignInNeeded(account: account) }
+        }
         do {
             accounts = try accountStore.loadAccounts()
         } catch {

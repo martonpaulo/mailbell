@@ -99,7 +99,8 @@ final class MailMonitorRunGenerationTests: XCTestCase {
             config: OAuthConfig(
                 clientID: "dummy-local-client-id.apps.googleusercontent.com",
                 clientSecret: "dummy-local-client-secret"
-            )
+            ),
+            notifier: RecordingNotifier()
         )
     }
 }

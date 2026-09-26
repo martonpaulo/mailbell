@@ -5,7 +5,7 @@ import UserNotifications
 @main
 struct MailbellApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var appState = AppState()
+    @State private var appState = AppState()
 
     init() {
         LegacyDomainMigration.runOnLaunch()
@@ -94,7 +94,7 @@ private extension MenuBarLabel {
 
 struct MenuContent: View {
     @Environment(\.openSettings) private var openSettings
-    @ObservedObject var appState: AppState
+    let appState: AppState
 
     var body: some View {
         if appState.accounts.isEmpty {
