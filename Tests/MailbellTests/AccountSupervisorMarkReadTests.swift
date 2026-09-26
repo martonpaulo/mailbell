@@ -131,9 +131,7 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
         emailReadMarker: @escaping EmailReadMarker
     ) -> (AccountSupervisor, MailAccount) {
         let account = MailAccount(providerID: .gmail, email: "test@example.com")
-        let suiteName = "mailbell.AccountSupervisorMarkReadTests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)!
-        defaults.removePersistentDomain(forName: suiteName)
+        let defaults = TestDefaults.make()
         let store = AccountStore(userDefaults: defaults)
         do {
             try store.saveAccounts([account])
@@ -159,9 +157,7 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
     }
 
     private func makeDefaults() -> UserDefaults {
-        let suiteName = "mailbell.AccountSupervisorMarkReadTests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)!
-        defaults.removePersistentDomain(forName: suiteName)
+        let defaults = TestDefaults.make()
         return defaults
     }
 

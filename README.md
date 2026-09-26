@@ -62,6 +62,7 @@ Install to `/Applications` rather than running the unbundled binary: macOS only 
 | `make sparkle-keys` | Generate the Sparkle EdDSA key into the Keychain |
 | `make require-oauth-config` | Verify the release Google OAuth credentials are available |
 | `make release` | Build, sign, notarize and staple a tagged release DMG |
+| `make clean-test-defaults` | List the test preferences files older runs left in `~/Library/Preferences`; `DELETE=1` removes them |
 | `make clean` | Remove the SwiftPM build artifacts |
 
 `make` with no target lists every target.

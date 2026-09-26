@@ -54,6 +54,11 @@ if [ -f .env ]; then
         fi
     done < .env
 fi
+# Tests make UserDefaults suites only through TestDefaults, whose absolute-path names keep
+# cfprefsd from writing them into ~/Library/Preferences (#50).
+if grep -rln 'UserDefaults(suiteName' Tests | grep -v '^Tests/MailbellTests/TestDefaults.swift$' | grep -q .; then
+    note "a test makes a UserDefaults suite outside Tests/MailbellTests/TestDefaults.swift"
+fi
 if [ -f .env.example ] && grep -qE '^[A-Z_]+=.+' .env.example; then
     note ".env.example must list variable names with empty values only"
 fi

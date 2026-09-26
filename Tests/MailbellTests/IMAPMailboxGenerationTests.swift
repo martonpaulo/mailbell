@@ -140,7 +140,7 @@ final class IMAPMailboxGenerationTests: XCTestCase {
     private func makeStore() -> EmailStore {
         EmailStore(
             persistence: EmailStorePersistence(
-                userDefaults: UserDefaults(suiteName: "mailbell.tests.generation.\(UUID().uuidString)")!
+                userDefaults: TestDefaults.make()
             )
         )
     }

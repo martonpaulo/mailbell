@@ -45,9 +45,7 @@ final class ScreenshotModeTests: XCTestCase {
     }
 
     func testPinningClearsTheSavedFrameAndSelectsThePane() {
-        let suiteName = "mailbell.tests.screenshot.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)!
-        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let defaults = TestDefaults.make()
         defaults.set("stale frame", forKey: ScreenshotMode.windowFrameDefaultsKey)
         defaults.set(3, forKey: ScreenshotMode.selectedTabDefaultsKey)
 

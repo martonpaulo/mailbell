@@ -128,7 +128,7 @@ final class EmailStoreReadSubmissionTests: XCTestCase {
     private func makeStore() -> EmailStore {
         EmailStore(
             persistence: EmailStorePersistence(
-                userDefaults: UserDefaults(suiteName: "mailbell.tests.submission.\(UUID().uuidString)")!
+                userDefaults: TestDefaults.make()
             )
         )
     }

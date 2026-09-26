@@ -95,7 +95,7 @@ final class EmailStoreChronologyTests: XCTestCase {
     private func makeStore() -> EmailStore {
         EmailStore(
             persistence: EmailStorePersistence(
-                userDefaults: UserDefaults(suiteName: "mailbell.tests.chronology.\(UUID().uuidString)")!
+                userDefaults: TestDefaults.make()
             )
         )
     }

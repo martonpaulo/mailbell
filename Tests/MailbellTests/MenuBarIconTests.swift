@@ -62,9 +62,7 @@ final class MenuBarIconTests: XCTestCase {
     @MainActor
     func testSupervisorRaisesTheAlertIconWhenAnEnabledAccountNeedsSignIn() throws {
         let account = MailAccount(providerID: .gmail, email: "alert@example.com")
-        let suiteName = "mailbell.MenuBarIconTests.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
-        defaults.removePersistentDomain(forName: suiteName)
+        let defaults = TestDefaults.make()
         let store = AccountStore(userDefaults: defaults)
         try store.saveAccounts([account])
         let supervisor = AccountSupervisor(

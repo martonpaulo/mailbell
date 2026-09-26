@@ -185,9 +185,7 @@ final class MailMonitorReconciliationTests: XCTestCase {
 
     @MainActor
     private func makeStore() -> EmailStore {
-        let suiteName = "mailbell.MailMonitorReconciliationTests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)!
-        defaults.removePersistentDomain(forName: suiteName)
+        let defaults = TestDefaults.make()
         return EmailStore(persistence: EmailStorePersistence(userDefaults: defaults))
     }
 

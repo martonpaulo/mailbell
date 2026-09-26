@@ -52,8 +52,8 @@ app: ## Build the debug executable product
 run: app ## Run the debug executable (unbundled; notifications need 'make install')
 	@$(BUILD_DIR)/debug/$(PRODUCT)
 
-test: ## Run tests
-	@$(SWIFT) test
+test: ## Run tests; fails when a run leaks a test defaults suite into ~/Library/Preferences
+	@scripts/check-test-defaults-leak.sh $(SWIFT) test
 
 lint: ## Run SwiftLint
 	@$(SWIFTLINT) lint --quiet --strict Sources Tests
@@ -216,6 +216,9 @@ uninstall: ## Remove the installed app bundle
 # -- Maintenance --------------------------------------------------------------
 
 .PHONY: clean
+
+clean-test-defaults: ## List test preferences left in ~/Library/Preferences by older runs (DELETE=1 removes them)
+	@scripts/clean-test-defaults.sh $(if $(filter 1,$(DELETE)),--delete,)
 
 clean: ## Remove SwiftPM build artifacts
 	@$(SWIFT) package clean

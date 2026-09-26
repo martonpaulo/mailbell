@@ -14,9 +14,7 @@ enum EmailStoreFixture {
     }
 
     static func makeDefaults() -> UserDefaults {
-        let suiteName = "mailbell.EmailStoreTests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)!
-        defaults.removePersistentDomain(forName: suiteName)
+        let defaults = TestDefaults.make()
         return defaults
     }
 

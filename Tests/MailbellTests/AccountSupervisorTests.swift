@@ -151,9 +151,7 @@ final class AccountSupervisorTests: XCTestCase {
     @MainActor
     func testAccountSaveFailureDoesNotApplyEnabledStateChange() throws {
         let account = MailAccount(providerID: .gmail, email: "test@example.com")
-        let suiteName = "mailbell.AccountSupervisorTests.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
-        defaults.removePersistentDomain(forName: suiteName)
+        let defaults = TestDefaults.make()
         try AccountStore(userDefaults: defaults).saveAccounts([account])
         let failingStore = AccountStore(
             userDefaults: defaults,

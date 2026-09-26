@@ -119,9 +119,7 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
         emailReadMarker: @escaping EmailReadMarker
     ) -> (AccountSupervisor, MailAccount) {
         let account = MailAccount(providerID: .gmail, email: "bulk@example.com")
-        let suiteName = "mailbell.AccountSupervisorBulkActionsTests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)!
-        defaults.removePersistentDomain(forName: suiteName)
+        let defaults = TestDefaults.make()
         let store = AccountStore(userDefaults: defaults)
         do {
             try store.saveAccounts([account])

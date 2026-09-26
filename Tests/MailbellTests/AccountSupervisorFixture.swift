@@ -50,9 +50,7 @@ enum SupervisorFixture {
         webmailOpen: @escaping @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome = { _, _ in .opened },
         signInNeededNotifier: @escaping SignInNeededNotifier = { _ in }
     ) -> AccountSupervisor {
-        let suiteName = "mailbell.AccountSupervisorTests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)!
-        defaults.removePersistentDomain(forName: suiteName)
+        let defaults = TestDefaults.make()
         let store = AccountStore(userDefaults: defaults)
         do {
             try store.saveAccounts(accounts)
@@ -113,9 +111,7 @@ enum SupervisorFixture {
     }
 
     static func makeDefaults() -> UserDefaults {
-        let suiteName = "mailbell.AccountSupervisorTests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)!
-        defaults.removePersistentDomain(forName: suiteName)
+        let defaults = TestDefaults.make()
         return defaults
     }
 }
