@@ -25,6 +25,13 @@ SIGNATURE ?=
 # Sparkle's update window shows the release notes the site publishes.
 HOST := $(shell tr -d '[:space:]' < site/CNAME)
 
+# Local builds sign with a stable identity when the untracked .env names one, so the Keychain
+# tokens and the notification and login-item permissions survive a rebuild: macOS keys both on
+# the code signature, and an ad-hoc signature changes with every build (#82). Only this one
+# variable is read from .env; the shell wins when it sets it. Without it, builds stay ad-hoc.
+DEVELOPER_ID_IDENTITY ?= $(shell sed -n 's/^DEVELOPER_ID_IDENTITY=//p' .env 2>/dev/null | tr -d '"')
+export DEVELOPER_ID_IDENTITY
+
 APP_BUNDLE := /Applications/Mailbell.app
 LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
@@ -53,7 +60,7 @@ validate: ## Repository invariants and the static site (scripts/validate.sh)
 
 check: build lint test validate ## Everything a commit needs, stopping at the first failure
 
-app: ## build/Mailbell.app and its update zip, with the OAuth client (ad-hoc unless DEVELOPER_ID_IDENTITY; FORCE=1 replaces)
+app: ## build/Mailbell.app and its update zip, with the OAuth client (signed with DEVELOPER_ID_IDENTITY from the shell or .env, else ad-hoc; FORCE=1 replaces)
 	@scripts/package-with-oauth.sh $(FORCE_FLAG)
 
 dmg: app ## The branded DMG from build/Mailbell.app, with the committed art; needs Node 24 or older (FORCE=1 replaces)

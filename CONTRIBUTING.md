@@ -60,6 +60,7 @@ no:
   covered by Restore Defaults.
 - No private Apple APIs, no new dependencies, no polling while idle.
 - Never commit `.env`, credentials, tokens, or signing material.
+- Sign local builds with a stable identity: set `DEVELOPER_ID_IDENTITY` in `.env` to an identity from `security find-identity -v -p codesigning`. macOS ties Keychain items and the notification and login-item permissions to the code signature, and an ad-hoc signature changes with every build, so an ad-hoc `make install` can lose the Gmail sign-in or ask for permissions again. Releases are signed and notarized only by the tag workflow.
 - Update documentation when behavior changes.
 
 ## Reporting problems
