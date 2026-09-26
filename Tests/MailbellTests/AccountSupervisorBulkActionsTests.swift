@@ -37,6 +37,29 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
         XCTAssertTrue(supervisor.shownItems.isEmpty)
     }
 
+    /// The bulk submenu states the reach of every retained message, so the
+    /// action has to reach the conversations the menu has no room to show.
+    @MainActor
+    func testMarkAllAsReadReachesConversationsBeyondTheVisibleRows() async {
+        var markedIdentities: [IMAPMessageIdentity] = []
+        let (supervisor, account) = makeSupervisor(emailReadMarker: { _, _, identities in
+            markedIdentities.append(contentsOf: identities)
+        })
+        let conversations = ReviewQueueBudget.shownConversationsPerAccount + 5
+        _ = await supervisor.monitor(
+            account.id,
+            shouldNotify: (1...conversations).map { makeHeader(uid: $0, gmMessageId: "message-\($0)") }
+        )
+        XCTAssertEqual(supervisor.shownItems.count, ReviewQueueBudget.shownConversationsPerAccount)
+
+        let result = await supervisor.markAllAsRead()
+
+        XCTAssertEqual(result, .markedAllAsRead(count: conversations))
+        XCTAssertEqual(markedIdentities.count, conversations)
+        XCTAssertEqual(supervisor.hiddenConversationCount(accountID: account.id), 0)
+        XCTAssertTrue(supervisor.shownItems.isEmpty)
+    }
+
     @MainActor
     func testMarkAllAsReadKeepsItemsWhenTheServerCallFails() async {
         let (supervisor, account) = makeSupervisor(emailReadMarker: { _, _, _ in

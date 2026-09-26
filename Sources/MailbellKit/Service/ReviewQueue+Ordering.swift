@@ -21,6 +21,12 @@ extension ReviewQueue {
         }
     }
 
+    /// One representative per retained conversation, including the ones the
+    /// menu has no room to show. This is what a bulk action reaches.
+    public var retainedConversations: [ReviewItem] {
+        groupedItems()
+    }
+
     func groupedItems() -> [ReviewItem] {
         var firstItemsByConversationID: [String: ReviewItem] = [:]
         for item in itemsByID.values {

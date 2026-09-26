@@ -27,17 +27,18 @@ extension AccountSupervisor {
         }
     }
 
-    /// True when at least one pending group carries an IMAP UID, which is what
+    /// True when at least one retained group carries an IMAP UID, which is what
     /// the server-side `UID STORE` needs.
     var canMarkAllAsRead: Bool {
-        shownItems.contains(where: \.canMarkAsRead)
+        reviewQueue.retainedConversations.contains(where: \.canMarkAsRead)
     }
 
-    /// Marks every pending group as read on the server, one authenticated IMAP
-    /// session per account, then removes the groups locally. Publishes once.
+    /// Marks every retained group as read on the server, including the ones
+    /// beyond the visible rows, one authenticated IMAP session per account, then
+    /// removes the groups locally. Publishes once.
     @discardableResult
     func markAllAsRead() async -> BulkActionResult {
-        let groups = shownItems
+        let groups = reviewQueue.retainedConversations
         guard !groups.isEmpty else { return .nothingPending }
 
         var marked = 0
