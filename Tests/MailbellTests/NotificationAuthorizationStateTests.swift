@@ -2,6 +2,7 @@
 import UserNotifications
 import XCTest
 
+@MainActor
 final class NotificationAuthorizationStateTests: XCTestCase {
     func testUnbundledStateCannotPostAlerts() {
         XCTAssertFalse(NotificationAuthorizationState.unbundled.canPostAlert)

@@ -1,6 +1,7 @@
 import Foundation
 
-enum EmailHeaderFormatter {
+// Nonisolated: a pure helper called by IMAPClient inside MailMonitor run tasks.
+nonisolated enum EmailHeaderFormatter {
     private static let spamTitlePrefix = "(SPAM)"
     private static let maximumTitleLength = 160
 
@@ -192,7 +193,8 @@ enum EmailHeaderFormatter {
     }
 }
 
-private extension StringProtocol {
+// Nonisolated: a pure helper of EmailHeaderFormatter.
+private nonisolated extension StringProtocol {
     func trimmingMatchingQuotes() -> String {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= 2,
@@ -208,7 +210,8 @@ private extension StringProtocol {
     }
 }
 
-private extension String {
+// Nonisolated: a pure helper of EmailHeaderFormatter.
+private nonisolated extension String {
     var nilIfEmpty: String? {
         isEmpty ? nil : self
     }

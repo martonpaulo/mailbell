@@ -1,6 +1,7 @@
 import Foundation
 
-enum EmailBodyPreviewSanitizer {
+// Nonisolated: a pure helper called by IMAPClient inside MailMonitor run tasks.
+nonisolated enum EmailBodyPreviewSanitizer {
     static let maximumPreviewLength = 240
     private static let maximumLineLength = 80
     private static let maximumLineCount = 3

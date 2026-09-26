@@ -8,7 +8,9 @@ import Foundation
 /// A run is padding; a single joiner is language. One ZWJ between pictographs
 /// builds an emoji, and one ZWNJ between letters is meaningful in Persian and
 /// the Indic scripts, so only runs are removed.
-enum PreviewNoiseNormalizer {
+///
+/// Nonisolated: a pure helper called by IMAPClient inside MailMonitor run tasks.
+nonisolated enum PreviewNoiseNormalizer {
     /// Format and zero-width characters used as padding, plus the fixed-width
     /// spaces that behave the same way.
     private static let invisibleScalars: Set<Unicode.Scalar> = [

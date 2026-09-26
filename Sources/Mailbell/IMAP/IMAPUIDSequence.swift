@@ -3,7 +3,9 @@ import Foundation
 /// Turning a set of UIDs into IMAP sequence sets, and splitting them into
 /// commands a server will accept. Pure formatting, kept out of the client so
 /// the client is about the conversation rather than its punctuation.
-enum IMAPUIDSequence {
+///
+/// Nonisolated: a pure helper called by IMAPClient inside MailMonitor run tasks.
+nonisolated enum IMAPUIDSequence {
     /// Gmail rejects very long command lines, so a bulk action is split by both
     /// UID count and rendered length rather than sent as one command.
     static let maximumUIDsPerCommand = 100

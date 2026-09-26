@@ -2,6 +2,22 @@
 import XCTest
 
 final class AccountSupervisorTests: XCTestCase {
+    /// NWPathMonitor calls the path handler on `pathQueue`. Were it main-actor
+    /// isolated, Swift 6's executor check would trap there.
+    func testPathStatusFromABackgroundThreadReachesTheMainActor() async {
+        let delivered = expectation(description: "path status delivered")
+
+        Thread.detachNewThread {
+            AccountSupervisor.reportPathStatus(satisfied: true) { satisfied in
+                MainActor.assertIsolated()
+                XCTAssertTrue(satisfied)
+                delivered.fulfill()
+            }
+        }
+
+        await fulfillment(of: [delivered], timeout: 5)
+    }
+
     @MainActor
     func testConnectedStatusClearsPreviousAccountError() async {
         let (supervisor, account) = SupervisorFixture.makeSupervisor()

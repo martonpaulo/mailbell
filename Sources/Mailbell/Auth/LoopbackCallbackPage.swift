@@ -1,6 +1,7 @@
 import Foundation
 
-enum LoopbackCallbackPage {
+// Nonisolated: rendered by the FlyingFox handler on the loopback server task.
+nonisolated enum LoopbackCallbackPage {
     enum State {
         case success
         case error(ErrorReason)
@@ -40,7 +41,8 @@ enum LoopbackCallbackPage {
     }
 }
 
-private struct CallbackPageContent {
+// Nonisolated: built by LoopbackCallbackPage on the loopback server task.
+private nonisolated struct CallbackPageContent {
     let stateClass: String
     let eyebrow: String
     let title: String
@@ -84,7 +86,8 @@ private struct CallbackPageContent {
     }
 }
 
-private extension LoopbackCallbackPage.ErrorReason {
+// Nonisolated: read by LoopbackCallbackPage on the loopback server task.
+private nonisolated extension LoopbackCallbackPage.ErrorReason {
     var detailsHTML: String {
         """
         <div class="details" role="note" aria-label="What happened">
@@ -167,7 +170,8 @@ private extension LoopbackCallbackPage.ErrorReason {
     }
 }
 
-private let callbackPageTemplate = """
+// Nonisolated: read by LoopbackCallbackPage on the loopback server task.
+private nonisolated let callbackPageTemplate = """
 <!doctype html>
 <html lang="en" data-state="{{stateClass}}">
 <head>
@@ -446,10 +450,11 @@ h1 {
 </html>
 """
 
-private let callbackPageIconDataURI = "data:image/png;base64,"
+// Nonisolated: read by LoopbackCallbackPage on the loopback server task.
+private nonisolated let callbackPageIconDataURI = "data:image/png;base64,"
     + callbackPageIconBase64.replacingOccurrences(of: "\n", with: "")
 
-private let callbackPageIconBase64 = """
+private nonisolated let callbackPageIconBase64 = """
 iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3Cc
 ulE8AAAARGVYSWZNTQAqAAAACAABh2kABAAAAAEAAAAaAAAAAAADoAEAAwAAAAEAAQAAoAIABAAAAAEAAACAoAMABAAAAAEAAACAAAAAAEiOBHcAACQ+SURB
 VHgB7X0LkBzHeV7PPu727vA4AMSLBAHwZYoiLZMKxUjlMuFEiVR2pJSZiLHzsqPIcqJKyYmUyHrQsiiXKipXOU7KUqykZDNKQlsWaUaiLZkyJcuUXZIYkqZI

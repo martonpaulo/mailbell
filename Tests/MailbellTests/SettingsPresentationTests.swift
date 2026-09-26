@@ -1,6 +1,7 @@
 @testable import Mailbell
 import XCTest
 
+@MainActor
 final class SettingsPresentationTests: XCTestCase {
     // MARK: - System Settings destinations (#31)
 

@@ -1,7 +1,8 @@
 import AppKit
 import Foundation
 
-final class NotificationObserverToken: @unchecked Sendable {
+// Nonisolated: a lock-guarded token that may be removed from any thread.
+nonisolated final class NotificationObserverToken: @unchecked Sendable {
     private let lock = NSLock()
     private var token: NSObjectProtocol?
 

@@ -1,6 +1,7 @@
 @testable import Mailbell
 import XCTest
 
+@MainActor
 final class AccountPresentationTests: XCTestCase {
     // MARK: - Retained window disclosure (#27)
 

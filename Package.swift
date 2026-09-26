@@ -1,6 +1,11 @@
 // swift-tools-version:6.2
 import PackageDescription
 
+let swiftSettings: [SwiftSetting] = [
+    .swiftLanguageMode(.v6),
+    .treatAllWarnings(as: .error)
+]
+
 let package = Package(
     name: "Mailbell",
     platforms: [
@@ -23,6 +28,7 @@ let package = Package(
                 .product(name: "Sparkle", package: "Sparkle")
             ],
             path: "Sources/Mailbell",
+            swiftSettings: swiftSettings + [.defaultIsolation(MainActor.self)],
             linkerSettings: [
                 // The packaged .app embeds Sparkle.framework in Contents/Frameworks.
                 .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])
@@ -31,7 +37,8 @@ let package = Package(
         .testTarget(
             name: "MailbellTests",
             dependencies: ["Mailbell"],
-            path: "Tests/MailbellTests"
+            path: "Tests/MailbellTests",
+            swiftSettings: swiftSettings
         )
     ]
 )

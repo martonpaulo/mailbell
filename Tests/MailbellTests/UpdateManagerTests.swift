@@ -1,6 +1,7 @@
 @testable import Mailbell
 import XCTest
 
+@MainActor
 final class UpdateManagerTests: XCTestCase {
     func testBundleIsUpdatableOnlyWithBothHalvesOfTheSparkleContract() {
         let feed = "https://raw.githubusercontent.com/martonpaulo/mailbell/main/appcast.xml"

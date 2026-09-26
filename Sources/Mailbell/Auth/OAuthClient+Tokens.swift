@@ -3,7 +3,9 @@ import Foundation
 /// Exchanging an authorization code, refreshing, and reading back the signed-in
 /// address. Separate from the interactive sign-in that produces the code, and
 /// from the PKCE material that protects it.
-extension OAuthClient {
+///
+/// Nonisolated: token refresh runs inside MailMonitor run tasks.
+nonisolated extension OAuthClient {
     func exchangeCode(_ code: String, verifier: String, redirectURI: String) async throws -> GoogleTokens {
         let form = tokenForm([
             "client_id": config.clientID,

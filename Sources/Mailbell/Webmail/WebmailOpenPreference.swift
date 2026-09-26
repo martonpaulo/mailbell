@@ -1,11 +1,13 @@
 import Foundation
 
-struct WebmailOpenPreference: Codable, Equatable {
+// Nonisolated: stored in MailAccount, which crosses into MailMonitor run tasks.
+nonisolated struct WebmailOpenPreference: Codable, Equatable {
     var browser: BrowserSelection
     var chromeProfileDirectory: String?
 }
 
-enum BrowserSelection: Codable, Equatable {
+// Nonisolated: stored in MailAccount, which crosses into MailMonitor run tasks.
+nonisolated enum BrowserSelection: Codable, Equatable {
     case systemDefault
     case application(bundleIdentifier: String, appPath: String)
 
@@ -64,7 +66,8 @@ struct BrowserCandidate: Identifiable, Equatable {
     )
 }
 
-struct ChromeProfileCandidate: Identifiable, Equatable {
+// Nonisolated: returned from ChromeProfileStore's detached task.
+nonisolated struct ChromeProfileCandidate: Identifiable, Equatable {
     let directory: String
     let displayName: String
     let userName: String?

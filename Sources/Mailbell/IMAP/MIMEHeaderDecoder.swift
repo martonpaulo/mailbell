@@ -2,7 +2,9 @@ import Foundation
 
 /// Best-effort RFC 2047 decoder for encoded-words in headers, e.g.
 /// `=?UTF-8?B?...?=` and `=?UTF-8?Q?...?=`. Falls back to the raw text.
-enum MIMEHeaderDecoder {
+///
+/// Nonisolated: a pure helper called by IMAPClient inside MailMonitor run tasks.
+nonisolated enum MIMEHeaderDecoder {
     static func decode(_ input: String) -> String {
         guard input.contains("=?") else { return input }
 

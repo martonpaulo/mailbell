@@ -114,7 +114,9 @@ enum ScreenshotMode {
 
     /// stdout is a pipe when a script drives this, so buffered output would hold
     /// the readiness marker until exit; FileHandle writes the descriptor directly.
-    static func emitLine(_ line: String) {
+    ///
+    /// Nonisolated: the default for `emit`, a plain function type that cannot carry the main actor.
+    nonisolated static func emitLine(_ line: String) {
         FileHandle.standardOutput.write(Data((line + "\n").utf8))
     }
 

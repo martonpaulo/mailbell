@@ -8,7 +8,9 @@ import Foundation
 ///
 /// Detection is by CSS *syntax*, never vocabulary: prose that happens to
 /// mention body, style, or font-family is left alone.
-enum StylesheetPreviewArtifactRemover {
+///
+/// Nonisolated: a pure helper called by IMAPClient inside MailMonitor run tasks.
+nonisolated enum StylesheetPreviewArtifactRemover {
     private static let ruleBlockPattern = #"(?s)[^{}<>;]{1,240}\{[^{}<>]*\}"#
     private static let declarationPattern = #"(?i)[-a-z]+\s*:\s*[^;{}]+"#
     private static let orphanBracePattern = #"(?m)^\s*[}{]\s*$"#

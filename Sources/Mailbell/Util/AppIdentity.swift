@@ -1,6 +1,7 @@
 import Foundation
 
-enum AppIdentity {
+// Nonisolated: read by Log, Keychain and queue labels on any thread.
+nonisolated enum AppIdentity {
     private static let localBundleIdentifier = "dev.mailbell.local"
 
     static var bundleIdentifier: String {

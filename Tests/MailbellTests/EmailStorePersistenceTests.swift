@@ -3,6 +3,7 @@ import XCTest
 
 /// Handled history: what survives a relaunch, what gets pruned, and what
 /// happens when the saved payload cannot be read or written.
+@MainActor
 final class EmailStorePersistenceTests: XCTestCase {
     func testHandledPersistencePrunesToBoundedRecentSet() throws {
         let defaults = EmailStoreFixture.makeDefaults()

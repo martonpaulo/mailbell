@@ -3,7 +3,9 @@ import Foundation
 /// The bounded reads: unread UID search, minimal headers, and a capped
 /// non-mutating body preview. Every fetch here is deliberately small — this is
 /// where Mailbell's data-minimisation contract is actually enforced.
-extension IMAPClient {
+///
+/// Nonisolated: fetches run inside MailMonitor run tasks.
+nonisolated extension IMAPClient {
     func fetchHeaders(uids: [Int]) async throws -> [MessageHeader] {
         var headers: [MessageHeader] = []
         for batch in IMAPUIDSequence.uidFetchBatches(for: uids) {

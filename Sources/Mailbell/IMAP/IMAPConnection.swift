@@ -6,7 +6,9 @@ import Network
 /// Provides `readLine` for CRLF-terminated protocol lines and `readBytes` for
 /// IMAP literals (`{n}`). All reads are fed from a single buffer that is topped
 /// up from the network as needed.
-final class IMAPConnection: IMAPClientTransport, @unchecked Sendable {
+///
+/// Nonisolated: its NWConnection calls back on the private `queue`.
+nonisolated final class IMAPConnection: IMAPClientTransport, @unchecked Sendable {
     enum ConnectionError: Error {
         case notReady(String)
         case closed
@@ -98,18 +100,29 @@ final class IMAPConnection: IMAPClientTransport, @unchecked Sendable {
 
     private func fill() async throws {
         let data = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Data, Error>) in
-            connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { data, _, isComplete, error in
-                if let error {
-                    cont.resume(throwing: error)
-                } else if let data, !data.isEmpty {
-                    cont.resume(returning: data)
-                } else if isComplete {
-                    cont.resume(throwing: ConnectionError.closed)
-                } else {
-                    cont.resume(returning: Data())
-                }
-            }
+            connection.receive(
+                minimumIncompleteLength: 1,
+                maximumLength: 65536,
+                completion: Self.receiveCompletion(resuming: cont)
+            )
         }
         buffer.append(data)
+    }
+
+    /// The completion NWConnection calls on `queue` with the next chunk.
+    static func receiveCompletion(
+        resuming cont: CheckedContinuation<Data, Error>
+    ) -> @Sendable (Data?, NWConnection.ContentContext?, Bool, NWError?) -> Void {
+        { data, _, isComplete, error in
+            if let error {
+                cont.resume(throwing: error)
+            } else if let data, !data.isEmpty {
+                cont.resume(returning: data)
+            } else if isComplete {
+                cont.resume(throwing: ConnectionError.closed)
+            } else {
+                cont.resume(returning: Data())
+            }
+        }
     }
 }

@@ -1,7 +1,8 @@
 import Foundation
 import os
 
-enum Log {
+// Nonisolated: logged from every queue and task.
+nonisolated enum Log {
     private static let logger = os.Logger(subsystem: AppIdentity.bundleIdentifier, category: "app")
     private static let sensitivePatterns: [(pattern: String, replacement: String)] = [
         (

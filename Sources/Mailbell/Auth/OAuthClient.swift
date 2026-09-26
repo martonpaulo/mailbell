@@ -4,7 +4,9 @@ import Foundation
 
 /// Implements Google's installed-app OAuth flow with PKCE over a loopback redirect.
 /// Also handles access-token refresh and fetching the account email.
-final class OAuthClient {
+///
+/// Nonisolated: refreshes inside MailMonitor run tasks; only openBrowser hops to the main actor.
+nonisolated final class OAuthClient {
     enum OAuthError: Error, Equatable, LocalizedError {
         case browserOpenFailed
         case authorizationDenied(String)
@@ -141,7 +143,8 @@ final class OAuthClient {
     }
 }
 
-extension Data {
+// Nonisolated: a pure helper used by OAuthClient off the main actor.
+nonisolated extension Data {
     func base64URLEncodedString() -> String {
         base64EncodedString()
             .replacingOccurrences(of: "+", with: "-")

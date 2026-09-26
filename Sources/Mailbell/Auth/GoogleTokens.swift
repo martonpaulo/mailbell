@@ -1,7 +1,9 @@
 import Foundation
 
 /// OAuth token material returned by Google's token endpoint.
-struct GoogleTokens: Codable {
+///
+/// Nonisolated: decoded and saved inside MailMonitor run tasks.
+nonisolated struct GoogleTokens: Codable {
     var accessToken: String
     var refreshToken: String?
     var expiresAt: Date
@@ -13,7 +15,9 @@ struct GoogleTokens: Codable {
 }
 
 /// Raw shape of Google's token endpoint response.
-struct TokenResponse: Decodable {
+///
+/// Nonisolated: decoded inside the URLSession task that refreshes a token.
+nonisolated struct TokenResponse: Decodable {
     let accessToken: String
     let expiresIn: Int
     let refreshToken: String?

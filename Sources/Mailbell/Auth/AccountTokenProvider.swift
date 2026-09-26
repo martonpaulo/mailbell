@@ -1,6 +1,7 @@
 import Foundation
 
-final class AccountTokenProvider {
+// Nonisolated: refreshes tokens inside MailMonitor run tasks and the read-marker task.
+nonisolated final class AccountTokenProvider {
     private let store: TokenStore
     private let oauth: OAuthClient
 

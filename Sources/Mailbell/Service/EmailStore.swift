@@ -31,7 +31,8 @@ struct EmailStoreItem: Identifiable, Equatable {
     }
 }
 
-enum EmailStoreIdentity {
+// Nonisolated: a pure helper of NotificationManager's nonisolated builders.
+nonisolated enum EmailStoreIdentity {
     static func id(accountID: UUID, header: MessageHeader) -> String {
         let source = source(for: header)
         return "\(accountPrefix(accountID: accountID))\(source.kind).\(source.value)"

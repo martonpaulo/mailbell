@@ -1,6 +1,7 @@
 import Foundation
 
-enum IMAPParser {
+// Nonisolated: a pure helper called by IMAPClient inside MailMonitor run tasks.
+nonisolated enum IMAPParser {
     /// A server may place FETCH attributes on either side of the header
     /// literal, so both protocol lines are read. The header bytes are never
     /// searched for attributes: text inside a message must not be able to

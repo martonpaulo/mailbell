@@ -1,6 +1,7 @@
 import Foundation
 
-enum MessageMailbox: String, Equatable {
+// Nonisolated: IMAP values cross from MailMonitor run tasks to the main actor.
+nonisolated enum MessageMailbox: String, Equatable {
     case inbox
     case spam
 
@@ -18,7 +19,9 @@ enum MessageMailbox: String, Equatable {
 /// and UID together. A UID alone is not an identity: once the generation
 /// changes the server may reuse the number for a different message, and an
 /// action prepared under the old generation would mutate the wrong mail.
-struct IMAPMessageIdentity: Equatable, Hashable {
+///
+/// Nonisolated: IMAP values cross from MailMonitor run tasks to the main actor.
+nonisolated struct IMAPMessageIdentity: Equatable, Hashable {
     let uid: Int
     let mailboxName: String
     let uidValidity: Int
@@ -33,7 +36,9 @@ struct IMAPMessageIdentity: Equatable, Hashable {
 }
 
 /// A minimal message header set, just enough to render a notification.
-struct MessageHeader: Identifiable, Equatable {
+///
+/// Nonisolated: IMAP values cross from MailMonitor run tasks to the main actor.
+nonisolated struct MessageHeader: Identifiable, Equatable {
     let uid: Int
     let mailbox: MessageMailbox
     let mailboxName: String
@@ -135,7 +140,9 @@ struct MessageHeader: Identifiable, Equatable {
 }
 
 /// Result of selecting a mailbox; the checkpoint for gap-fill on reconnect.
-struct MailboxState {
+///
+/// Nonisolated: parsed by IMAPClient inside MailMonitor run tasks.
+nonisolated struct MailboxState {
     var uidValidity: Int
     var uidNext: Int
     var exists: Int

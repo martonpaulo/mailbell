@@ -1,11 +1,13 @@
 import Foundation
 
-struct ProviderCapabilities: Equatable {
+// Nonisolated: read by NotificationManager's nonisolated builders.
+nonisolated struct ProviderCapabilities: Equatable {
     var supportsIdle: Bool
     var supportsThreadLink: Bool
 }
 
-protocol MailProvider {
+// Nonisolated: read by NotificationManager's nonisolated builders.
+nonisolated protocol MailProvider {
     var id: MailProviderID { get }
     var displayName: String { get }
     var capabilities: ProviderCapabilities { get }
@@ -15,7 +17,8 @@ protocol MailProvider {
     func webmailURL(for header: MessageHeader, account: MailAccount?) -> URL
 }
 
-struct GmailProvider: MailProvider {
+// Nonisolated: read by NotificationManager's nonisolated builders.
+nonisolated struct GmailProvider: MailProvider {
     let id: MailProviderID = .gmail
     var displayName: String {
         id.displayName
@@ -43,7 +46,8 @@ struct GmailProvider: MailProvider {
     }
 }
 
-enum MailProviderRegistry {
+// Nonisolated: read by NotificationManager's nonisolated builders.
+nonisolated enum MailProviderRegistry {
     static func provider(for id: MailProviderID) -> MailProvider {
         switch id {
         case .gmail:

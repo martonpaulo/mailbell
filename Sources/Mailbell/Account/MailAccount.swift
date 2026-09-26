@@ -1,6 +1,7 @@
 import Foundation
 
-enum MailProviderID: String, Codable, CaseIterable {
+// Nonisolated: read inside MailMonitor run tasks as well as on the main actor.
+nonisolated enum MailProviderID: String, Codable, CaseIterable {
     case gmail
 
     var displayName: String {
@@ -11,7 +12,8 @@ enum MailProviderID: String, Codable, CaseIterable {
     }
 }
 
-struct MailAccount: Identifiable, Codable, Equatable {
+// Nonisolated: handed to MailMonitor run tasks and the read-marker task.
+nonisolated struct MailAccount: Identifiable, Codable, Equatable {
     let id: UUID
     var providerID: MailProviderID
     var email: String

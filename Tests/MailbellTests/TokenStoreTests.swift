@@ -1,4 +1,5 @@
 @testable import Mailbell
+import Synchronization
 import XCTest
 
 final class TokenStoreTests: XCTestCase {
@@ -97,8 +98,43 @@ final class TokenStoreTests: XCTestCase {
         }
     }
 
+    /// `KeychainClient.live` is built the same way from `Keychain`, and its
+    /// closures run inside MailMonitor run tasks. Were they main-actor
+    /// isolated, Swift 6's executor check would trap off the main thread.
+    func testKeychainClientClosuresRunFromABackgroundThread() async {
+        let client = KeychainClient(backend: StubKeychainBackend.self)
+
+        let read: String? = await withCheckedContinuation { continuation in
+            Thread.detachNewThread {
+                try? client.set("refresh-token", "background")
+                let value = try? client.get("background")
+                client.delete("background")
+                continuation.resume(returning: value ?? nil)
+            }
+        }
+
+        XCTAssertEqual(read, "refresh-token")
+        XCTAssertNil(try StubKeychainBackend.get(account: "background"))
+    }
+
     private static func sessionAccount(_ accountID: UUID) -> String {
         "mailbell.account.\(accountID.uuidString).gmail.session"
+    }
+}
+
+private enum StubKeychainBackend: KeychainBackend {
+    static let values = Mutex<[String: String]>([:])
+
+    static func set(_ value: String, account: String) throws {
+        values.withLock { $0[account] = value }
+    }
+
+    static func get(account: String) throws -> String? {
+        values.withLock { $0[account] }
+    }
+
+    static func delete(account: String) {
+        _ = values.withLock { $0.removeValue(forKey: account) }
     }
 }
 

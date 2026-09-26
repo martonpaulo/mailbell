@@ -1,6 +1,7 @@
 import Foundation
 
-struct OAuthConfig {
+// Nonisolated: carried into MailMonitor run tasks and the read-marker task.
+nonisolated struct OAuthConfig {
     let clientID: String
     let clientSecret: String?
 
@@ -104,7 +105,8 @@ struct OAuthConfig {
     }
 }
 
-enum OAuthConfigIssue: Error, Equatable, LocalizedError {
+// Nonisolated: thrown by OAuthConfig, which loads off the main actor too.
+nonisolated enum OAuthConfigIssue: Error, Equatable, LocalizedError {
     case missingCredentials
     case invalidClientID
     case invalidCredentials
@@ -124,7 +126,8 @@ enum OAuthConfigIssue: Error, Equatable, LocalizedError {
     }
 }
 
-private extension String {
+// Nonisolated: a pure helper used by OAuthConfig.
+private nonisolated extension String {
     func strippingMatchingQuotes() -> String {
         guard count >= 2,
               let first,

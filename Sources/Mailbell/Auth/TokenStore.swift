@@ -1,15 +1,32 @@
 import Foundation
 
-struct KeychainClient {
+// Nonisolated: its closures run inside MailMonitor run tasks.
+nonisolated struct KeychainClient {
     let set: @Sendable (_ value: String, _ account: String) throws -> Void
     let get: @Sendable (_ account: String) throws -> String?
     let delete: @Sendable (_ account: String) -> Void
 
-    static let live = KeychainClient(
-        set: { value, account in try Keychain.set(value, account: account) },
-        get: { account in try Keychain.get(account: account) },
-        delete: { account in Keychain.delete(account: account) }
-    )
+    static let live = KeychainClient(backend: Keychain.self)
+}
+
+/// The static Keychain API `KeychainClient` forwards to. `Keychain` is the
+/// production backend; a test passes a stub to reach the same closures.
+nonisolated protocol KeychainBackend: SendableMetatype {
+    static func set(_ value: String, account: String) throws
+    static func get(account: String) throws -> String?
+    static func delete(account: String)
+}
+
+nonisolated extension Keychain: KeychainBackend {}
+
+nonisolated extension KeychainClient {
+    init<Backend: KeychainBackend>(backend _: Backend.Type) {
+        self.init(
+            set: { value, account in try Backend.set(value, account: account) },
+            get: { account in try Backend.get(account: account) },
+            delete: { account in Backend.delete(account: account) }
+        )
+    }
 }
 
 /// Persists one account's OAuth session.
@@ -17,7 +34,9 @@ struct KeychainClient {
 /// - The refresh token lives in the Keychain as part of one account-scoped session item.
 /// - The short-lived access token and expiry are cached in that same item so a
 ///   relaunch can reuse a still-valid access token without extra Keychain prompts.
-final class TokenStore {
+///
+/// Nonisolated: loads and saves tokens inside MailMonitor run tasks.
+nonisolated final class TokenStore {
     enum TokenStoreError: Error, LocalizedError {
         case decodingFailed
         case encodingFailed

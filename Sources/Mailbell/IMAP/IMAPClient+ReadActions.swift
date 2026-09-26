@@ -2,7 +2,9 @@ import Foundation
 
 /// The one place Mailbell mutates a mailbox, and the generation guard that
 /// keeps it from mutating the wrong one.
-extension IMAPClient {
+///
+/// Nonisolated: read actions run inside the read-marker task.
+nonisolated extension IMAPClient {
     func markAsRead(uid: Int, requiringUIDValidity: Int) async throws {
         guard uid > 0 else { throw IMAPError.invalidUID(uid) }
         try await markAsRead(uids: [uid], requiringUIDValidity: requiringUIDValidity)

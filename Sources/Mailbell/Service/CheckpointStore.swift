@@ -1,6 +1,7 @@
 import Foundation
 
-struct CheckpointStore {
+// Nonisolated: moved inside MailMonitor run tasks.
+nonisolated struct CheckpointStore {
     private let userDefaults: UserDefaults
     private let uidValidityKey: String
     private let lastUIDKey: String

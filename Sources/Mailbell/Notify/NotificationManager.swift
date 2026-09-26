@@ -2,13 +2,15 @@ import AppKit
 import Foundation
 import UserNotifications
 
-let notificationWebmailURLKey = "webmailURL"
-let notificationAccountIDKey = "accountID"
-let notificationEmailIDKey = "emailID"
-let notificationEmailCategoryIdentifier = "mailbell.email"
-let notificationDismissActionIdentifier = "MAILBELL_DISMISS_EMAIL"
+// Nonisolated: read by the notification-center delegate callbacks off the main actor.
+nonisolated let notificationWebmailURLKey = "webmailURL"
+nonisolated let notificationAccountIDKey = "accountID"
+nonisolated let notificationEmailIDKey = "emailID"
+nonisolated let notificationEmailCategoryIdentifier = "mailbell.email"
+nonisolated let notificationDismissActionIdentifier = "MAILBELL_DISMISS_EMAIL"
 
-enum EmailNotificationResponseAction: Equatable {
+// Nonisolated: decided in the notification-center delegate callback off the main actor.
+nonisolated enum EmailNotificationResponseAction: Equatable {
     case open(emailID: String?, accountID: UUID?, url: URL)
     case dismiss(emailID: String?)
 }

@@ -1,6 +1,7 @@
 import Foundation
 
-protocol MailMonitorDelegate: AnyObject {
+// Nonisolated: MailMonitor calls it from its run tasks; conformers hop to the main actor.
+nonisolated protocol MailMonitorDelegate: AnyObject {
     func monitor(
         _ accountID: UUID,
         uidsToSkipFor mailbox: MessageMailbox,
@@ -17,7 +18,8 @@ protocol MailMonitorDelegate: AnyObject {
     func monitor(_ accountID: UUID, didNotify header: MessageHeader, result: NotificationPostResult)
 }
 
-protocol AccountMonitoring: AnyObject {
+// Nonisolated: MailMonitor conforms and runs off the main actor.
+nonisolated protocol AccountMonitoring: AnyObject {
     var delegate: MailMonitorDelegate? { get set }
     var account: MailAccount { get }
     var hasSession: Bool { get }
@@ -33,7 +35,9 @@ protocol AccountMonitoring: AnyObject {
 
 /// Runs one account's IMAP connection state machine:
 /// token refresh, IMAP connect/select/IDLE, gap-fill on reconnect, and token revocation.
-final class MailMonitor: AccountMonitoring, @unchecked Sendable {
+///
+/// Nonisolated: `start()` runs the IMAP loop in an unstructured task off the main actor.
+nonisolated final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     struct NotificationPlan: Equatable {
         let admissionBatches: [[Int]]
         let uidsToNotify: [Int]
@@ -373,12 +377,14 @@ final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     }
 }
 
-struct MonitoredMailbox: Equatable {
+// Nonisolated: built inside MailMonitor run tasks.
+nonisolated struct MonitoredMailbox: Equatable {
     let role: MessageMailbox
     let name: String
 }
 
-struct MailboxUnreadSnapshot: Equatable {
+// Nonisolated: crosses from MailMonitor run tasks to the main actor.
+nonisolated struct MailboxUnreadSnapshot: Equatable {
     let mailbox: MessageMailbox
     let mailboxName: String
     /// The generation the snapshot was taken under. Pending items captured

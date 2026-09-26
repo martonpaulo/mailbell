@@ -1,4 +1,5 @@
-extension MonitorStatus {
+// Nonisolated: MonitorStatus is published from MailMonitor run tasks.
+nonisolated extension MonitorStatus {
     var clearsLastError: Bool {
         switch self {
         case .signedOut, .connected:

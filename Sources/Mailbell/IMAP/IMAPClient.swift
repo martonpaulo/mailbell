@@ -1,6 +1,7 @@
 import Foundation
 
-protocol IMAPClientTransport: Sendable {
+// Nonisolated: IMAPClient drives it from MailMonitor run tasks.
+nonisolated protocol IMAPClientTransport: Sendable {
     func connect() async throws
     func cancel()
     func send(_ line: String) async throws
@@ -11,7 +12,9 @@ protocol IMAPClientTransport: Sendable {
 
 /// High-level Gmail IMAP client: XOAUTH2 auth, mailbox select, IDLE, and header
 /// fetch. Built on top of the line-oriented `IMAPConnection`.
-final class IMAPClient {
+///
+/// Nonisolated: runs inside MailMonitor run tasks and the read-marker task.
+nonisolated final class IMAPClient {
     enum IMAPError: Error, LocalizedError {
         case authFailed(String)
         case selectFailed(String)

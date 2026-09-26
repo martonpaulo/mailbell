@@ -1,6 +1,7 @@
 import Foundation
 
-enum IMAPMessageReadMarker {
+// Nonisolated: its IMAP session runs on the task that awaits it, off the main actor.
+nonisolated enum IMAPMessageReadMarker {
     /// Marks every identity as read over a single authenticated IMAP session,
     /// selecting each mailbox once. Bulk actions must never open one connection
     /// per message.

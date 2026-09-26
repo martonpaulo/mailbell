@@ -1,6 +1,7 @@
 import Foundation
 
-enum MonitorStatus: Equatable {
+// Nonisolated: published from MailMonitor run tasks to the main actor.
+nonisolated enum MonitorStatus: Equatable {
     case signedOut
     case connecting
     case connected

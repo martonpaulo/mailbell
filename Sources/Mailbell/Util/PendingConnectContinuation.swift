@@ -8,7 +8,9 @@ import Foundation
 /// finish the attempt itself, so a cancelled connect fails instead of hanging —
 /// and the nil-out under the lock is what guarantees exactly one resume when
 /// two of those outcomes race.
-final class PendingConnectContinuation: @unchecked Sendable {
+///
+/// Nonisolated: finished from IMAPConnection's NWConnection queue.
+nonisolated final class PendingConnectContinuation: @unchecked Sendable {
     private let lock = NSLock()
     private var continuation: CheckedContinuation<Void, Error>?
 

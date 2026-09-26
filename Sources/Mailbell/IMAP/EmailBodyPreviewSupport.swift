@@ -1,7 +1,8 @@
 import Foundation
 import SwiftSoup
 
-enum PreviewTokenReplacer {
+// Nonisolated: a pure helper called by IMAPClient inside MailMonitor run tasks.
+nonisolated enum PreviewTokenReplacer {
     static func replaceTokens(
         in text: String,
         urlMarker: String,
@@ -36,7 +37,8 @@ enum PreviewTokenReplacer {
     }
 }
 
-enum MIMEBodyPreviewNormalizer {
+// Nonisolated: a pure helper called by IMAPClient inside MailMonitor run tasks.
+nonisolated enum MIMEBodyPreviewNormalizer {
     static func replaceNonTextParts(
         from rawText: String,
         imageMarker: String,
@@ -138,7 +140,8 @@ enum MIMEBodyPreviewNormalizer {
     }
 }
 
-private struct MIMEPartHeaders {
+// Nonisolated: a pure helper called by IMAPClient inside MailMonitor run tasks.
+private nonisolated struct MIMEPartHeaders {
     let values: [String: String]
 
     init(lines: [String]) {
@@ -186,7 +189,8 @@ private struct MIMEPartHeaders {
     }
 }
 
-enum Base64PreviewDecoder {
+// Nonisolated: a pure helper called by IMAPClient inside MailMonitor run tasks.
+nonisolated enum Base64PreviewDecoder {
     private static let minimumFoldWidth = 32
 
     static func decodePayloadsIfUseful(_ text: String, imageMarker: String) -> String {
@@ -318,7 +322,9 @@ enum Base64PreviewDecoder {
 /// reader never sees, marking images, and falling back to the raw text when the
 /// slice cannot be parsed. Separated from the sanitizer pipeline, which decides
 /// the order of stages rather than how any one of them works.
-enum HTMLPreviewTextExtractor {
+///
+/// Nonisolated: a pure helper called by IMAPClient inside MailMonitor run tasks.
+nonisolated enum HTMLPreviewTextExtractor {
     private static let imageMarker = "[IMG]"
 
     static func decodeIfNeeded(

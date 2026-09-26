@@ -1,6 +1,7 @@
 @testable import Mailbell
 import XCTest
 
+@MainActor
 final class MenuBarIconTests: XCTestCase {
     func testAttentionOutranksPendingMail() {
         XCTAssertEqual(

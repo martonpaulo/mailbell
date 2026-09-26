@@ -3,7 +3,9 @@ import Foundation
 /// Turning a burst of fresh UIDs into bounded admission batches and a capped
 /// notification set, plus the session work that surrounds it: tokens, mailbox
 /// discovery, and the checkpoint the next reconnect resumes from.
-extension MailMonitor {
+///
+/// Nonisolated: the IMAP session runs inside MailMonitor run tasks.
+nonisolated extension MailMonitor {
     static func notificationPlan(
         uids: [Int],
         lastSeenUID: Int,

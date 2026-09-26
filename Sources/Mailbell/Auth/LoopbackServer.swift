@@ -273,7 +273,8 @@ actor LoopbackServer {
     }
 }
 
-private struct CallbackOutcome {
+// Nonisolated: produced inside the FlyingFox handler on the loopback server task.
+private nonisolated struct CallbackOutcome {
     let result: Result<LoopbackServer.Callback, Error>
     let responseStatus: HTTPStatusCode
     let pageState: LoopbackCallbackPage.State
@@ -308,7 +309,8 @@ private extension LoopbackServer.LoopbackError {
     }
 }
 
-private struct LoopbackHTTPHandler: HTTPHandler {
+// Nonisolated: FlyingFox calls it on the loopback server task, never the main actor.
+private nonisolated struct LoopbackHTTPHandler: HTTPHandler {
     let handle: @Sendable (HTTPRequest) async -> HTTPResponse
 
     func handleRequest(_ request: HTTPRequest) async throws -> HTTPResponse {

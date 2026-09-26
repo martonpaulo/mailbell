@@ -1,6 +1,7 @@
 import Foundation
 
-enum ChromeProfileStore {
+// Nonisolated: `loadProfilesAsync` reads the profiles in a detached task.
+nonisolated enum ChromeProfileStore {
     private static let excludedProfileNames: Set<String> = [
         "Guest Profile",
         "System Profile"

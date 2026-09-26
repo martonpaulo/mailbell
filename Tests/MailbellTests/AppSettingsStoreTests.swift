@@ -1,6 +1,7 @@
 @testable import Mailbell
 import XCTest
 
+@MainActor
 final class AppSettingsStoreTests: XCTestCase {
     func testDefaultsPreserveCurrentBehavior() {
         let store = AppSettingsStore(userDefaults: makeDefaults())

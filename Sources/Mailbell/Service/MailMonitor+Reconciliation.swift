@@ -3,7 +3,9 @@ import Foundation
 /// The two halves of a reconciliation pass: admitting and notifying about fresh
 /// mail above the checkpoint, then syncing unread state so mail read in Gmail
 /// leaves the queue and bounded unknown unread mail can enter it.
-extension MailMonitor {
+///
+/// Nonisolated: reconciliation runs inside MailMonitor run tasks.
+nonisolated extension MailMonitor {
     func fetchAndNotify(client: IMAPClient, mailboxes: [MonitoredMailbox]) async throws {
         for mailbox in mailboxes {
             let generation = try await client.selectMailbox(mailbox.name).uidValidity

@@ -1,6 +1,7 @@
 @testable import Mailbell
 import XCTest
 
+@MainActor
 final class AppSettingsStoreDefaultsTests: XCTestCase {
     func testUnsetPreferencesUseTheCentralizedDefaults() {
         let store = AppSettingsStore(userDefaults: makeDefaults())

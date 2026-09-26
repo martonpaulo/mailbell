@@ -5,7 +5,9 @@ import UserNotifications
 /// its own, and the menu bar alert glyph only helps a user who happens to look
 /// at it. The wording lives here so the notification and any future surface
 /// share one definition.
-enum SignInNotificationContentBuilder {
+///
+/// Nonisolated: a pure helper, like EmailNotificationContentBuilder.
+nonisolated enum SignInNotificationContentBuilder {
     static let title = "Sign in needed"
 
     static func body(email: String) -> String {

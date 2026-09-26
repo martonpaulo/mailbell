@@ -1,7 +1,8 @@
 import Foundation
 import UserNotifications
 
-enum EmailNotificationContentBuilder {
+// Nonisolated: a pure helper of NotificationManager's nonisolated builders.
+nonisolated enum EmailNotificationContentBuilder {
     static func build(
         header: MessageHeader,
         webmailURL: URL,

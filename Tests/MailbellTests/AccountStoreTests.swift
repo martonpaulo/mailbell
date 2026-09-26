@@ -1,6 +1,7 @@
 @testable import Mailbell
 import XCTest
 
+@MainActor
 final class AccountStoreTests: XCTestCase {
     func testLoadsSavedAccounts() throws {
         let defaults = makeDefaults()

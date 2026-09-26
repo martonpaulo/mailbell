@@ -4,6 +4,7 @@ import XCTest
 /// The capture mode must be invisible to ordinary launches, and the state a
 /// capture depends on must come from the flag rather than from whatever the
 /// developer last had open.
+@MainActor
 final class ScreenshotModeTests: XCTestCase {
     func testAnOrdinaryLaunchDoesNotEnterScreenshotMode() {
         XCTAssertFalse(ScreenshotMode.isEnabled(arguments: ["/Applications/Mailbell.app/Contents/MacOS/Mailbell"]))

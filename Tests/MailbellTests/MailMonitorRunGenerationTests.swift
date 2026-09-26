@@ -37,7 +37,9 @@ final class MailMonitorRunGenerationTests: XCTestCase {
 
     func testRestartingSupersedesTheRunThatWasSuspended() async {
         let monitor = makeMonitor()
-        monitor.delegate = StatusRecorder()
+        // The delegate is weak, so the recorder is held here for the whole run.
+        let recorder = StatusRecorder()
+        monitor.delegate = recorder
 
         let suspended = Suspension()
         monitor.accessTokenSource = { [suspended] in
@@ -57,6 +59,7 @@ final class MailMonitorRunGenerationTests: XCTestCase {
         XCTAssertTrue(monitor.isCurrentRun(second))
 
         suspended.release()
+        withExtendedLifetime(recorder) {}
     }
 
     func testAStoppedRunPublishesNoFurtherStatus() async {

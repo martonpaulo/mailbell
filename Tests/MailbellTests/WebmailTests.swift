@@ -2,6 +2,7 @@ import Foundation
 @testable import Mailbell
 import XCTest
 
+@MainActor
 final class WebmailTests: XCTestCase {
     func testMailAccountJSONDecodesWithoutWebmailPreference() throws {
         let json = """

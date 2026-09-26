@@ -42,6 +42,23 @@ final class IMAPConnectionCancellationTests: XCTestCase {
         }
     }
 
+    // MARK: - Off the main actor
+
+    /// NWConnection calls the receive completion on its own queue. Were the
+    /// completion main-actor isolated, Swift 6's executor check would trap there.
+    func testReceiveCompletionRunsFromABackgroundThread() async throws {
+        let chunk = Data("* OK Gimap ready\r\n".utf8)
+
+        let received: Data = try await withCheckedThrowingContinuation { continuation in
+            let completion = IMAPConnection.receiveCompletion(resuming: continuation)
+            Thread.detachNewThread {
+                completion(chunk, nil, false, nil)
+            }
+        }
+
+        XCTAssertEqual(received, chunk)
+    }
+
     // MARK: - The one-shot completion itself
 
     func testFinishResumesExactlyOnceAcrossRacingOutcomes() async throws {

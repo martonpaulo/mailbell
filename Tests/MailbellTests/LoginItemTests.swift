@@ -2,6 +2,7 @@
 import ServiceManagement
 import XCTest
 
+@MainActor
 final class LoginItemTests: XCTestCase {
     func testPackagedAppMapsNeverRegisteredStatusesToDisabled() {
         XCTAssertEqual(LoginItemStatus.from(.notRegistered, isPackagedApp: true), .disabled)

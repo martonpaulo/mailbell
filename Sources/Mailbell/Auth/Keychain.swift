@@ -4,7 +4,9 @@ import Security
 
 /// Thin wrapper over the macOS Keychain for storing a single string secret
 /// per account. Refresh tokens must live here, never in UserDefaults or files.
-enum Keychain {
+///
+/// Nonisolated: called through KeychainClient from MailMonitor run tasks.
+nonisolated enum Keychain {
     enum KeychainError: Error, LocalizedError {
         case unexpectedStatus(OSStatus)
 
