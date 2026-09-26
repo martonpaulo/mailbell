@@ -24,7 +24,7 @@ final class AppState {
     private(set) var needsSignIn = false
     private(set) var isMarkingAllAsRead = false
     private(set) var bulkActionMessage: String?
-    private(set) var showPendingCount: Bool
+    private(set) var showsMenuBarCount: Bool
     private(set) var includeSpam: Bool
     private(set) var playNotificationSounds: Bool
 
@@ -46,7 +46,7 @@ final class AppState {
         self.updateManager = updateManager
         self.notificationManager = notificationManager
         self.launchAtLogin = launchAtLogin
-        showPendingCount = settingsStore.showPendingCount
+        showsMenuBarCount = settingsStore.showsMenuBarCount
         includeSpam = settingsStore.includeSpam
         playNotificationSounds = settingsStore.playNotificationSounds
         supervisor = AccountSupervisor(notifier: notificationManager, includeSpam: settingsStore.includeSpam)
@@ -139,10 +139,10 @@ final class AppState {
         supervisor.setEnabled(isEnabled, accountID: accountID)
     }
 
-    func setShowPendingCount(_ isShown: Bool) {
-        guard showPendingCount != isShown else { return }
-        showPendingCount = isShown
-        settingsStore.showPendingCount = isShown
+    func setShowsMenuBarCount(_ isShown: Bool) {
+        guard showsMenuBarCount != isShown else { return }
+        showsMenuBarCount = isShown
+        settingsStore.showsMenuBarCount = isShown
     }
 
     func setIncludeSpam(_ isIncluded: Bool) {
@@ -263,7 +263,7 @@ final class AppState {
     /// supervisor both reflect the stored defaults immediately.
     func restoreDefaults() {
         settingsStore.restoreDefaults()
-        showPendingCount = settingsStore.showPendingCount
+        showsMenuBarCount = settingsStore.showsMenuBarCount
         playNotificationSounds = settingsStore.playNotificationSounds
         let restoredIncludeSpam = settingsStore.includeSpam
         if includeSpam != restoredIncludeSpam {

@@ -11,14 +11,15 @@ import Foundation
 public enum StorageKeys {
     // MARK: Preferences, reset by Restore Defaults
 
-    static let showPendingCount = "mailbell.settings.showPendingCount.v1"
+    /// The string keeps the setting's earlier name, showPendingCount (#81).
+    static let showsMenuBarCount = "mailbell.settings.showPendingCount.v1"
     static let includeSpam = "mailbell.settings.includeSpam.v1"
     static let playNotificationSounds = "mailbell.settings.playNotificationSounds.v1"
 
     /// Every preference Restore Defaults resets. Identity, tokens, account
     /// metadata, IMAP checkpoints, handled-message history and migration state
     /// are user data, not preferences, and are deliberately absent.
-    static let settingsConfigurable = [showPendingCount, includeSpam, playNotificationSounds]
+    static let settingsConfigurable = [showsMenuBarCount, includeSpam, playNotificationSounds]
 
     // MARK: User data
 

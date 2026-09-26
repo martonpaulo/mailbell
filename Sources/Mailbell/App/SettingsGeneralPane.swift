@@ -10,8 +10,8 @@ extension SettingsView {
                 title: SettingsCopy.MenuBar.showCountTitle,
                 description: SettingsCopy.MenuBar.showCountDescription,
                 isOn: Binding(
-                    get: { appState.showPendingCount },
-                    set: { appState.setShowPendingCount($0) }
+                    get: { appState.showsMenuBarCount },
+                    set: { appState.setShowsMenuBarCount($0) }
                 )
             )
         } header: {

@@ -6,13 +6,13 @@ final class AccountPresentationTests: XCTestCase {
     // MARK: - Retained window disclosure (#27)
 
     func testOverflowNoticeAppearsOnlyWhenConversationsAreHidden() {
-        XCTAssertNil(PendingCopy.overflowNotice(hiddenConversations: 0))
+        XCTAssertNil(MenuCopy.overflowNotice(hiddenConversations: 0))
         XCTAssertEqual(
-            PendingCopy.overflowNotice(hiddenConversations: 1),
+            MenuCopy.overflowNotice(hiddenConversations: 1),
             "1 more conversation awaiting review. Open Gmail to see the rest."
         )
         XCTAssertEqual(
-            PendingCopy.overflowNotice(hiddenConversations: 12),
+            MenuCopy.overflowNotice(hiddenConversations: 12),
             "12 more conversations awaiting review. Open Gmail to see the rest."
         )
     }
@@ -20,29 +20,29 @@ final class AccountPresentationTests: XCTestCase {
     func testOverflowNoticeDoesNotInventATotalForGmail() {
         // Mailbell has no bounded way to know how much mail is left in Gmail,
         // so the notice must speak only about what it retains.
-        let notice = PendingCopy.overflowNotice(hiddenConversations: 12) ?? ""
+        let notice = MenuCopy.overflowNotice(hiddenConversations: 12) ?? ""
 
         XCTAssertFalse(notice.lowercased().contains("total"))
         XCTAssertTrue(notice.contains("Open Gmail"), "the notice carries its recovery action")
     }
 
     func testBulkActionScopeNamesEveryRetainedMessage() {
-        XCTAssertEqual(PendingCopy.bulkActionScope(retainedMessages: 1), "Applies to 1 retained message")
-        XCTAssertEqual(PendingCopy.bulkActionScope(retainedMessages: 240), "Applies to 240 retained messages")
+        XCTAssertEqual(MenuCopy.bulkActionScope(retainedMessages: 1), "Applies to 1 retained message")
+        XCTAssertEqual(MenuCopy.bulkActionScope(retainedMessages: 240), "Applies to 240 retained messages")
     }
 
     // MARK: - Menu bar accessibility label (#30)
 
     func testTheLabelSaysSignInOnlyWhenSigningInIsTheRemedy() {
         XCTAssertEqual(
-            PendingCopy.menuBarAccessibilityLabel(count: 0, needsAttention: true, needsSignIn: true),
+            MenuCopy.menuBarAccessibilityLabel(count: 0, needsAttention: true, needsSignIn: true),
             "Mailbell, sign in needed"
         )
     }
 
     func testAGenericAccountErrorDoesNotPrescribeSigningIn() {
         // MonitorStatus.error also needs attention, but Reconnect is its remedy.
-        let label = PendingCopy.menuBarAccessibilityLabel(count: 0, needsAttention: true, needsSignIn: false)
+        let label = MenuCopy.menuBarAccessibilityLabel(count: 0, needsAttention: true, needsSignIn: false)
 
         XCTAssertEqual(label, "Mailbell, account needs attention")
         XCTAssertFalse(label.lowercased().contains("sign in"))
@@ -50,7 +50,7 @@ final class AccountPresentationTests: XCTestCase {
 
     func testAttentionStillOutranksTheReviewCount() {
         XCTAssertEqual(
-            PendingCopy.menuBarAccessibilityLabel(count: 5, needsAttention: true, needsSignIn: false),
+            MenuCopy.menuBarAccessibilityLabel(count: 5, needsAttention: true, needsSignIn: false),
             "Mailbell, account needs attention"
         )
     }
@@ -72,19 +72,18 @@ final class AccountPresentationTests: XCTestCase {
         XCTAssertEqual(AccountRecoveryAction.needed(for: state(status: .signedOut, isEnabled: false)), .enable)
     }
 
-    func testPendingCopyDoesNotClaimGmailUnreadState() {
-        XCTAssertEqual(PendingCopy.menuSectionTitle, "Awaiting Review")
-        XCTAssertEqual(PendingCopy.emptyMenuTitle, "No messages")
-        XCTAssertEqual(PendingCopy.openActionTitle, "Open")
-        XCTAssertEqual(PendingCopy.markAsReadActionTitle, "Mark as Read")
-        XCTAssertEqual(PendingCopy.dismissActionTitle, "Dismiss")
-        XCTAssertEqual(PendingCopy.reviewSectionTitle, "Awaiting Review")
-        XCTAssertEqual(PendingCopy.reviewCountText(0), "No messages")
-        XCTAssertEqual(PendingCopy.reviewCountText(1), "1 message")
-        XCTAssertEqual(PendingCopy.reviewCountText(2), "2 messages")
-        XCTAssertEqual(PendingCopy.menuBarAccessibilityLabel(count: 2), "Mailbell, 2 messages awaiting review")
-        XCTAssertEqual(PendingCopy.menuBarAccessibilityLabel(count: 1), "Mailbell, 1 message awaiting review")
-        XCTAssertEqual(PendingCopy.menuBarAccessibilityLabel(count: 2, showsCount: false), "Mailbell")
+    func testMenuCopyDoesNotClaimGmailUnreadState() {
+        XCTAssertEqual(MenuCopy.menuSectionTitle, "Awaiting Review")
+        XCTAssertEqual(MenuCopy.emptyMenuTitle, "No messages")
+        XCTAssertEqual(MenuCopy.openActionTitle, "Open")
+        XCTAssertEqual(MenuCopy.markAsReadActionTitle, "Mark as Read")
+        XCTAssertEqual(MenuCopy.dismissActionTitle, "Dismiss")
+        XCTAssertEqual(MenuCopy.reviewCountText(0), "No messages")
+        XCTAssertEqual(MenuCopy.reviewCountText(1), "1 message")
+        XCTAssertEqual(MenuCopy.reviewCountText(2), "2 messages")
+        XCTAssertEqual(MenuCopy.menuBarAccessibilityLabel(count: 2), "Mailbell, 2 messages awaiting review")
+        XCTAssertEqual(MenuCopy.menuBarAccessibilityLabel(count: 1), "Mailbell, 1 message awaiting review")
+        XCTAssertEqual(MenuCopy.menuBarAccessibilityLabel(count: 2, showsCount: false), "Mailbell")
     }
 
     func testAccountStatusPresentation() {

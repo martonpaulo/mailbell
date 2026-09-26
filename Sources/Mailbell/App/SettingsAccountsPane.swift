@@ -96,8 +96,8 @@ extension SettingsView {
 
             // Always shown: hiding a status row behind a menu bar display
             // preference would make Settings lie about what is pending.
-            SettingsRow(title: PendingCopy.reviewSectionTitle) {
-                Text(PendingCopy.reviewCountText(shownConversationCount(accountID: state.account.id)))
+            SettingsRow(title: MenuCopy.menuSectionTitle) {
+                Text(MenuCopy.reviewCountText(shownConversationCount(accountID: state.account.id)))
             }
 
             AccountWebmailSettingsView(

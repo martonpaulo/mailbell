@@ -16,7 +16,7 @@ final class LegacyDomainMigrationTests: XCTestCase {
             "mailbell.accounts": Data([1, 2, 3]),
             checkpointKey: 42,
             StorageKeys.includeSpam: true,
-            StorageKeys.showPendingCount: false,
+            StorageKeys.showsMenuBarCount: false,
             StorageKeys.systemSettingsWindowFrame: "0 0 720 560",
             "NSStatusItem Preferred Position Item-0": 310,
             "SUAutomaticallyUpdate": true,
@@ -37,7 +37,7 @@ final class LegacyDomainMigrationTests: XCTestCase {
                 "mailbell.accounts",
                 checkpointKey,
                 StorageKeys.includeSpam,
-                StorageKeys.showPendingCount,
+                StorageKeys.showsMenuBarCount,
                 StorageKeys.systemSettingsWindowFrame,
                 "NSStatusItem Preferred Position Item-0",
                 "SUAutomaticallyUpdate",
@@ -56,7 +56,7 @@ final class LegacyDomainMigrationTests: XCTestCase {
         )
 
         XCTAssertNil(values[StorageKeys.includeSpam])
-        XCTAssertEqual(values[StorageKeys.showPendingCount] as? Bool, false)
+        XCTAssertEqual(values[StorageKeys.showsMenuBarCount] as? Bool, false)
     }
 
     func testCopiesNothingOnceTheMarkerExists() {

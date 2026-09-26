@@ -6,7 +6,7 @@ import XCTest
 /// the contract, not a restatement of the implementation.
 final class StorageKeysTests: XCTestCase {
     func testStoredKeyStringsAreUnchanged() throws {
-        XCTAssertEqual(StorageKeys.showPendingCount, "mailbell.settings.showPendingCount.v1")
+        XCTAssertEqual(StorageKeys.showsMenuBarCount, "mailbell.settings.showPendingCount.v1")
         XCTAssertEqual(StorageKeys.includeSpam, "mailbell.settings.includeSpam.v1")
         XCTAssertEqual(StorageKeys.playNotificationSounds, "mailbell.settings.playNotificationSounds.v1")
         XCTAssertEqual(StorageKeys.accounts, "mailbell.accounts")

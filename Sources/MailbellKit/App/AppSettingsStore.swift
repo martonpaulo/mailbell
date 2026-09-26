@@ -4,7 +4,7 @@ public struct AppSettingsStore {
     /// The single home for every configurable default. Views, tests, and
     /// Restore Defaults all read from here; no fallback value is duplicated.
     enum Defaults {
-        static let showPendingCount = true
+        static let showsMenuBarCount = true
         static let includeSpam = false
         static let playNotificationSounds = true
     }
@@ -15,15 +15,15 @@ public struct AppSettingsStore {
         self.userDefaults = userDefaults
     }
 
-    public var showPendingCount: Bool {
+    public var showsMenuBarCount: Bool {
         get {
-            guard userDefaults.object(forKey: StorageKeys.showPendingCount) != nil else {
-                return Defaults.showPendingCount
+            guard userDefaults.object(forKey: StorageKeys.showsMenuBarCount) != nil else {
+                return Defaults.showsMenuBarCount
             }
-            return userDefaults.bool(forKey: StorageKeys.showPendingCount)
+            return userDefaults.bool(forKey: StorageKeys.showsMenuBarCount)
         }
         nonmutating set {
-            userDefaults.set(newValue, forKey: StorageKeys.showPendingCount)
+            userDefaults.set(newValue, forKey: StorageKeys.showsMenuBarCount)
         }
     }
 

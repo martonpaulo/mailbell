@@ -19,8 +19,8 @@ struct MailbellApp: App {
         } label: {
             MenuBarLabel(
                 systemImage: appState.menuBarIconSystemImage,
-                pendingCount: appState.shownItems.count,
-                showsPendingCount: appState.showPendingCount,
+                shownConversationCount: appState.shownItems.count,
+                showsMenuBarCount: appState.showsMenuBarCount,
                 needsAttention: appState.needsAttention,
                 needsSignIn: appState.needsSignIn
             )
@@ -56,23 +56,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 private struct MenuBarLabel: View {
     @Environment(\.openSettings) private var openSettings
     let systemImage: String
-    let pendingCount: Int
-    let showsPendingCount: Bool
+    let shownConversationCount: Int
+    let showsMenuBarCount: Bool
     let needsAttention: Bool
     let needsSignIn: Bool
 
     var body: some View {
         HStack(spacing: Token.Size.menuBarCountSpacing) {
             Image(systemName: systemImage)
-            if !needsAttention, showsPendingCount, pendingCount > 0 {
-                Text("\(pendingCount)")
+            if !needsAttention, showsMenuBarCount, shownConversationCount > 0 {
+                Text("\(shownConversationCount)")
                     .monospacedDigit()
             }
         }
         .accessibilityLabel(
-            PendingCopy.menuBarAccessibilityLabel(
-                count: pendingCount,
-                showsCount: showsPendingCount,
+            MenuCopy.menuBarAccessibilityLabel(
+                count: shownConversationCount,
+                showsCount: showsMenuBarCount,
                 needsAttention: needsAttention,
                 needsSignIn: needsSignIn
             )
@@ -140,7 +140,7 @@ struct MenuContent: View {
             Text(setupMessage)
         }
         if let error = appState.lastError {
-            Text(PendingCopy.signInErrorPrefix + error)
+            Text(MenuCopy.signInErrorPrefix + error)
         }
         Button(appState.isAuthorizing ? "Authorizing…" : "Add Gmail Account") {
             appState.addGoogleAccount()
@@ -153,15 +153,15 @@ struct MenuContent: View {
             ForEach(appState.accounts) { accountState in
                 Menu {
                     if let reviewCount = reviewMenuCount(accountID: accountState.account.id) {
-                        Text(PendingCopy.reviewCountText(reviewCount))
+                        Text(MenuCopy.reviewCountText(reviewCount))
                     }
                     Button("Open Gmail") {
                         appState.openGmail(accountID: accountState.account.id)
                     }
                     if let error = accountState.webmailOpenError {
-                        Text(PendingCopy.webmailErrorPrefix + error)
+                        Text(MenuCopy.webmailErrorPrefix + error)
                     }
-                    if let notice = PendingCopy.overflowNotice(
+                    if let notice = MenuCopy.overflowNotice(
                         hiddenConversations: appState.hiddenConversationCount(
                             accountID: accountState.account.id
                         )
@@ -185,12 +185,12 @@ struct MenuContent: View {
     }
 
     private var reviewQueueSection: some View {
-        Section(PendingCopy.menuSectionTitle) {
+        Section(MenuCopy.menuSectionTitle) {
             if let message = appState.bulkActionMessage {
-                Text(PendingCopy.lastActionPrefix + message)
+                Text(MenuCopy.lastActionPrefix + message)
             }
             if appState.shownItems.isEmpty {
-                Text(PendingCopy.emptyMenuTitle)
+                Text(MenuCopy.emptyMenuTitle)
             } else {
                 ForEach(appState.shownItems) { email in
                     let sender = EmailHeaderFormatter.senderIdentity(from: email.sender)
@@ -211,17 +211,17 @@ struct MenuContent: View {
                             }
                         }
                         Divider()
-                        Button(PendingCopy.openActionTitle) {
+                        Button(MenuCopy.openActionTitle) {
                             appState.openEmail(id: email.id)
                         }
-                        Button(PendingCopy.markAsReadActionTitle) {
+                        Button(MenuCopy.markAsReadActionTitle) {
                             appState.markEmailAsRead(id: email.id)
                         }
                         .disabled(!email.canMarkAsRead)
                         Button {
                             appState.dismissEmail(id: email.id)
                         } label: {
-                            Text(PendingCopy.dismissActionTitle)
+                            Text(MenuCopy.dismissActionTitle)
                         }
                     } label: {
                         Label(email.subject, systemImage: "envelope")
@@ -237,15 +237,15 @@ struct MenuContent: View {
     /// whole-queue commands are never sitting loose beside per-message ones.
     private var bulkActionsSection: some View {
         Menu {
-            Text(PendingCopy.bulkActionScope(retainedMessages: appState.retainedMessageCount))
+            Text(MenuCopy.bulkActionScope(retainedMessages: appState.retainedMessageCount))
             Divider()
             Button {
                 appState.markAllEmailsAsRead()
             } label: {
                 Text(
                     appState.isMarkingAllAsRead
-                        ? PendingCopy.markingAllAsReadActionTitle
-                        : PendingCopy.markAllAsReadActionTitle
+                        ? MenuCopy.markingAllAsReadActionTitle
+                        : MenuCopy.markAllAsReadActionTitle
                 )
             }
             .disabled(!appState.canMarkAllAsRead)
@@ -253,11 +253,11 @@ struct MenuContent: View {
             Button {
                 appState.dismissAllEmails()
             } label: {
-                Text(PendingCopy.dismissAllActionTitle)
+                Text(MenuCopy.dismissAllActionTitle)
             }
             .disabled(appState.isMarkingAllAsRead)
         } label: {
-            Label(PendingCopy.bulkActionsMenuTitle, systemImage: "tray.full")
+            Label(MenuCopy.bulkActionsMenuTitle, systemImage: "tray.full")
         }
     }
 
@@ -266,7 +266,7 @@ struct MenuContent: View {
     }
 
     private func reviewMenuCount(accountID: UUID) -> Int? {
-        appState.showPendingCount ? shownConversationCount(accountID: accountID) : nil
+        appState.showsMenuBarCount ? shownConversationCount(accountID: accountID) : nil
     }
 
     private func perform(_ action: AccountRecoveryAction, accountID: UUID) {

@@ -41,7 +41,7 @@ final class MenuBarIconTests: XCTestCase {
 
     func testAccessibilityLabelAnnouncesAttentionInsteadOfACount() {
         XCTAssertEqual(
-            PendingCopy.menuBarAccessibilityLabel(
+            MenuCopy.menuBarAccessibilityLabel(
                 count: 3,
                 showsCount: true,
                 needsAttention: true,
@@ -51,11 +51,11 @@ final class MenuBarIconTests: XCTestCase {
         )
         // Attention that is not an expired sign-in must not say "sign in".
         XCTAssertEqual(
-            PendingCopy.menuBarAccessibilityLabel(count: 3, showsCount: true, needsAttention: true),
+            MenuCopy.menuBarAccessibilityLabel(count: 3, showsCount: true, needsAttention: true),
             "Mailbell, account needs attention"
         )
         XCTAssertEqual(
-            PendingCopy.menuBarAccessibilityLabel(count: 3, showsCount: true, needsAttention: false),
+            MenuCopy.menuBarAccessibilityLabel(count: 3, showsCount: true, needsAttention: false),
             "Mailbell, 3 messages awaiting review"
         )
     }

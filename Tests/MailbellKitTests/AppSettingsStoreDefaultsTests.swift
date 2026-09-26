@@ -7,7 +7,7 @@ final class AppSettingsStoreDefaultsTests: XCTestCase {
     func testUnsetPreferencesUseTheCentralizedDefaults() {
         let store = AppSettingsStore(userDefaults: makeDefaults())
 
-        XCTAssertEqual(store.showPendingCount, AppSettingsStore.Defaults.showPendingCount)
+        XCTAssertEqual(store.showsMenuBarCount, AppSettingsStore.Defaults.showsMenuBarCount)
         XCTAssertEqual(store.includeSpam, AppSettingsStore.Defaults.includeSpam)
         XCTAssertEqual(store.playNotificationSounds, AppSettingsStore.Defaults.playNotificationSounds)
     }
@@ -16,16 +16,16 @@ final class AppSettingsStoreDefaultsTests: XCTestCase {
         let defaults = makeDefaults()
         let store = AppSettingsStore(userDefaults: defaults)
 
-        store.showPendingCount = !AppSettingsStore.Defaults.showPendingCount
+        store.showsMenuBarCount = !AppSettingsStore.Defaults.showsMenuBarCount
         store.includeSpam = !AppSettingsStore.Defaults.includeSpam
         store.playNotificationSounds = !AppSettingsStore.Defaults.playNotificationSounds
-        XCTAssertNotEqual(store.showPendingCount, AppSettingsStore.Defaults.showPendingCount)
+        XCTAssertNotEqual(store.showsMenuBarCount, AppSettingsStore.Defaults.showsMenuBarCount)
         XCTAssertNotEqual(store.includeSpam, AppSettingsStore.Defaults.includeSpam)
         XCTAssertNotEqual(store.playNotificationSounds, AppSettingsStore.Defaults.playNotificationSounds)
 
         store.restoreDefaults()
 
-        XCTAssertEqual(store.showPendingCount, AppSettingsStore.Defaults.showPendingCount)
+        XCTAssertEqual(store.showsMenuBarCount, AppSettingsStore.Defaults.showsMenuBarCount)
         XCTAssertEqual(store.includeSpam, AppSettingsStore.Defaults.includeSpam)
         XCTAssertEqual(store.playNotificationSounds, AppSettingsStore.Defaults.playNotificationSounds)
         for key in StorageKeys.settingsConfigurable {

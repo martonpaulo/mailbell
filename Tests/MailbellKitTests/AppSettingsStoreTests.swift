@@ -7,7 +7,7 @@ final class AppSettingsStoreTests: XCTestCase {
     func testDefaultsPreserveCurrentBehavior() {
         let store = AppSettingsStore(userDefaults: makeDefaults())
 
-        XCTAssertTrue(store.showPendingCount)
+        XCTAssertTrue(store.showsMenuBarCount)
         XCTAssertFalse(store.includeSpam)
         XCTAssertTrue(store.playNotificationSounds)
     }
@@ -16,12 +16,12 @@ final class AppSettingsStoreTests: XCTestCase {
         let defaults = makeDefaults()
         let store = AppSettingsStore(userDefaults: defaults)
 
-        store.showPendingCount = false
+        store.showsMenuBarCount = false
         store.includeSpam = true
         store.playNotificationSounds = false
 
         let reloaded = AppSettingsStore(userDefaults: defaults)
-        XCTAssertFalse(reloaded.showPendingCount)
+        XCTAssertFalse(reloaded.showsMenuBarCount)
         XCTAssertTrue(reloaded.includeSpam)
         XCTAssertFalse(reloaded.playNotificationSounds)
     }
