@@ -40,7 +40,7 @@ Local builds need your **own** Google Desktop OAuth client, because the release 
 
 Install to `/Applications` rather than running the unbundled binary: macOS only delivers notifications to a real app bundle.
 
-Every packaged build goes through `scripts/package-with-oauth.sh`: it writes the OAuth client into `Support/Info.plist` for one run of `scripts/package-app.sh` and restores the file afterwards. `make dmg` and `make release` build the disk image with appdmg, which needs **Node 24 or older** first on `PATH` (for example `nvm use 24`).
+Every packaged build goes through `scripts/package-with-oauth.sh`: it writes the OAuth client into `Support/Info.plist` for one run of `scripts/package-app.sh` and restores the file afterwards. `make dmg` builds the disk image with appdmg, which needs **Node 24 or older** first on `PATH` (for example `nvm use 24`).
 
 <br />
 
@@ -49,23 +49,23 @@ Every packaged build goes through `scripts/package-with-oauth.sh`: it writes the
 | --- | --- |
 | `make check` | Run the full gate before a commit: `build`, `lint`, `test`, `validate` |
 | `make build` | Build the debug artifacts |
-| `make app` | Package an ad-hoc signed `build/Mailbell.app` and its update archive in `artifacts/` |
+| `make app` | Package `build/Mailbell.app` and its update archive in `artifacts/`, ad-hoc signed unless `DEVELOPER_ID_IDENTITY` is set; `FORCE=1` replaces them |
 | `make run` | Build and run the debug executable, unbundled; notifications need `make install` |
 | `make test` | Run the test suite |
 | `make lint` | Run SwiftLint |
 | `make format` | Format the sources with SwiftFormat |
 | `make validate` | Check the repository invariants (`scripts/validate.sh`) |
-| `make install` | Install an ad-hoc signed app bundle to `/Applications` |
+| `make install` | Copy `build/Mailbell.app` from `make app` into `/Applications` |
 | `make uninstall` | Remove the installed app bundle |
 | `make refresh-icons` | Reinstall and flush the macOS icon caches after an icon change |
-| `make dmg` | Build an ad-hoc signed drag-and-drop DMG at `artifacts/Mailbell-<version>.dmg`; needs Node 24 or older |
-| `make icons` | Regenerate the AppIcon PNGs and `.icns` from `Support/logo.png` |
-| `make setup-release-signing` | Configure the Developer ID identity and the shared `skd-notary` Keychain profile |
-| `make sparkle-keys` | Generate the Sparkle EdDSA key into the Keychain |
-| `make require-oauth-config` | Verify the release Google OAuth credentials are available |
-| `make release` | Build, sign, notarize and staple a tagged release DMG |
+| `make dmg` | Build the drag-and-drop DMG at `artifacts/Mailbell-<version>.dmg` from `make app`; needs Node 24 or older |
+| `make icon` | Regenerate the app icon from `Support/logo.png` and the DMG background |
+| `make screenshots` | Capture the site's Settings screenshots from a throwaway bundle |
+| `make keys` | Once per machine: check the Sparkle key in the login Keychain against `SUPublicEDKey` |
+| `make appcast` | Add one `appcast.xml` entry from `VERSION`, `BUILD_NUMBER`, `ARCHIVE` and `SIGNATURE`, for a rehearsal or a recovery |
+| `make setup-release-signing` | Record `DEVELOPER_ID_IDENTITY` in `.env` and create the shared `skd-notary` Keychain profile |
 | `make clean-test-defaults` | List the test preferences files older runs left in `~/Library/Preferences`; `DELETE=1` removes them |
-| `make clean` | Remove the SwiftPM build artifacts |
+| `make clean` | Remove the SwiftPM build, `build/` and `artifacts/` |
 
 `make` with no target lists every target.
 
@@ -85,8 +85,8 @@ Names only: the values live in your shell, the Keychain, or the repository's Act
 | `SPARKLE_PRIVATE_KEY` | Actions secret, `release.yml` | Required for a release. The Sparkle EdDSA private key (`generate_keys -x`) |
 | `MAILBELL_GOOGLE_CLIENT_SECRET` | `.env` locally, Actions secret for a release | Optional for Desktop clients. That OAuth client's secret |
 | `MAILBELL_BUNDLE_ID` | `.env` locally | Optional. May only restate the identifier already in `Support/Info.plist`; packaging rejects a different value |
-| `MAILBELL_CODE_SIGN_IDENTITY` | `.env` locally | Optional. The signing identity label for a signed local build |
-| `NOTARY_PROFILE` | `.env` or shell locally, `scripts/notarize.sh` | Optional. The `notarytool` Keychain profile `make release` uses; defaults to the shared `skd-notary` |
+| `DEVELOPER_ID_IDENTITY` | Shell locally; `make setup-release-signing` records it in `.env` | Optional. Developer ID identity for a signed local build; `package-app.sh` and `make-dmg.sh` read it |
+| `NOTARY_PROFILE` | `.env` or shell locally, `scripts/notarize.sh` | Optional. The `notarytool` Keychain profile `scripts/notarize.sh` uses on a Mac; defaults to the shared `skd-notary` |
 
 ---
 
@@ -188,27 +188,23 @@ One-time on the release Mac:
 
 ```bash
 make setup-release-signing   # Developer ID identity + shared skd-notary Keychain profile
-make sparkle-keys            # Sparkle EdDSA key into the login Keychain
+make keys                    # Sparkle EdDSA key in the login Keychain, checked against SUPublicEDKey
 ```
 
-Per release: bump `CFBundleShortVersionString` in `Support/Info.plist`, add a `CHANGELOG.md`
-entry, commit, then, with Node 24 or older first on `PATH`,
+Per release: set `CFBundleShortVersionString` and `CFBundleVersion` (`MAJOR*10000 + MINOR*100 +
+PATCH`, which `make validate` checks) in `Support/Info.plist`, add a `CHANGELOG.md` entry, commit,
+and push a `v*.*.*` tag. Only the tag workflow publishes; no Make target does.
 
-```bash
-git tag v0.1.0 && make release
-```
-
-`make release` refuses a dirty worktree, a tag that disagrees with the plist version, or a build
-number that disagrees with the derived one. It builds, signs with Developer ID, notarizes and
-staples both the app archive and the DMG (`artifacts/Mailbell-<version>.dmg`) through `scripts/notarize.sh --artifact`, signs the update for Sparkle, and writes the `appcast.xml`
-entry. Commit the appcast, push the tag, and attach the DMG and ZIP to the GitHub Release.
+A signed local rehearsal, with Node 24 or older first on `PATH`: `DEVELOPER_ID_IDENTITY=… make dmg`,
+then `scripts/notarize.sh --artifact` on the archive and the DMG, then `make appcast` with explicit
+inputs to inspect the entry. Never commit that `appcast.xml` from a Mac.
 
 > **Exporting the certificate:** `security export -t identities` dumps *every* identity in the login
 > keychain, which on a normal Mac includes unrelated personal certificates such as government eID
 > keys. Narrow the export to the single Developer ID identity before it goes anywhere near a secret
 > store.
 
-Pushing a `v*.*.*` tag runs the same flow in CI, using the secrets above. `workflow_dispatch` reruns
+Pushing a `v*.*.*` tag runs the release in CI, using the secrets above. `workflow_dispatch` reruns
 the whole signing chain against an existing tag, so the pipeline can be exercised without inventing
 a version.
 

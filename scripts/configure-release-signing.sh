@@ -26,7 +26,7 @@ else
   done
 fi
 
-current_identity="${MAILBELL_CODE_SIGN_IDENTITY:-}"
+current_identity="${DEVELOPER_ID_IDENTITY:-}"
 if [[ -n "${current_identity}" ]]; then
   printf '\nCurrent .env signing identity: %s\n' "${current_identity}"
 fi
@@ -99,8 +99,8 @@ else
 fi
 
 mailbell_update_dotenv_values \
-  MAILBELL_CODE_SIGN_IDENTITY "${selected_identity}"
+  DEVELOPER_ID_IDENTITY "${selected_identity}"
 
 echo "Updated .env signing key:"
-echo "  MAILBELL_CODE_SIGN_IDENTITY"
+echo "  DEVELOPER_ID_IDENTITY"
 echo "Notary credentials live in the Keychain profile, not in .env."

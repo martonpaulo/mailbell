@@ -84,7 +84,8 @@ for caller in Makefile .github/workflows/release.yml scripts/capture-screenshots
         note "$caller must package through scripts/package-with-oauth.sh, not scripts/package-app.sh"
     fi
 done
-for target in install dmg release; do
+# The fleet's fourteen targets, plus install: notifications reach only a real bundle.
+for target in build test lint format validate check app dmg icon screenshots keys appcast clean help install; do
     grep -qE "^${target}:" Makefile || note "Makefile must define the $target target"
 done
 if grep -qE '^\s+@?cp .*Contents/MacOS' Makefile; then
@@ -102,6 +103,15 @@ done
 PLIST_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Support/Info.plist)
 echo "$PLIST_VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' \
     || note "CFBundleShortVersionString must be X.Y.Z (got $PLIST_VERSION)"
+# The build number derives from the version. Checked on every commit, because a wrong value
+# found on the release tag means recreating the tag.
+PLIST_BUILD=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" Support/Info.plist)
+if echo "$PLIST_VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+    IFS=. read -r V_MAJOR V_MINOR V_PATCH <<<"$PLIST_VERSION"
+    DERIVED_BUILD=$((10#$V_MAJOR * 10000 + 10#$V_MINOR * 100 + 10#$V_PATCH))
+    [ "$PLIST_BUILD" = "$DERIVED_BUILD" ] \
+        || note "CFBundleVersion ($PLIST_BUILD) is not $DERIVED_BUILD, MAJOR*10000 + MINOR*100 + PATCH of $PLIST_VERSION"
+fi
 
 # The changelog is Keep a Changelog, read by the canonical release-notes script;
 # its newest version must be the shipped one.
