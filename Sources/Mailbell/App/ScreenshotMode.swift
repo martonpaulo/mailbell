@@ -36,7 +36,7 @@ enum ScreenshotMode {
     /// or nil to follow the system.
     static func requestedAppearance(arguments: [String] = CommandLine.arguments) -> NSAppearance.Name? {
         guard let index = arguments.firstIndex(of: appearanceArgument),
-              arguments.count > index + 1
+            arguments.count > index + 1
         else {
             return nil
         }
@@ -53,8 +53,8 @@ enum ScreenshotMode {
 
     static func requestedPane(arguments: [String] = CommandLine.arguments) -> Int {
         guard let index = arguments.firstIndex(of: paneArgument),
-              arguments.count > index + 1,
-              let pane = Int(arguments[index + 1])
+            arguments.count > index + 1,
+            let pane = Int(arguments[index + 1])
         else {
             return 0
         }
@@ -124,10 +124,11 @@ enum ScreenshotMode {
         // external display beside a Retina one.
         if let screen = captureScreen(in: NSScreen.screens) {
             let visible = screen.visibleFrame
-            window.setFrameOrigin(NSPoint(
-                x: visible.midX - window.frame.width / 2,
-                y: visible.midY - window.frame.height / 2
-            ))
+            window.setFrameOrigin(
+                NSPoint(
+                    x: visible.midX - window.frame.width / 2,
+                    y: visible.midY - window.frame.height / 2
+                ))
         } else {
             window.center()
         }

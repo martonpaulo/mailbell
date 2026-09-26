@@ -10,17 +10,17 @@ public enum MIMEHeaderDecoder {
         var remainder = Substring(input)
 
         while let start = remainder.range(of: "=?") {
-            result += remainder[remainder.startIndex ..< start.lowerBound]
+            result += remainder[remainder.startIndex..<start.lowerBound]
             let afterStart = remainder[start.upperBound...]
             guard let charsetEnd = afterStart.firstIndex(of: "?"),
-                  let encodingEnd = afterStart[afterStart.index(after: charsetEnd)...].firstIndex(of: "?"),
-                  let end = afterStart[afterStart.index(after: encodingEnd)...].range(of: "?=")
+                let encodingEnd = afterStart[afterStart.index(after: charsetEnd)...].firstIndex(of: "?"),
+                let end = afterStart[afterStart.index(after: encodingEnd)...].range(of: "?=")
             else {
                 result += remainder[start.lowerBound...]
                 remainder = Substring("")
                 break
             }
-            let token = afterStart[afterStart.startIndex ..< end.lowerBound]
+            let token = afterStart[afterStart.startIndex..<end.lowerBound]
             if let decoded = decodeWord(String(token)) {
                 result += decoded
             } else {
@@ -62,8 +62,9 @@ public enum MIMEHeaderDecoder {
                 bytes.append(0x20)
                 index += 1
             } else if character == "=", index + 2 < chars.count,
-                      let highNibble = chars[index + 1].hexDigitValue,
-                      let lowNibble = chars[index + 2].hexDigitValue {
+                let highNibble = chars[index + 1].hexDigitValue,
+                let lowNibble = chars[index + 2].hexDigitValue
+            {
                 bytes.append(UInt8(highNibble * 16 + lowNibble))
                 index += 3
             } else {

@@ -15,13 +15,13 @@ extension AccountSupervisor {
             switch self {
             case .nothingPending:
                 String(localized: "No messages awaiting review.")
-            case let .markedAllAsRead(count):
+            case .markedAllAsRead(let count):
                 String(localized: "Marked \(MenuCopy.reviewCountText(count).lowercased()) as read in Gmail.")
-            case let .partiallyMarkedAsRead(marked, failed):
+            case .partiallyMarkedAsRead(let marked, let failed):
                 String(localized: "Marked \(marked) as read. \(failed) could not be updated in Gmail.")
             case .markAsReadFailed:
                 String(localized: "Couldn't mark messages as read in Gmail. Try again.")
-            case let .dismissedAll(count):
+            case .dismissedAll(let count):
                 String(localized: "Dismissed \(MenuCopy.reviewCountText(count).lowercased()) from Mailbell.")
             }
         }

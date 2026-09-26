@@ -1,6 +1,7 @@
-@testable import MailbellKit
 import MailbellTestSupport
 import XCTest
+
+@testable import MailbellKit
 
 /// Reconciliation fetches a bounded window of the newest unknown unread UIDs.
 /// When that whole window is already dismissed, re-selecting it on every cycle
@@ -17,7 +18,7 @@ final class ReviewQueueReconciliationProgressTests: XCTestCase {
         let store = makeStore(defaults: defaults)
 
         // The newest window is admitted and then dismissed.
-        for uid in 101 ... 200 {
+        for uid in 101...200 {
             XCTAssertTrue(try store.admit(header: makeHeader(uid: uid), account: account))
         }
         XCTAssertEqual(try store.dismissAll(), 100)
@@ -39,10 +40,10 @@ final class ReviewQueueReconciliationProgressTests: XCTestCase {
             uidValidity: generation
         )
 
-        XCTAssertEqual(skipped, Set(101 ... 200))
+        XCTAssertEqual(skipped, Set(101...200))
         // Which is what leaves room for the older half.
-        let unread = Set(1 ... 200)
-        XCTAssertEqual(unread.subtracting(skipped), Set(1 ... 100))
+        let unread = Set(1...200)
+        XCTAssertEqual(unread.subtracting(skipped), Set(1...100))
     }
 
     @MainActor
@@ -138,25 +139,28 @@ final class ReviewQueueReconciliationProgressTests: XCTestCase {
             [42]
         )
         // A rebuilt mailbox reuses numbers, so its UID 42 is a different message.
-        XCTAssertTrue(try store.uidsToSkip(
-            accountID: account.id,
-            mailbox: .inbox,
-            mailboxName: mailboxName,
-            uidValidity: 2
-        ).isEmpty)
+        XCTAssertTrue(
+            try store.uidsToSkip(
+                accountID: account.id,
+                mailbox: .inbox,
+                mailboxName: mailboxName,
+                uidValidity: 2
+            ).isEmpty)
         // So is the same number in another mailbox, or another account.
-        XCTAssertTrue(try store.uidsToSkip(
-            accountID: account.id,
-            mailbox: .spam,
-            mailboxName: "[Gmail]/Spam",
-            uidValidity: generation
-        ).isEmpty)
-        XCTAssertTrue(try store.uidsToSkip(
-            accountID: UUID(),
-            mailbox: .inbox,
-            mailboxName: mailboxName,
-            uidValidity: generation
-        ).isEmpty)
+        XCTAssertTrue(
+            try store.uidsToSkip(
+                accountID: account.id,
+                mailbox: .spam,
+                mailboxName: "[Gmail]/Spam",
+                uidValidity: generation
+            ).isEmpty)
+        XCTAssertTrue(
+            try store.uidsToSkip(
+                accountID: UUID(),
+                mailbox: .inbox,
+                mailboxName: mailboxName,
+                uidValidity: generation
+            ).isEmpty)
     }
 
     @MainActor
@@ -168,12 +172,13 @@ final class ReviewQueueReconciliationProgressTests: XCTestCase {
 
         try store.removeAccountRecords(accountID: account.id)
 
-        XCTAssertTrue(try store.uidsToSkip(
-            accountID: account.id,
-            mailbox: .inbox,
-            mailboxName: mailboxName,
-            uidValidity: generation
-        ).isEmpty)
+        XCTAssertTrue(
+            try store.uidsToSkip(
+                accountID: account.id,
+                mailbox: .inbox,
+                mailboxName: mailboxName,
+                uidValidity: generation
+            ).isEmpty)
     }
 
     // MARK: - Helpers

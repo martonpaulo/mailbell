@@ -33,7 +33,7 @@ nonisolated extension MailMonitor {
         var start = uids.startIndex
         while start < uids.endIndex {
             let end = uids.index(start, offsetBy: batchSize, limitedBy: uids.endIndex) ?? uids.endIndex
-            batches.append(Array(uids[start ..< end]))
+            batches.append(Array(uids[start..<end]))
             start = end
         }
         return batches
@@ -42,8 +42,8 @@ nonisolated extension MailMonitor {
     static func monitoredMailboxes(includeSpam: Bool, spamMailboxName: String?) -> [MonitoredMailbox] {
         var mailboxes = [MonitoredMailbox(role: .inbox, name: "INBOX")]
         guard includeSpam,
-              let spamMailboxName = spamMailboxName?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !spamMailboxName.isEmpty
+            let spamMailboxName = spamMailboxName?.trimmingCharacters(in: .whitespacesAndNewlines),
+            !spamMailboxName.isEmpty
         else {
             return mailboxes
         }
@@ -53,7 +53,8 @@ nonisolated extension MailMonitor {
 
     static func userVisibleReconnectError(for error: Error) -> String? {
         if let connectionError = error as? IMAPConnection.ConnectionError,
-           case .closed = connectionError {
+            case .closed = connectionError
+        {
             return nil
         }
         return error.localizedDescription

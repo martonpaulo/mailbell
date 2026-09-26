@@ -1,6 +1,7 @@
-@testable import MailbellKit
 import MailbellTestSupport
 import XCTest
+
+@testable import MailbellKit
 
 /// Queue order must follow Gmail's ordinary inbox chronology: newest server
 /// receipt first. Local admission time is not a stand-in — a backlog fetched
@@ -12,14 +13,16 @@ final class ReviewQueueChronologyTests: XCTestCase {
         let account = makeAccount()
 
         // Admitted first, but the server received it last.
-        XCTAssertTrue(try store.admit(
-            header: makeHeader(uid: 1, gmMessageId: "1", serverReceivedAt: date("2026-06-02T12:00:00Z")),
-            account: account
-        ))
-        XCTAssertTrue(try store.admit(
-            header: makeHeader(uid: 2, gmMessageId: "2", serverReceivedAt: date("2026-06-02T15:00:00Z")),
-            account: account
-        ))
+        XCTAssertTrue(
+            try store.admit(
+                header: makeHeader(uid: 1, gmMessageId: "1", serverReceivedAt: date("2026-06-02T12:00:00Z")),
+                account: account
+            ))
+        XCTAssertTrue(
+            try store.admit(
+                header: makeHeader(uid: 2, gmMessageId: "2", serverReceivedAt: date("2026-06-02T15:00:00Z")),
+                account: account
+            ))
 
         XCTAssertEqual(store.shownItems.map(\.imapIdentity?.uid), [2, 1])
     }
@@ -30,28 +33,31 @@ final class ReviewQueueChronologyTests: XCTestCase {
         let account = makeAccount()
 
         // A thread whose first message is old but whose reply is the newest mail.
-        XCTAssertTrue(try store.admit(
-            header: makeHeader(
-                uid: 1,
-                gmMessageId: "1",
-                gmThreadId: "T",
-                serverReceivedAt: date("2026-06-02T09:00:00Z")
-            ),
-            account: account
-        ))
-        XCTAssertTrue(try store.admit(
-            header: makeHeader(uid: 3, gmMessageId: "3", serverReceivedAt: date("2026-06-02T12:00:00Z")),
-            account: account
-        ))
-        XCTAssertTrue(try store.admit(
-            header: makeHeader(
-                uid: 2,
-                gmMessageId: "2",
-                gmThreadId: "T",
-                serverReceivedAt: date("2026-06-02T15:00:00Z")
-            ),
-            account: account
-        ))
+        XCTAssertTrue(
+            try store.admit(
+                header: makeHeader(
+                    uid: 1,
+                    gmMessageId: "1",
+                    gmThreadId: "T",
+                    serverReceivedAt: date("2026-06-02T09:00:00Z")
+                ),
+                account: account
+            ))
+        XCTAssertTrue(
+            try store.admit(
+                header: makeHeader(uid: 3, gmMessageId: "3", serverReceivedAt: date("2026-06-02T12:00:00Z")),
+                account: account
+            ))
+        XCTAssertTrue(
+            try store.admit(
+                header: makeHeader(
+                    uid: 2,
+                    gmMessageId: "2",
+                    gmThreadId: "T",
+                    serverReceivedAt: date("2026-06-02T15:00:00Z")
+                ),
+                account: account
+            ))
 
         // The thread leads on its reply's receipt time, but still shows the
         // first-admitted member as its representative.
@@ -65,18 +71,21 @@ final class ReviewQueueChronologyTests: XCTestCase {
         let store = makeStore()
         let account = makeAccount()
 
-        XCTAssertTrue(try store.admit(
-            header: makeHeader(uid: 1, gmMessageId: "1", serverReceivedAt: nil),
-            account: account
-        ))
-        XCTAssertTrue(try store.admit(
-            header: makeHeader(uid: 2, gmMessageId: "2", serverReceivedAt: nil),
-            account: account
-        ))
-        XCTAssertTrue(try store.admit(
-            header: makeHeader(uid: 3, gmMessageId: "3", serverReceivedAt: date("2026-06-02T09:00:00Z")),
-            account: account
-        ))
+        XCTAssertTrue(
+            try store.admit(
+                header: makeHeader(uid: 1, gmMessageId: "1", serverReceivedAt: nil),
+                account: account
+            ))
+        XCTAssertTrue(
+            try store.admit(
+                header: makeHeader(uid: 2, gmMessageId: "2", serverReceivedAt: nil),
+                account: account
+            ))
+        XCTAssertTrue(
+            try store.admit(
+                header: makeHeader(uid: 3, gmMessageId: "3", serverReceivedAt: date("2026-06-02T09:00:00Z")),
+                account: account
+            ))
 
         XCTAssertEqual(store.shownItems.map(\.imapIdentity?.uid), [3, 1, 2])
     }

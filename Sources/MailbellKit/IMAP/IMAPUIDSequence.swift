@@ -39,8 +39,9 @@ public enum IMAPUIDSequence {
         for uid in sortedUIDs {
             let candidate = current + [uid]
             if !current.isEmpty,
-               candidate.count > maximumUIDsPerCommand
-               || uidSequenceSet(for: candidate).count > maximumSequenceSetLength {
+                candidate.count > maximumUIDsPerCommand
+                    || uidSequenceSet(for: candidate).count > maximumSequenceSetLength
+            {
                 batches.append(current)
                 current = [uid]
             } else {

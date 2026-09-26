@@ -5,7 +5,7 @@ import MailbellKit
 nonisolated enum ChromeProfileStore {
     private static let excludedProfileNames: Set<String> = [
         "Guest Profile",
-        "System Profile"
+        "System Profile",
     ]
 
     static func userDataDirectory(homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser) -> URL {
@@ -22,9 +22,9 @@ nonisolated enum ChromeProfileStore {
     ) -> [ChromeProfileCandidate] {
         let localStateURL = localStateURL(homeDirectory: homeDirectory)
         guard let data = try? Data(contentsOf: localStateURL),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let infoCache = json["profile"] as? [String: Any],
-              let profiles = infoCache["info_cache"] as? [String: [String: Any]]
+            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let infoCache = json["profile"] as? [String: Any],
+            let profiles = infoCache["info_cache"] as? [String: [String: Any]]
         else {
             return []
         }

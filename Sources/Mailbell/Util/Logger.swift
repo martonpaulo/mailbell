@@ -27,7 +27,7 @@ nonisolated enum Log {
         (
             #"(?i)\b(Bearer\s+)[A-Za-z0-9._~+/=-]+"#,
             "$1<redacted>"
-        )
+        ),
     ]
 
     /// The technical detail of an error, for the log only. User-facing error
@@ -41,7 +41,7 @@ nonisolated enum Log {
             guard let regex = try? NSRegularExpression(pattern: rule.pattern) else {
                 return current
             }
-            let range = NSRange(current.startIndex ..< current.endIndex, in: current)
+            let range = NSRange(current.startIndex..<current.endIndex, in: current)
             return regex.stringByReplacingMatches(
                 in: current,
                 options: [],

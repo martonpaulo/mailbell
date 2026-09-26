@@ -14,7 +14,8 @@ enum SettingsCopy {
         static let sectionTitle = String(localized: "Menu Bar", comment: "Settings section header")
         static let showCountTitle = String(localized: "Show the number of messages awaiting review")
         static let showCountDescription = String(
-            localized: "The bell is always visible. Turn this off to keep the menu bar quiet and see the count only when you open the menu."
+            localized:
+                "The bell is always visible. Turn this off to keep the menu bar quiet and see the count only when you open the menu."
         )
     }
 
@@ -31,7 +32,8 @@ enum SettingsCopy {
             localized: "Launch at login is available when Mailbell runs from the Applications folder."
         )
         static let changeFailed = String(
-            localized: "Mailbell couldn't change this setting. Open Mailbell from the Applications folder and try again."
+            localized:
+                "Mailbell couldn't change this setting. Open Mailbell from the Applications folder and try again."
         )
 
         /// Shown under the toggle; nil when the toggle says everything. A failed
@@ -61,7 +63,8 @@ enum SettingsCopy {
             localized: "Updates apply to an installed release of Mailbell, not to development builds."
         )
         static let availableDescription = String(
-            localized: "Updates come from GitHub Releases and are checked against Mailbell's signature before they replace the app. Update checks never include Gmail data."
+            localized:
+                "Updates come from GitHub Releases and are checked against Mailbell's signature before they replace the app. Update checks never include Gmail data."
         )
 
         static func description(isUpdaterAvailable: Bool) -> String {
@@ -75,10 +78,12 @@ enum SettingsCopy {
         static let cancel = String(localized: "Cancel")
         static let confirmTitle = String(localized: "Restore all settings to their defaults?")
         static let confirmMessage = String(
-            localized: "The menu bar count, notification sound, and watched mailboxes return to their defaults. Your Gmail accounts, sign-ins, login item, and notification permission are not affected."
+            localized:
+                "The menu bar count, notification sound, and watched mailboxes return to their defaults. Your Gmail accounts, sign-ins, login item, and notification permission are not affected."
         )
         static let footer = String(
-            localized: "Restoring defaults resets Mailbell's own preferences only. Nothing is removed from Gmail and no account is disconnected."
+            localized:
+                "Restoring defaults resets Mailbell's own preferences only. Nothing is removed from Gmail and no account is disconnected."
         )
     }
 
@@ -97,7 +102,8 @@ enum SettingsCopy {
         static let badgeTitle = String(localized: "Badge")
         static let allow = String(localized: "Allow Notifications…")
         static let openSystemSettings = String(localized: "Open System Settings…")
-        static let notificationsRoute = String(localized: "In System Settings, go to Notifications, then choose Mailbell.")
+        static let notificationsRoute = String(
+            localized: "In System Settings, go to Notifications, then choose Mailbell.")
         static let refreshStatus = String(localized: "Refresh Status")
         static let sendTest = String(localized: "Send Test Notification")
         static let sendingTestAccessibilityLabel = String(localized: "Sending test notification")
@@ -107,7 +113,8 @@ enum SettingsCopy {
         )
         static let sendingTestFooter = String(localized: "Sending a test notification…")
         static let defaultFooter = String(
-            localized: "A test notification confirms macOS will actually show Mailbell's alerts. Sound follows both the Mailbell setting above and macOS. Refresh after changing anything in System Settings."
+            localized:
+                "A test notification confirms macOS will actually show Mailbell's alerts. Sound follows both the Mailbell setting above and macOS. Refresh after changing anything in System Settings."
         )
 
         static func statusDescription(needsAttention: Bool, detail: String) -> String {
@@ -155,7 +162,8 @@ enum SettingsCopy {
         static let waitingForSignInAccessibilityLabel = String(localized: "Waiting for Google sign-in")
 
         static let removeMessage = String(
-            localized: "Mailbell deletes this account's sign-in from your Keychain and stops watching it. Nothing in Gmail changes, and no mail is deleted."
+            localized:
+                "Mailbell deletes this account's sign-in from your Keychain and stops watching it. Nothing in Gmail changes, and no mail is deleted."
         )
 
         static func accountCount(_ count: Int) -> String {
@@ -181,12 +189,14 @@ enum SettingsCopy {
                 // Both halves are required disclosure: the warning a user will
                 // see, and the cap that can stop sign-in working at all.
                 return String(
-                    localized: "Sign-in opens in your browser. Google has not verified Mailbell yet, so it shows an \"unverified app\" warning: choose Advanced, then continue. Google also caps unverified apps at 100 new users, so sign-in can stop working for new people until verification completes."
+                    localized:
+                        "Sign-in opens in your browser. Google has not verified Mailbell yet, so it shows an \"unverified app\" warning: choose Advanced, then continue. Google also caps unverified apps at 100 new users, so sign-in can stop working for new people until verification completes."
                 )
             }
             if canRefresh {
                 return String(
-                    localized: "Mailbell is notified as mail arrives. Checking manually is only useful after a connection problem."
+                    localized:
+                        "Mailbell is notified as mail arrives. Checking manually is only useful after a connection problem."
                 )
             }
             return String(localized: "Turn an account back on to watch it for new mail.")
@@ -199,7 +209,8 @@ enum SettingsCopy {
         static let inboxValue = String(localized: "Always watched")
         static let spamTitle = String(localized: "Also watch the Spam folder")
         static let spamDescription = String(
-            localized: "Unread Spam can then reach notifications and the review count. Turning this off also clears any Spam already awaiting review. Nothing in Gmail changes either way."
+            localized:
+                "Unread Spam can then reach notifications and the review count. Turning this off also clears any Spam already awaiting review. Nothing in Gmail changes either way."
         )
     }
 
@@ -223,13 +234,15 @@ enum SettingsCopy {
         static let manageGoogleAccess = String(localized: "Manage Google Access")
 
         static let identityFooter = String(
-            localized: "Mailbell runs entirely on this Mac. There is no Mailbell server, and Gmail data never leaves your Mac."
+            localized:
+                "Mailbell runs entirely on this Mac. There is no Mailbell server, and Gmail data never leaves your Mac."
         )
         static let supportFooter = String(
             localized: "The website explains setup, the Google review status, and what Mailbell can access."
         )
         static let legalFooter = String(
-            localized: "Mailbell is in public beta and its Google OAuth client is not verified by Google yet, so Google shows an \"unverified app\" screen during sign-in and caps unverified apps at 100 new users. Revoke access at any time in your Google Account."
+            localized:
+                "Mailbell is in public beta and its Google OAuth client is not verified by Google yet, so Google shows an \"unverified app\" screen during sign-in and caps unverified apps at 100 new users. Revoke access at any time in your Google Account."
         )
     }
 
@@ -239,10 +252,12 @@ enum SettingsCopy {
         static let sectionTitle = String(localized: "Build Configuration", comment: "Settings section header")
         static let headline = String(localized: "This build is missing its Google OAuth configuration")
         static let explanation = String(
-            localized: "Mailbell releases ship with the Google Desktop OAuth client already configured. Seeing this means the build was packaged without it, which no setting can fix."
+            localized:
+                "Mailbell releases ship with the Google Desktop OAuth client already configured. Seeing this means the build was packaged without it, which no setting can fix."
         )
         static let nextStep = String(
-            localized: "If you downloaded this build from GitHub Releases, please report it. If you built Mailbell yourself, set MAILBELL_GOOGLE_CLIENT_ID in .env and reinstall."
+            localized:
+                "If you downloaded this build from GitHub Releases, please report it. If you built Mailbell yourself, set MAILBELL_GOOGLE_CLIENT_ID in .env and reinstall."
         )
         static let reportAction = String(localized: "Report a Packaging Issue")
         static let detailsDisclosure = String(localized: "Build Details")

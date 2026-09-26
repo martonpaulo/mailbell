@@ -32,7 +32,8 @@ public enum AppIdentity {
             return true
         }
 
-        let executablePath = executableURL?.standardizedFileURL.path
+        let executablePath =
+            executableURL?.standardizedFileURL.path
             ?? arguments.first
             ?? ""
         return executablePath.contains(".app/Contents/MacOS/")

@@ -16,7 +16,7 @@ enum BrowserRegistry {
         "com.operasoftware.Opera",
         "com.vivaldi.Vivaldi",
         "com.google.Chrome.canary",
-        "com.chromium.Chromium"
+        "com.chromium.Chromium",
     ]
 
     static func browsers(for url: URL = MailProviderRegistry.provider(for: .gmail).webmailURL) -> [BrowserCandidate] {
@@ -26,14 +26,15 @@ enum BrowserRegistry {
 
         for appURL in appURLs {
             guard let bundle = Bundle(url: appURL),
-                  let bundleID = bundle.bundleIdentifier,
-                  browserBundleAllowlist.contains(bundleID),
-                  seenBundleIDs.insert(bundleID).inserted
+                let bundleID = bundle.bundleIdentifier,
+                browserBundleAllowlist.contains(bundleID),
+                seenBundleIDs.insert(bundleID).inserted
             else {
                 continue
             }
 
-            let displayName = bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
+            let displayName =
+                bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
                 ?? bundle.object(forInfoDictionaryKey: "CFBundleName") as? String
                 ?? appURL.deletingPathExtension().lastPathComponent
 
@@ -67,12 +68,13 @@ enum BrowserRegistry {
         switch preference.browser {
         case .systemDefault:
             return .systemDefault
-        case let .application(bundleIdentifier, appPath):
+        case .application(let bundleIdentifier, let appPath):
             if let match = browsers.first(where: { $0.bundleIdentifier == bundleIdentifier }) {
                 return match
             }
             let appURL = URL(fileURLWithPath: appPath)
-            let displayName = Bundle(url: appURL)?.object(forInfoDictionaryKey: "CFBundleName") as? String
+            let displayName =
+                Bundle(url: appURL)?.object(forInfoDictionaryKey: "CFBundleName") as? String
                 ?? appURL.deletingPathExtension().lastPathComponent
             return BrowserCandidate(
                 id: bundleIdentifier,
@@ -99,7 +101,7 @@ enum BrowserRegistry {
     ) -> WebmailOpenPreference? {
         guard candidate.id != BrowserCandidate.systemDefaultID else { return nil }
         guard let bundleIdentifier = candidate.bundleIdentifier,
-              let appPath = candidate.appURL?.standardizedFileURL.path
+            let appPath = candidate.appURL?.standardizedFileURL.path
         else {
             return nil
         }

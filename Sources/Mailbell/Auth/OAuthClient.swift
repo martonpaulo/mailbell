@@ -27,7 +27,8 @@ nonisolated final class OAuthClient {
             case .missingCode, .tokenExchangeFailed:
                 String(localized: "Google sign-in couldn't be completed. Try again.")
             case .refreshFailed: String(localized: "Google ended this sign-in. Sign in again.")
-            case .refreshUnavailable: String(localized: "Couldn't reach Google to renew the sign-in. Mailbell will try again.")
+            case .refreshUnavailable:
+                String(localized: "Couldn't reach Google to renew the sign-in. Mailbell will try again.")
             case .noRefreshToken: String(localized: "No saved sign-in. Sign in again.")
             case .missingEmail: String(localized: "Google didn't share the account's email address. Try again.")
             case .secureRandomUnavailable: String(localized: "Couldn't start sign-in on this Mac. Try again.")
@@ -91,7 +92,7 @@ nonisolated final class OAuthClient {
                 .init(name: "code_challenge_method", value: "S256"),
                 .init(name: "state", value: state),
                 .init(name: "access_type", value: "offline"),
-                .init(name: "prompt", value: "consent")
+                .init(name: "prompt", value: "consent"),
             ]
 
             guard let authURL = comps.url else {

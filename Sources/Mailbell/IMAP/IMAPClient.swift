@@ -31,7 +31,8 @@ nonisolated final class IMAPClient {
             case .unexpected: String(localized: "Gmail sent an unexpected response. Mailbell will try again.")
             case .invalidUID: String(localized: "This message can't be updated in Gmail.")
             case .staleMailboxGeneration:
-                String(localized: "This message changed in Gmail and can't be updated. Check for New Mail and try again.")
+                String(
+                    localized: "This message changed in Gmail and can't be updated. Check for New Mail and try again.")
             }
         }
     }
@@ -287,7 +288,7 @@ nonisolated final class IMAPClient {
 
     func parseBodyPreviewFetch(_ firstLine: String) async throws -> (uid: Int, preview: String?)? {
         guard let uid = IMAPParser.parseNumber(in: firstLine, key: "UID"),
-              let literalSize = IMAPParser.parseLiteralSize(firstLine)
+            let literalSize = IMAPParser.parseLiteralSize(firstLine)
         else {
             return nil
         }

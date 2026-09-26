@@ -49,7 +49,8 @@ public enum IMAPParser {
         guard line.hasPrefix("* ") else { return nil }
         let parts = line.dropFirst(2).split(separator: " ")
         guard parts.count >= 2, parts[1].uppercased() == suffix,
-              let value = Int(parts[0]) else { return nil }
+            let value = Int(parts[0])
+        else { return nil }
         return value
     }
 
@@ -70,7 +71,7 @@ public enum IMAPParser {
     public static func parseSpecialUseMailbox(_ line: String, flag: String) -> String? {
         let uppercasedLine = line.uppercased()
         guard uppercasedLine.hasPrefix("* LIST "),
-              uppercasedLine.contains(flag.uppercased())
+            uppercasedLine.contains(flag.uppercased())
         else {
             return nil
         }
@@ -93,9 +94,10 @@ public enum IMAPParser {
 
     public static func parseLiteralSize(_ line: String) -> Int? {
         guard let open = line.range(of: "{", options: .backwards),
-              let close = line.range(of: "}", options: .backwards),
-              open.upperBound < close.lowerBound else { return nil }
-        return Int(line[open.upperBound ..< close.lowerBound])
+            let close = line.range(of: "}", options: .backwards),
+            open.upperBound < close.lowerBound
+        else { return nil }
+        return Int(line[open.upperBound..<close.lowerBound])
     }
 
     private static func parseLastQuotedString(in line: String) -> String? {
@@ -144,15 +146,17 @@ public enum IMAPParser {
             }
         }
 
-        for rawLine in raw
+        for rawLine
+            in raw
             .replacingOccurrences(of: "\r\n", with: "\n")
-            .split(separator: "\n", omittingEmptySubsequences: false) {
+            .split(separator: "\n", omittingEmptySubsequences: false)
+        {
             let line = String(rawLine)
             if line.first == " " || line.first == "\t" {
                 currentValue += " " + line.trimmingCharacters(in: .whitespaces)
             } else if let colon = line.firstIndex(of: ":") {
                 commit()
-                currentKey = String(line[line.startIndex ..< colon])
+                currentKey = String(line[line.startIndex..<colon])
                 currentValue = String(line[line.index(after: colon)...]).trimmingCharacters(in: .whitespaces)
             }
         }

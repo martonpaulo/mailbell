@@ -1,6 +1,7 @@
+import XCTest
+
 @testable import Mailbell
 @testable import MailbellKit
-import XCTest
 
 final class OAuthClientTests: XCTestCase {
     private let clientID = "dummy-local-client-id.apps.googleusercontent.com"
@@ -169,14 +170,14 @@ final class OAuthClientTests: XCTestCase {
             "client_secret=secret-value",
             "refresh_token=refresh-value",
             "access_token=access-value",
-            "code=oauth-code"
+            "code=oauth-code",
         ].joined(separator: " ")
         let body = """
-        {
-          "error": "invalid_grant",
-          "error_description": "\(description)"
-        }
-        """
+            {
+              "error": "invalid_grant",
+              "error_description": "\(description)"
+            }
+            """
 
         let detail = OAuthClient.sanitizedTokenEndpointDetail(statusCode: 400, body: body)
 
@@ -366,12 +367,13 @@ private final class OAuthURLProtocolMock: URLProtocol {
         do {
             let response = try handler(request)
             guard let url = request.url,
-                  let http = HTTPURLResponse(
-                      url: url,
-                      statusCode: response.statusCode,
-                      httpVersion: "HTTP/1.1",
-                      headerFields: response.headers
-                  ) else {
+                let http = HTTPURLResponse(
+                    url: url,
+                    statusCode: response.statusCode,
+                    httpVersion: "HTTP/1.1",
+                    headerFields: response.headers
+                )
+            else {
                 client?.urlProtocol(self, didFailWithError: URLError(.badURL))
                 return
             }

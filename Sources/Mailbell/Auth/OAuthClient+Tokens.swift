@@ -13,7 +13,7 @@ nonisolated extension OAuthClient {
             "code": code,
             "code_verifier": verifier,
             "grant_type": "authorization_code",
-            "redirect_uri": redirectURI
+            "redirect_uri": redirectURI,
         ])
 
         do {
@@ -29,7 +29,7 @@ nonisolated extension OAuthClient {
         let form = tokenForm([
             "client_id": config.clientID,
             "refresh_token": refreshToken,
-            "grant_type": "refresh_token"
+            "grant_type": "refresh_token",
         ])
 
         do {
@@ -52,7 +52,7 @@ nonisolated extension OAuthClient {
         request.timeoutInterval = Self.requestTimeout
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await session.data(for: request)
-        if let http = response as? HTTPURLResponse, !(200 ..< 300).contains(http.statusCode) {
+        if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
             throw OAuthError.missingEmail(Self.sanitizedUserInfoDetail(statusCode: http.statusCode))
         }
         struct UserInfo: Decodable { let email: String? }
@@ -74,13 +74,14 @@ nonisolated extension OAuthClient {
         request.httpMethod = "POST"
         request.timeoutInterval = Self.requestTimeout
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        request.httpBody = form
+        request.httpBody =
+            form
             .map { "\($0.key)=\(Self.urlEncode($0.value))" }
             .joined(separator: "&")
             .data(using: .utf8)
 
         let (data, response) = try await session.data(for: request)
-        if let http = response as? HTTPURLResponse, !(200 ..< 300).contains(http.statusCode) {
+        if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
             let body = String(data: data, encoding: .utf8) ?? "status \(http.statusCode)"
             throw TokenEndpointFailure(
                 detail: Self.sanitizedTokenEndpointDetail(statusCode: http.statusCode, body: body),
@@ -100,7 +101,8 @@ nonisolated extension OAuthClient {
     func tokenForm(_ fields: [String: String]) -> [String: String] {
         var form = fields
         if let clientSecret = config.clientSecret?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !clientSecret.isEmpty {
+            !clientSecret.isEmpty
+        {
             form["client_secret"] = clientSecret
         }
         return form
@@ -111,7 +113,7 @@ nonisolated extension OAuthClient {
             return error
         }
         switch loopbackError {
-        case let .providerError(detail):
+        case .providerError(let detail):
             return OAuthError.authorizationDenied(detail)
         case .missingCode:
             return OAuthError.missingCode
@@ -132,8 +134,8 @@ nonisolated extension OAuthClient {
     private static func isTransientNetworkError(_ error: URLError) -> Bool {
         switch error.code {
         case .notConnectedToInternet, .networkConnectionLost, .timedOut,
-             .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed,
-             .internationalRoamingOff, .dataNotAllowed, .secureConnectionFailed:
+            .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed,
+            .internationalRoamingOff, .dataNotAllowed, .secureConnectionFailed:
             true
         default:
             false
@@ -145,8 +147,9 @@ nonisolated extension OAuthClient {
             let error: String?
         }
         if let data = body.data(using: .utf8),
-           let parsed = try? JSONDecoder().decode(TokenError.self, from: data),
-           parsed.error == "invalid_grant" {
+            let parsed = try? JSONDecoder().decode(TokenError.self, from: data),
+            parsed.error == "invalid_grant"
+        {
             return true
         }
         return body.contains("invalid_grant")
@@ -157,9 +160,10 @@ nonisolated extension OAuthClient {
             let error: String?
         }
         if let data = body.data(using: .utf8),
-           let parsed = try? JSONDecoder().decode(TokenError.self, from: data),
-           let code = sanitizedTokenErrorCode(parsed.error),
-           !code.isEmpty {
+            let parsed = try? JSONDecoder().decode(TokenError.self, from: data),
+            let code = sanitizedTokenErrorCode(parsed.error),
+            !code.isEmpty
+        {
             return "OAuth token endpoint returned \(code) (HTTP \(statusCode))."
         }
         return "OAuth token endpoint returned HTTP \(statusCode)."

@@ -1,6 +1,7 @@
-@testable import Mailbell
 import ServiceManagement
 import XCTest
+
+@testable import Mailbell
 
 @MainActor
 final class LoginItemTests: XCTestCase {

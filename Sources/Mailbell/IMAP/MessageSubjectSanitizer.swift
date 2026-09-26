@@ -18,8 +18,8 @@ nonisolated enum MessageSubjectSanitizer {
             limit: maximumLength,
             htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText
         )?
-            .components(separatedBy: .whitespacesAndNewlines)
-            .filter { !$0.isEmpty }
-            .joined(separator: " ") ?? ""
+        .components(separatedBy: .whitespacesAndNewlines)
+        .filter { !$0.isEmpty }
+        .joined(separator: " ") ?? ""
     }
 }

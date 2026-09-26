@@ -1,7 +1,8 @@
-@testable import Mailbell
-@testable import MailbellKit
 import MailbellTestSupport
 import XCTest
+
+@testable import Mailbell
+@testable import MailbellKit
 
 final class AccountSupervisorTests: XCTestCase {
     /// NWPathMonitor calls the path handler on `pathQueue`. Were it main-actor

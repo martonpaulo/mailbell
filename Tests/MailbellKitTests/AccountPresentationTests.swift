@@ -1,5 +1,6 @@
-@testable import MailbellKit
 import XCTest
+
+@testable import MailbellKit
 
 @MainActor
 final class AccountPresentationTests: XCTestCase {

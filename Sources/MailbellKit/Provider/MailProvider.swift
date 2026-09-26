@@ -36,7 +36,7 @@ public struct GmailProvider: MailProvider, Sendable {
 
     public func webmailURL(for header: MessageHeader, account: MailAccount?) -> URL {
         guard let threadID = header.gmThreadId,
-              let threadValue = UInt64(threadID, radix: 10)
+            let threadValue = UInt64(threadID, radix: 10)
         else {
             return webmailURL(for: account)
         }

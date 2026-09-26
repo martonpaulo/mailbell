@@ -10,7 +10,7 @@ extension AccountSupervisor {
     /// unrelated updates, and a disabled account is not being watched at all.
     func notifyAccountsNeedingSignIn(previous: [UUID: MonitorStatus]) {
         for (accountID, status) in statuses
-            where status == .signInRequired && previous[accountID] != .signInRequired {
+        where status == .signInRequired && previous[accountID] != .signInRequired {
             guard let account = accounts.first(where: { $0.id == accountID && $0.isEnabled }) else { continue }
             signInNeededNotifier(account)
         }

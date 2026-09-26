@@ -1,7 +1,7 @@
 import Foundation
 import MailbellKit
-import Sparkle
 import Observation
+import Sparkle
 
 /// Wraps Sparkle for the direct-download build. The updater only starts from a
 /// real installed bundle that ships both a feed URL and a public key, so

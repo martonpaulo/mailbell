@@ -21,7 +21,8 @@ nonisolated enum SwiftSoupPreviewTextExtractor {
                 .replacingOccurrences(of: " ", with: "")
             if style.contains("display:none")
                 || style.contains("visibility:hidden")
-                || style.contains("opacity:0") {
+                || style.contains("opacity:0")
+            {
                 try element.remove()
             }
         }

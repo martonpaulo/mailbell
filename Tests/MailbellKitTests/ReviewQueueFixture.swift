@@ -1,6 +1,7 @@
-@testable import MailbellKit
 import MailbellTestSupport
 import XCTest
+
+@testable import MailbellKit
 
 /// Shared fixtures for the store suites, so the files that exercise the queue
 /// and its handled history cannot drift apart.

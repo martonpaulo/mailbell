@@ -1,6 +1,7 @@
-@testable import Mailbell
 import UserNotifications
 import XCTest
+
+@testable import Mailbell
 
 final class NotificationResponseActionTests: XCTestCase {
     func testDefaultNotificationClickOpensEmail() throws {
@@ -12,7 +13,7 @@ final class NotificationResponseActionTests: XCTestCase {
             userInfo: [
                 notificationEmailIDKey: "email-id",
                 notificationAccountIDKey: accountID.uuidString,
-                notificationWebmailURLKey: url.absoluteString
+                notificationWebmailURLKey: url.absoluteString,
             ]
         )
 

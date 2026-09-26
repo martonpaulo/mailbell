@@ -13,7 +13,7 @@ extension AccountSupervisor {
                 String(localized: "This account no longer exists.")
             case .authenticationInProgress:
                 String(localized: "Google sign-in is already in progress.")
-            case let .accountMismatch(expected, actual):
+            case .accountMismatch(let expected, let actual):
                 String(
                     localized: "Signed in as \(actual), but this account is \(expected). Sign in with \(expected).",
                     comment: "The first placeholder is the address signed in; the others are the account's address."

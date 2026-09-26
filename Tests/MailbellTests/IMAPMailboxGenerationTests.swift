@@ -1,7 +1,8 @@
-@testable import Mailbell
-@testable import MailbellKit
 import MailbellTestSupport
 import XCTest
+
+@testable import Mailbell
+@testable import MailbellKit
 
 /// RFC 3501 identifies a message by mailbox name, UIDVALIDITY and UID together.
 /// A UID alone is not an identity: after the generation changes, the server may
@@ -13,7 +14,7 @@ final class IMAPMailboxGenerationTests: XCTestCase {
             "* 5 EXISTS",
             "* OK [UIDVALIDITY 2] UIDs valid",
             "* OK [UIDNEXT 90] Predicted next UID",
-            "A0001 OK [READ-WRITE] SELECT completed"
+            "A0001 OK [READ-WRITE] SELECT completed",
         ])
         let client = IMAPClient(connection: connection)
 
@@ -24,7 +25,7 @@ final class IMAPMailboxGenerationTests: XCTestCase {
             try await client.markAsRead(uids: [42], requiringUIDValidity: 1)
             XCTFail("expected the stale generation to be rejected")
         } catch let error as IMAPClient.IMAPError {
-            guard case let .staleMailboxGeneration(expected, actual) = error else {
+            guard case .staleMailboxGeneration(let expected, let actual) = error else {
                 return XCTFail("unexpected error \(error)")
             }
             XCTAssertEqual(expected, 1)
@@ -41,7 +42,7 @@ final class IMAPMailboxGenerationTests: XCTestCase {
             "* OK [UIDVALIDITY 1] UIDs valid",
             "* OK [UIDNEXT 90] Predicted next UID",
             "A0001 OK [READ-WRITE] SELECT completed",
-            "A0002 OK STORE completed"
+            "A0002 OK STORE completed",
         ])
         let client = IMAPClient(connection: connection)
 
@@ -93,12 +94,14 @@ final class IMAPMailboxGenerationTests: XCTestCase {
 
         // The mailbox is rebuilt and UID 42 now belongs to a different message.
         _ = try store.reconcileUnread(
-            snapshots: [MailboxUnreadSnapshot(
-                mailbox: .inbox,
-                mailboxName: "INBOX",
-                uidValidity: 2,
-                unreadUIDs: [42]
-            )],
+            snapshots: [
+                MailboxUnreadSnapshot(
+                    mailbox: .inbox,
+                    mailboxName: "INBOX",
+                    uidValidity: 2,
+                    unreadUIDs: [42]
+                )
+            ],
             fetchedHeaders: [],
             account: account
         )
@@ -113,12 +116,14 @@ final class IMAPMailboxGenerationTests: XCTestCase {
         XCTAssertTrue(try store.admit(header: makeHeader(uid: 42, gmMessageId: "A", uidValidity: 1), account: account))
 
         _ = try store.reconcileUnread(
-            snapshots: [MailboxUnreadSnapshot(
-                mailbox: .inbox,
-                mailboxName: "INBOX",
-                uidValidity: 1,
-                unreadUIDs: [42]
-            )],
+            snapshots: [
+                MailboxUnreadSnapshot(
+                    mailbox: .inbox,
+                    mailboxName: "INBOX",
+                    uidValidity: 1,
+                    unreadUIDs: [42]
+                )
+            ],
             fetchedHeaders: [],
             account: account
         )

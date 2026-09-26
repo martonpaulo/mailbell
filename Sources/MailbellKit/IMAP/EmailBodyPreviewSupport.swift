@@ -30,7 +30,7 @@ enum PreviewTokenReplacer {
 
     private static func replacing(pattern: String, in text: String, with replacement: String) -> String {
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return text }
-        let range = NSRange(text.startIndex ..< text.endIndex, in: text)
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
         return regex.stringByReplacingMatches(in: text, range: range, withTemplate: replacement)
     }
 }
@@ -249,17 +249,20 @@ enum Base64PreviewDecoder {
         let joined = lines.joined()
         guard joined.count >= 24 else { return nil }
 
-        let standardBase64 = joined
+        let standardBase64 =
+            joined
             .replacingOccurrences(of: "-", with: "+")
             .replacingOccurrences(of: "_", with: "/")
         // A bounded BODY.PEEK slice cuts the payload anywhere. One leftover
         // character encodes nothing and admits no valid padding, so dropping it
         // is what makes a truncated block decodable instead of leaking whole.
-        let aligned = standardBase64.count % 4 == 1
+        let aligned =
+            standardBase64.count % 4 == 1
             ? String(standardBase64.dropLast())
             : standardBase64
         let remainder = aligned.count % 4
-        let padded = remainder == 0
+        let padded =
+            remainder == 0
             ? aligned
             : aligned + String(repeating: "=", count: 4 - remainder)
 
@@ -270,7 +273,7 @@ enum Base64PreviewDecoder {
             return imageMarker
         }
         guard isMostlyPrintableText(data),
-              let decoded = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1)
+            let decoded = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1)
         else {
             return nil
         }
@@ -286,7 +289,7 @@ enum Base64PreviewDecoder {
             || bytes.starts(with: [0xFF, 0xD8, 0xFF])
             || bytes.starts(with: [0x47, 0x49, 0x46, 0x38])
             || bytes.starts(with: [0x52, 0x49, 0x46, 0x46])
-            && bytes.dropFirst(8).starts(with: [0x57, 0x45, 0x42, 0x50])
+                && bytes.dropFirst(8).starts(with: [0x57, 0x45, 0x42, 0x50])
     }
 
     private static func isMostlyPrintableText(_ data: Data) -> Bool {
@@ -308,7 +311,7 @@ enum Base64PreviewDecoder {
 
     private static func containsPattern(_ pattern: String, in text: String) -> Bool {
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return false }
-        let range = NSRange(text.startIndex ..< text.endIndex, in: text)
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
         return regex.firstMatch(in: text, range: range) != nil
     }
 }
@@ -338,7 +341,7 @@ enum HTMLPreviewTextExtractor {
 
     private static func containsPattern(_ pattern: String, in text: String) -> Bool {
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return false }
-        let range = NSRange(text.startIndex ..< text.endIndex, in: text)
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
         return regex.firstMatch(in: text, range: range) != nil
     }
 }

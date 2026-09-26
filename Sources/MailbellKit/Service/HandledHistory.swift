@@ -50,9 +50,10 @@ public final class HandledHistory {
         self.userDefaults = userDefaults
         self.maxRecordCount = maxRecordCount
         self.now = now
-        self.saveData = saveData ?? { [userDefaults] data, key in
-            userDefaults.set(data, forKey: key)
-        }
+        self.saveData =
+            saveData ?? { [userDefaults] data, key in
+                userDefaults.set(data, forKey: key)
+            }
     }
 
     func isHandled(_ id: String) throws -> Bool {
@@ -92,8 +93,8 @@ public final class HandledHistory {
         var didChange = false
         for message in handled {
             guard let identity = message.identity,
-                  var record = records[message.id],
-                  record.uid == nil
+                var record = records[message.id],
+                record.uid == nil
             else {
                 continue
             }
@@ -114,9 +115,9 @@ public final class HandledHistory {
         let prefix = ReviewItemIdentity.accountPrefix(accountID: accountID)
         return try records().values.reduce(into: Set<Int>()) { result, record in
             guard record.id.hasPrefix(prefix),
-                  record.mailboxName == mailboxName,
-                  record.uidValidity == uidValidity,
-                  let uid = record.uid
+                record.mailboxName == mailboxName,
+                record.uidValidity == uidValidity,
+                let uid = record.uid
             else {
                 return
             }

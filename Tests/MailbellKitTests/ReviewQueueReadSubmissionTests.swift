@@ -1,6 +1,7 @@
-@testable import MailbellKit
 import MailbellTestSupport
 import XCTest
+
+@testable import MailbellKit
 
 /// Marking as read awaits the network. A reply can join the same thread while
 /// that request is in flight, and the server was never asked about it — so it
@@ -69,12 +70,13 @@ final class ReviewQueueReadSubmissionTests: XCTestCase {
     func testBatchCaptureMatchesCapturingEachGroupSeparately() throws {
         let store = makeStore()
         let account = makeAccount()
-        for uid in 1 ... 6 {
+        for uid in 1...6 {
             let thread = uid % 2 == 0 ? "even" : "odd"
-            XCTAssertTrue(try store.admit(
-                header: makeHeader(uid: uid, gmMessageId: "M\(uid)", gmThreadId: thread),
-                account: account
-            ))
+            XCTAssertTrue(
+                try store.admit(
+                    header: makeHeader(uid: uid, gmMessageId: "M\(uid)", gmThreadId: thread),
+                    account: account
+                ))
         }
         let ids = store.shownItems.map(\.id)
 
@@ -89,11 +91,12 @@ final class ReviewQueueReadSubmissionTests: XCTestCase {
     func testBatchCompletionFinalizesEveryCapturedGroupAndNothingElse() throws {
         let store = makeStore()
         let account = makeAccount()
-        for uid in 1 ... 4 {
-            XCTAssertTrue(try store.admit(
-                header: makeHeader(uid: uid, gmMessageId: "M\(uid)"),
-                account: account
-            ))
+        for uid in 1...4 {
+            XCTAssertTrue(
+                try store.admit(
+                    header: makeHeader(uid: uid, gmMessageId: "M\(uid)"),
+                    account: account
+                ))
         }
         let capturedIDs = Array(store.shownItems.map(\.id).prefix(3))
         let survivorID = store.shownItems.map(\.id).last
@@ -103,7 +106,7 @@ final class ReviewQueueReadSubmissionTests: XCTestCase {
         XCTAssertEqual(store.shownItems.map(\.id), [survivorID].compactMap { $0 })
         // Recorded as handled, not merely removed from the queue: a handled
         // message is refused on re-admission.
-        for uid in 1 ... 4 {
+        for uid in 1...4 {
             let header = makeHeader(uid: uid, gmMessageId: "M\(uid)")
             let id = ReviewItemIdentity.id(accountID: account.id, header: header)
             guard capturedIDs.contains(id) else { continue }

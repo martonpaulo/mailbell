@@ -25,7 +25,8 @@ public enum MenuCopy {
         if hiddenConversations == 1 {
             return String(localized: "1 more conversation awaiting review. Open Gmail to see the rest.")
         }
-        return String(localized: "\(hiddenConversations) more conversations awaiting review. Open Gmail to see the rest.")
+        return String(
+            localized: "\(hiddenConversations) more conversations awaiting review. Open Gmail to see the rest.")
     }
 
     /// Bulk actions reach every retained message, including the ones the menu

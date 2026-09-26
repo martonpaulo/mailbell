@@ -1,6 +1,7 @@
+import XCTest
+
 @testable import Mailbell
 @testable import MailbellKit
-import XCTest
 
 final class BundleConfigScriptTests: XCTestCase {
     private struct InjectorResult {
@@ -91,7 +92,7 @@ final class BundleConfigScriptTests: XCTestCase {
         let plistURL = try makePlist([
             "CFBundleIdentifier": "com.martonpaulo.mailbell",
             "CFBundleName": "Old",
-            "CFBundleDisplayName": "Old"
+            "CFBundleDisplayName": "Old",
         ])
         defer { try? FileManager.default.removeItem(at: plistURL) }
 
@@ -100,7 +101,7 @@ final class BundleConfigScriptTests: XCTestCase {
             environment: [
                 OAuthConfig.clientIDKey: clientID,
                 OAuthConfig.clientSecretKey: clientSecret,
-                "MAILBELL_BUNDLE_ID": "com.martonpaulo.mailbell"
+                "MAILBELL_BUNDLE_ID": "com.martonpaulo.mailbell",
             ]
         )
 
@@ -119,7 +120,7 @@ final class BundleConfigScriptTests: XCTestCase {
             "CFBundleName": "Old",
             "CFBundleDisplayName": "Old",
             "CFBundleShortVersionString": "0.0.0",
-            "CFBundleVersion": "0"
+            "CFBundleVersion": "0",
         ])
         defer { try? FileManager.default.removeItem(at: plistURL) }
 
@@ -127,7 +128,7 @@ final class BundleConfigScriptTests: XCTestCase {
             arguments: ["--version", "1.2.3", "--build-number", "456", plistURL.path],
             environment: [
                 OAuthConfig.clientIDKey: clientID,
-                "MAILBELL_BUNDLE_ID": "com.martonpaulo.mailbell"
+                "MAILBELL_BUNDLE_ID": "com.martonpaulo.mailbell",
             ]
         )
 
@@ -144,7 +145,7 @@ final class BundleConfigScriptTests: XCTestCase {
             "CFBundleIdentifier": "com.martonpaulo.mailbell",
             "CFBundleName": "Old",
             "CFBundleDisplayName": "Old",
-            "MailbellGoogleClientSecret": "old-secret"
+            "MailbellGoogleClientSecret": "old-secret",
         ])
         defer { try? FileManager.default.removeItem(at: plistURL) }
 
@@ -177,15 +178,15 @@ final class BundleConfigScriptTests: XCTestCase {
         let plistURL = try makePlist([
             "CFBundleIdentifier": "com.martonpaulo.mailbell",
             "CFBundleName": "Old",
-            "CFBundleDisplayName": "Old"
+            "CFBundleDisplayName": "Old",
         ])
         let dotenvURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("MailbellEnv.\(UUID().uuidString)")
         let dotenv = """
-        \(OAuthConfig.clientIDKey)=\(clientID)
-        \(OAuthConfig.clientSecretKey)=\(clientSecret)
-        MAILBELL_BUNDLE_ID=com.martonpaulo.mailbell
-        """
+            \(OAuthConfig.clientIDKey)=\(clientID)
+            \(OAuthConfig.clientSecretKey)=\(clientSecret)
+            MAILBELL_BUNDLE_ID=com.martonpaulo.mailbell
+            """
         try dotenv.write(to: dotenvURL, atomically: true, encoding: .utf8)
         defer {
             try? FileManager.default.removeItem(at: plistURL)

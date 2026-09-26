@@ -1,5 +1,6 @@
-@testable import MailbellKit
 import XCTest
+
+@testable import MailbellKit
 
 /// What makes two messages the same message, and what keeps a UID from being
 /// mistaken for an identity across mailboxes and accounts.
@@ -51,10 +52,11 @@ final class ReviewItemIdentityTests: XCTestCase {
         let account = ReviewQueueFixture.makeAccount()
         let otherAccount = MailAccount(providerID: .gmail, email: "other@example.com")
 
-        XCTAssertTrue(try store.admit(
-            header: ReviewQueueFixture.makeHeader(uid: 1, gmMessageId: "inbox"),
-            account: account
-        ))
+        XCTAssertTrue(
+            try store.admit(
+                header: ReviewQueueFixture.makeHeader(uid: 1, gmMessageId: "inbox"),
+                account: account
+            ))
         XCTAssertTrue(
             try store.admit(
                 header: ReviewQueueFixture.makeHeader(
@@ -66,10 +68,11 @@ final class ReviewItemIdentityTests: XCTestCase {
                 account: account
             )
         )
-        XCTAssertTrue(try store.admit(
-            header: ReviewQueueFixture.makeHeader(uid: 3, gmMessageId: "other"),
-            account: otherAccount
-        ))
+        XCTAssertTrue(
+            try store.admit(
+                header: ReviewQueueFixture.makeHeader(uid: 3, gmMessageId: "other"),
+                account: otherAccount
+            ))
 
         XCTAssertEqual(store.pendingUIDs(accountID: account.id, mailbox: .inbox, uidValidity: 1), Set([1]))
         XCTAssertEqual(store.pendingUIDs(accountID: account.id, mailbox: .spam, uidValidity: 1), Set([2]))
@@ -93,10 +96,11 @@ final class ReviewItemIdentityTests: XCTestCase {
         let store = ReviewQueueFixture.makeStore()
         let account = ReviewQueueFixture.makeAccount()
 
-        XCTAssertTrue(try store.admit(
-            header: ReviewQueueFixture.makeHeader(subject: "Inbox", gmMessageId: "inbox"),
-            account: account
-        ))
+        XCTAssertTrue(
+            try store.admit(
+                header: ReviewQueueFixture.makeHeader(subject: "Inbox", gmMessageId: "inbox"),
+                account: account
+            ))
         XCTAssertTrue(
             try store.admit(
                 header: ReviewQueueFixture.makeHeader(mailbox: .spam, subject: "Spam", gmMessageId: "spam"),

@@ -1,5 +1,6 @@
-@testable import MailbellKit
 import XCTest
+
+@testable import MailbellKit
 
 final class MailProviderTests: XCTestCase {
     func testGmailProviderUsesGenericWebmailURL() {

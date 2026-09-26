@@ -1,7 +1,8 @@
-@testable import Mailbell
-@testable import MailbellKit
 import MailbellTestSupport
 import XCTest
+
+@testable import Mailbell
+@testable import MailbellKit
 
 @MainActor
 final class LegacyDomainMigrationTests: XCTestCase {
@@ -22,7 +23,7 @@ final class LegacyDomainMigrationTests: XCTestCase {
             "SUAutomaticallyUpdate": true,
             "SULastCheckTime": Date(timeIntervalSince1970: 0),
             "SUUpdateGroupIdentifier": 7,
-            "AppleLanguages": ["en"]
+            "AppleLanguages": ["en"],
         ]
     }
 
@@ -41,7 +42,7 @@ final class LegacyDomainMigrationTests: XCTestCase {
                 StorageKeys.systemSettingsWindowFrame,
                 "NSStatusItem Preferred Position Item-0",
                 "SUAutomaticallyUpdate",
-                StorageKeys.legacyDomainCopied
+                StorageKeys.legacyDomainCopied,
             ]
         )
         XCTAssertEqual(values[checkpointKey] as? Int, 42)

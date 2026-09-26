@@ -1,7 +1,8 @@
-@testable import Mailbell
-@testable import MailbellKit
 import MailbellTestSupport
 import XCTest
+
+@testable import Mailbell
+@testable import MailbellKit
 
 /// The capture mode must be invisible to ordinary launches, and the state a
 /// capture depends on must come from the flag rather than from whatever the

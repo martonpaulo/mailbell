@@ -22,7 +22,8 @@ nonisolated extension MailMonitor {
                     .map { $0.assigningMailbox(mailbox.role, name: mailbox.name, uidValidity: generation) }
                     .sorted { $0.uid < $1.uid }
 
-                let admittedIdentities = await delegate?.monitor(account.id, shouldNotify: headers)
+                let admittedIdentities =
+                    await delegate?.monitor(account.id, shouldNotify: headers)
                     ?? Set(headers.compactMap(\.imapIdentity))
                 await notify(headers: headers, admittedIdentities: admittedIdentities, uidsToNotify: uidsToNotify)
                 notificationUIDsToFetch.subtract(admissionBatch)
@@ -35,13 +36,14 @@ nonisolated extension MailMonitor {
                     let notificationHeaders = try await client.fetchHeaders(
                         uids: Array(notificationUIDsToFetch).sorted()
                     )
-                        .map { $0.assigningMailbox(mailbox.role, name: mailbox.name, uidValidity: generation) }
-                        .sorted { $0.uid < $1.uid }
+                    .map { $0.assigningMailbox(mailbox.role, name: mailbox.name, uidValidity: generation) }
+                    .sorted { $0.uid < $1.uid }
                     notificationUIDsToFetch.removeAll()
-                    let admittedNotificationIdentities = await delegate?.monitor(
-                        account.id,
-                        shouldNotify: notificationHeaders
-                    ) ?? Set(notificationHeaders.compactMap(\.imapIdentity))
+                    let admittedNotificationIdentities =
+                        await delegate?.monitor(
+                            account.id,
+                            shouldNotify: notificationHeaders
+                        ) ?? Set(notificationHeaders.compactMap(\.imapIdentity))
                     await notify(
                         headers: notificationHeaders,
                         admittedIdentities: admittedNotificationIdentities,
@@ -60,8 +62,8 @@ nonisolated extension MailMonitor {
     ) async {
         for header in headers {
             guard let identity = header.imapIdentity,
-                  admittedIdentities.contains(identity),
-                  uidsToNotify.contains(header.uid)
+                admittedIdentities.contains(identity),
+                uidsToNotify.contains(header.uid)
             else {
                 continue
             }
@@ -86,12 +88,13 @@ nonisolated extension MailMonitor {
                 )
             )
 
-            let uidsToSkip = await delegate?.monitor(
-                account.id,
-                uidsToSkipFor: mailbox.role,
-                mailboxName: mailbox.name,
-                uidValidity: generation
-            ) ?? []
+            let uidsToSkip =
+                await delegate?.monitor(
+                    account.id,
+                    uidsToSkipFor: mailbox.role,
+                    mailboxName: mailbox.name,
+                    uidValidity: generation
+                ) ?? []
             let unknownUIDs = Array(unreadUIDs.subtracting(uidsToSkip)).sorted()
             let uidsToFetch = Array(unknownUIDs.suffix(Self.maximumReconciliationHeadersPerMailbox))
             let mailboxHeaders = try await client.fetchHeaders(uids: uidsToFetch)

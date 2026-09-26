@@ -1,6 +1,7 @@
-@testable import MailbellKit
 import MailbellTestSupport
 import XCTest
+
+@testable import MailbellKit
 
 @MainActor
 final class AppSettingsStoreDefaultsTests: XCTestCase {

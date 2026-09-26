@@ -1,6 +1,7 @@
+import XCTest
+
 @testable import Mailbell
 @testable import MailbellKit
-import XCTest
 
 /// Notification Center replaces a request that reuses an identifier, so the
 /// identifier has to name the message rather than its number.

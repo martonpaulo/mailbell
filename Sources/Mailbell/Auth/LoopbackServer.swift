@@ -88,9 +88,9 @@ actor LoopbackServer {
             self.serverTask = serverTask
             try await server.waitUntilListening(timeout: 5)
 
-            guard case let .ip4(address, assignedPort) = await server.listeningAddress,
-                  address == "127.0.0.1",
-                  assignedPort > 0
+            guard case .ip4(let address, let assignedPort) = await server.listeningAddress,
+                address == "127.0.0.1",
+                assignedPort > 0
             else {
                 await stop()
                 throw LoopbackError.failedToStart
@@ -266,8 +266,8 @@ actor LoopbackServer {
         let trimmed = rawError.trimmingCharacters(in: .whitespacesAndNewlines)
         let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-")
         guard !trimmed.isEmpty,
-              trimmed.count <= 80,
-              trimmed.unicodeScalars.allSatisfy({ allowed.contains($0) })
+            trimmed.count <= 80,
+            trimmed.unicodeScalars.allSatisfy({ allowed.contains($0) })
         else {
             return "provider_error"
         }
@@ -294,8 +294,8 @@ private nonisolated struct CallbackOutcome {
     }
 }
 
-private extension LoopbackServer.LoopbackError {
-    var callbackPageReason: LoopbackCallbackPage.ErrorReason {
+extension LoopbackServer.LoopbackError {
+    fileprivate var callbackPageReason: LoopbackCallbackPage.ErrorReason {
         switch self {
         case .failedToStart, .timedOut, .cancelled:
             .serverUnavailable
@@ -305,7 +305,7 @@ private extension LoopbackServer.LoopbackError {
             .stateMismatch
         case .missingCode:
             .missingCode
-        case let .providerError(error):
+        case .providerError(let error):
             .providerError(error)
         }
     }

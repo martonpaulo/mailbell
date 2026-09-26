@@ -55,7 +55,8 @@ extension AccountSupervisor {
 
     func dismiss(itemID id: String?) {
         guard let id else { return }
-        let accountID = reviewQueue.item(id: id)?.accountID
+        let accountID =
+            reviewQueue.item(id: id)?.accountID
             ?? reviewQueue.firstItemInGroup(containing: id)?.accountID
         do {
             try reviewQueue.dismiss(id: id)
@@ -73,7 +74,7 @@ extension AccountSupervisor {
             switch outcome {
             case .opened:
                 webmailOpenErrors[accountID] = nil
-            case let .openedWithFallback(message), let .failed(message):
+            case .openedWithFallback(let message), .failed(let message):
                 webmailOpenErrors[accountID] = message
             }
             publish()

@@ -1,6 +1,7 @@
-@testable import Mailbell
 import UserNotifications
 import XCTest
+
+@testable import Mailbell
 
 @MainActor
 final class NotificationAuthorizationStateTests: XCTestCase {

@@ -12,21 +12,21 @@ enum PreviewNoiseNormalizer {
     /// Format and zero-width characters used as padding, plus the fixed-width
     /// spaces that behave the same way.
     private static let invisibleScalars: Set<Unicode.Scalar> = [
-        "\u{00ad}", // soft hyphen
-        "\u{034f}", // combining grapheme joiner
-        "\u{200b}", // zero-width space
-        "\u{200c}", // zero-width non-joiner
-        "\u{200d}", // zero-width joiner
-        "\u{200e}", "\u{200f}", // directional marks
-        "\u{2060}", // word joiner
-        "\u{feff}" // zero-width no-break space
+        "\u{00ad}",  // soft hyphen
+        "\u{034f}",  // combining grapheme joiner
+        "\u{200b}",  // zero-width space
+        "\u{200c}",  // zero-width non-joiner
+        "\u{200d}",  // zero-width joiner
+        "\u{200e}", "\u{200f}",  // directional marks
+        "\u{2060}",  // word joiner
+        "\u{feff}",  // zero-width no-break space
     ]
 
     private static let paddingSpaceScalars: Set<Unicode.Scalar> = [
-        "\u{00a0}", // no-break space
+        "\u{00a0}",  // no-break space
         "\u{2000}", "\u{2001}", "\u{2002}", "\u{2003}", "\u{2004}",
         "\u{2005}", "\u{2006}", "\u{2007}", "\u{2008}", "\u{2009}",
-        "\u{200a}", "\u{202f}", "\u{205f}", "\u{3000}"
+        "\u{200a}", "\u{202f}", "\u{205f}", "\u{3000}",
     ]
 
     static func removePaddingRuns(from text: String) -> String {

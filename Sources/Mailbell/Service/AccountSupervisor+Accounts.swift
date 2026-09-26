@@ -134,7 +134,7 @@ extension AccountSupervisor {
         reconnectAllTask?.cancel()
         reconnectAllTask = Task { @MainActor [weak self, enabledAccountIDs] in
             for (index, accountID) in enabledAccountIDs.enumerated() {
-                let jitter = UInt64.random(in: 0 ... 300_000_000)
+                let jitter = UInt64.random(in: 0...300_000_000)
                 let stagger = UInt64(index) * 300_000_000
                 do {
                     try await Task.sleep(nanoseconds: jitter + stagger)

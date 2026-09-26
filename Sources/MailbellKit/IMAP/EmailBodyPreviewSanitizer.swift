@@ -19,7 +19,8 @@ public enum EmailBodyPreviewSanitizer {
         // Mail that declares iso-8859-1 is usually Windows-1252 in practice, and
         // Latin-1 drops its 0x80-0x9F range: the euro sign and curly quotes
         // vanish from the preview rather than round-tripping.
-        let text = String(data: data, encoding: .utf8)
+        let text =
+            String(data: data, encoding: .utf8)
             ?? String(data: data, encoding: .windowsCP1252)
             ?? String(data: data, encoding: .isoLatin1)
             ?? ""
@@ -63,7 +64,8 @@ public enum EmailBodyPreviewSanitizer {
         // Before truncation, so stuffing cannot consume the teaser budget.
         let withoutPadding = PreviewNoiseNormalizer.removePaddingRuns(from: withPreviewTokens)
         let punctuationTightened = replacing(pattern: "\\s+([\\.,;:!?])", in: withoutPadding, with: "$1")
-        let collapsed = punctuationTightened
+        let collapsed =
+            punctuationTightened
             .replacingOccurrences(of: "\u{00a0}", with: " ")
             .components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
@@ -137,14 +139,16 @@ public enum EmailBodyPreviewSanitizer {
                     continue
                 }
                 if index + 2 < bytes.count,
-                   bytes[index + 1] == carriageReturn,
-                   bytes[index + 2] == lineFeed {
+                    bytes[index + 1] == carriageReturn,
+                    bytes[index + 2] == lineFeed
+                {
                     index += 3
                     continue
                 }
                 if index + 2 < bytes.count,
-                   let high = hexValue(bytes[index + 1]),
-                   let low = hexValue(bytes[index + 2]) {
+                    let high = hexValue(bytes[index + 1]),
+                    let low = hexValue(bytes[index + 2])
+                {
                     decoded.append(high * 16 + low)
                     index += 3
                     continue
@@ -169,11 +173,11 @@ public enum EmailBodyPreviewSanitizer {
         let lowercaseF = UInt8(ascii: "f")
 
         switch byte {
-        case zero ... nine:
+        case zero...nine:
             return byte - zero
-        case uppercaseA ... uppercaseF:
+        case uppercaseA...uppercaseF:
             return byte - uppercaseA + 10
-        case lowercaseA ... lowercaseF:
+        case lowercaseA...lowercaseF:
             return byte - lowercaseA + 10
         default:
             return nil
@@ -212,7 +216,7 @@ public enum EmailBodyPreviewSanitizer {
 
         // Unwrap repeatedly: `[![](image)](link)` needs the inner image gone
         // before the outer link can match.
-        for _ in 0 ..< 3 {
+        for _ in 0..<3 {
             let unwrapped = replacing(
                 pattern: #"!?\[([^\[\]]*)\]\([^()\s]*\)"#,
                 in: result,
@@ -234,7 +238,7 @@ public enum EmailBodyPreviewSanitizer {
 
     private static func replacing(pattern: String, in text: String, with replacement: String) -> String {
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return text }
-        let range = NSRange(text.startIndex ..< text.endIndex, in: text)
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
         return regex.stringByReplacingMatches(in: text, range: range, withTemplate: replacement)
     }
 
@@ -243,7 +247,8 @@ public enum EmailBodyPreviewSanitizer {
         let limitIndex = text.index(text.startIndex, offsetBy: limit)
         let prefix = text[..<limitIndex]
         if let wordBoundary = prefix.lastIndex(where: { $0.isWhitespace }),
-           text.distance(from: prefix.startIndex, to: wordBoundary) > limit / 2 {
+            text.distance(from: prefix.startIndex, to: wordBoundary) > limit / 2
+        {
             return String(prefix[..<wordBoundary]) + "..."
         }
         return String(prefix) + "..."

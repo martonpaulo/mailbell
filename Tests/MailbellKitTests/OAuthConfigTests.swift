@@ -1,5 +1,6 @@
-@testable import MailbellKit
 import XCTest
+
+@testable import MailbellKit
 
 final class OAuthConfigTests: XCTestCase {
     private let clientID = "dummy-local-client-id.apps.googleusercontent.com"
@@ -9,7 +10,7 @@ final class OAuthConfigTests: XCTestCase {
         let config = try OAuthConfig.load(
             environment: [
                 OAuthConfig.clientIDKey: clientID,
-                OAuthConfig.clientSecretKey: clientSecret
+                OAuthConfig.clientSecretKey: clientSecret,
             ]
         )
 
@@ -32,7 +33,7 @@ final class OAuthConfigTests: XCTestCase {
         let config = try OAuthConfig.load(
             environment: [
                 OAuthConfig.clientIDKey: clientID,
-                OAuthConfig.clientSecretKey: "   "
+                OAuthConfig.clientSecretKey: "   ",
             ]
         )
 
@@ -51,7 +52,7 @@ final class OAuthConfigTests: XCTestCase {
             try OAuthConfig.load(
                 environment: [
                     OAuthConfig.clientIDKey: "not-a-google-client-id",
-                    OAuthConfig.clientSecretKey: clientSecret
+                    OAuthConfig.clientSecretKey: clientSecret,
                 ]
             )
         ) { error in
@@ -64,11 +65,11 @@ final class OAuthConfigTests: XCTestCase {
             try OAuthConfig.load(
                 environment: [
                     OAuthConfig.clientIDKey: "not-a-google-client-id",
-                    OAuthConfig.clientSecretKey: clientSecret
+                    OAuthConfig.clientSecretKey: clientSecret,
                 ],
                 dotEnv: [
                     OAuthConfig.clientIDKey: clientID,
-                    OAuthConfig.clientSecretKey: clientSecret
+                    OAuthConfig.clientSecretKey: clientSecret,
                 ]
             )
         ) { error in
@@ -83,7 +84,7 @@ final class OAuthConfigTests: XCTestCase {
             ],
             dotEnv: [
                 OAuthConfig.clientIDKey: "other-client-id.apps.googleusercontent.com",
-                OAuthConfig.clientSecretKey: clientSecret
+                OAuthConfig.clientSecretKey: clientSecret,
             ]
         )
 

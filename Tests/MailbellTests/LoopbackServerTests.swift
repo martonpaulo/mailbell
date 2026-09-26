@@ -1,6 +1,7 @@
 import Foundation
-@testable import Mailbell
 import XCTest
+
+@testable import Mailbell
 
 final class LoopbackServerTests: XCTestCase {
     func testStartsOnIPv4LoopbackWithCallbackPath() async throws {

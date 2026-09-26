@@ -1,20 +1,21 @@
 import Foundation
+import XCTest
+
 @testable import Mailbell
 @testable import MailbellKit
-import XCTest
 
 @MainActor
 final class WebmailTests: XCTestCase {
     func testMailAccountJSONDecodesWithoutWebmailPreference() throws {
         let json = """
-        {
-          "id": "A1B2C3D4-E5F6-7890-ABCD-EF1234567890",
-          "providerID": "gmail",
-          "email": "minimal@example.com",
-          "isEnabled": true,
-          "createdAt": 0
-        }
-        """
+            {
+              "id": "A1B2C3D4-E5F6-7890-ABCD-EF1234567890",
+              "providerID": "gmail",
+              "email": "minimal@example.com",
+              "isEnabled": true,
+              "createdAt": 0
+            }
+            """
         let jsonData = Data(json.utf8)
 
         let account = try JSONDecoder().decode(MailAccount.self, from: jsonData)
@@ -109,24 +110,24 @@ final class WebmailTests: XCTestCase {
         try FileManager.default.createDirectory(at: chromeDir, withIntermediateDirectories: true)
 
         let localState = """
-        {
-          "profile": {
-            "info_cache": {
-              "Default": {
-                "name": "Default User",
-                "user_name": "default@example.com"
-              },
-              "Profile 2": {
-                "name": "Work",
-                "user_name": "work@example.com"
-              },
-              "Guest Profile": {
-                "name": "Guest Profile"
+            {
+              "profile": {
+                "info_cache": {
+                  "Default": {
+                    "name": "Default User",
+                    "user_name": "default@example.com"
+                  },
+                  "Profile 2": {
+                    "name": "Work",
+                    "user_name": "work@example.com"
+                  },
+                  "Guest Profile": {
+                    "name": "Guest Profile"
+                  }
+                }
               }
             }
-          }
-        }
-        """
+            """
         try localState.write(to: chromeDir.appendingPathComponent("Local State"), atomically: true, encoding: .utf8)
         try FileManager.default.createDirectory(
             at: chromeDir.appendingPathComponent("Default", isDirectory: true),

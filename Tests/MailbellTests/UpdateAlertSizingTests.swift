@@ -1,6 +1,7 @@
-@testable import Mailbell
 import CoreGraphics
 import XCTest
+
+@testable import Mailbell
 
 /// Sparkle's update window fits its release notes (#75).
 final class UpdateAlertSizingTests: XCTestCase {

@@ -1,5 +1,6 @@
-@testable import MailbellKit
 import XCTest
+
+@testable import MailbellKit
 
 /// Pins every stored key to the string earlier versions wrote. A changed string
 /// silently loses that value for every user on upgrade, so these literals are

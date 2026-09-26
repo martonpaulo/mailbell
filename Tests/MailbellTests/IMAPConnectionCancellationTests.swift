@@ -1,5 +1,6 @@
-@testable import Mailbell
 import XCTest
+
+@testable import Mailbell
 
 /// Cancelling an IMAP connection used to remove the state handler *before*
 /// cancelling, so the `.cancelled` callback that owned every completion of
@@ -26,7 +27,7 @@ final class IMAPConnectionCancellationTests: XCTestCase {
     }
 
     func testRepeatedConnectAndCancelCyclesAllFinish() async throws {
-        for _ in 0 ..< 5 {
+        for _ in 0..<5 {
             let connection = IMAPConnection(host: "192.0.2.1", port: 993)
             let connected = Task { try await connection.connect() }
             try await Task.sleep(nanoseconds: 20_000_000)

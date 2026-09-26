@@ -40,7 +40,7 @@ nonisolated final class IMAPConnection: IMAPClientTransport, @unchecked Sendable
                 switch state {
                 case .ready:
                     pendingConnect.finish(throwing: nil)
-                case let .failed(error):
+                case .failed(let error):
                     pendingConnect.finish(throwing: error)
                 case .cancelled:
                     pendingConnect.finish(throwing: ConnectionError.closed)
@@ -67,13 +67,15 @@ nonisolated final class IMAPConnection: IMAPClientTransport, @unchecked Sendable
 
     func sendRaw(_ text: String) async throws {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-            connection.send(content: Data(text.utf8), completion: .contentProcessed { error in
-                if let error {
-                    cont.resume(throwing: error)
-                } else {
-                    cont.resume()
-                }
-            })
+            connection.send(
+                content: Data(text.utf8),
+                completion: .contentProcessed { error in
+                    if let error {
+                        cont.resume(throwing: error)
+                    } else {
+                        cont.resume()
+                    }
+                })
         }
     }
 
@@ -81,8 +83,8 @@ nonisolated final class IMAPConnection: IMAPClientTransport, @unchecked Sendable
     func readLine() async throws -> String {
         while true {
             if let range = buffer.range(of: Data("\r\n".utf8)) {
-                let lineData = buffer.subdata(in: buffer.startIndex ..< range.lowerBound)
-                buffer.removeSubrange(buffer.startIndex ..< range.upperBound)
+                let lineData = buffer.subdata(in: buffer.startIndex..<range.lowerBound)
+                buffer.removeSubrange(buffer.startIndex..<range.upperBound)
                 return String(bytes: lineData, encoding: .utf8) ?? ""
             }
             try await fill()

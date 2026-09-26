@@ -1,7 +1,8 @@
-@testable import Mailbell
-@testable import MailbellKit
 import UserNotifications
 import XCTest
+
+@testable import Mailbell
+@testable import MailbellKit
 
 final class EmailNotificationContentBuilderTests: XCTestCase {
     func testEmailNotificationSoundFollowsPreference() throws {

@@ -1,5 +1,6 @@
-@testable import MailbellKit
 import XCTest
+
+@testable import MailbellKit
 
 /// Handled history: what survives a relaunch, what gets pruned, and what
 /// happens when the saved payload cannot be read or written.

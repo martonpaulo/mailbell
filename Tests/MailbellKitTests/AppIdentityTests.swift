@@ -1,5 +1,6 @@
-@testable import MailbellKit
 import XCTest
+
+@testable import MailbellKit
 
 final class AppIdentityTests: XCTestCase {
     func testPackagedAppDetectionAcceptsAppBundleURL() {

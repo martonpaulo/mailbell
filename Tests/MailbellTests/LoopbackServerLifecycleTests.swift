@@ -1,5 +1,6 @@
-@testable import Mailbell
 import XCTest
+
+@testable import Mailbell
 
 /// Starting, stopping and restarting the loopback listener: a timed-out wait
 /// must release the port, and a restarted server must not replay a callback

@@ -1,6 +1,7 @@
+import XCTest
+
 @testable import Mailbell
 @testable import MailbellKit
-import XCTest
 
 /// The notification half of the webmail URL; the provider rules are in
 /// MailbellKitTests (#80).

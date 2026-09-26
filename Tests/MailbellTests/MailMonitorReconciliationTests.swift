@@ -1,13 +1,14 @@
 import Foundation
-@testable import Mailbell
-@testable import MailbellKit
 import MailbellTestSupport
 import XCTest
+
+@testable import Mailbell
+@testable import MailbellKit
 
 final class MailMonitorReconciliationTests: XCTestCase {
     private static let headerFetchAttributes =
         "(UID INTERNALDATE X-GM-MSGID X-GM-THRID "
-            + "BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])"
+        + "BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])"
 
     func testClosedConnectionIsNotUserVisibleReconnectError() {
         XCTAssertNil(MailMonitor.userVisibleReconnectError(for: IMAPConnection.ConnectionError.closed))
@@ -54,7 +55,7 @@ final class MailMonitorReconciliationTests: XCTestCase {
             "A0003 OK SELECT completed",
             "* SEARCH",
             "A0004 OK SEARCH completed",
-            "A0005 OK SELECT completed"
+            "A0005 OK SELECT completed",
         ])
         let (monitor, delegate) = makeMonitor(account: account, store: store)
         _ = delegate
@@ -74,7 +75,7 @@ final class MailMonitorReconciliationTests: XCTestCase {
                 "A0002 UID SEARCH UID 1:* UNSEEN",
                 #"A0003 SELECT "INBOX""#,
                 "A0004 UID SEARCH UNSEEN",
-                #"A0005 SELECT "INBOX""#
+                #"A0005 SELECT "INBOX""#,
             ]
         )
     }
@@ -94,7 +95,7 @@ final class MailMonitorReconciliationTests: XCTestCase {
             "* SEARCH 1 2 3",
             "A0004 OK SEARCH completed",
             "A0005 OK FETCH completed",
-            "A0006 OK SELECT completed"
+            "A0006 OK SELECT completed",
         ])
         let (monitor, delegate) = makeMonitor(account: account, store: store)
         _ = delegate
@@ -115,7 +116,7 @@ final class MailMonitorReconciliationTests: XCTestCase {
                 #"A0003 SELECT "INBOX""#,
                 "A0004 UID SEARCH UNSEEN",
                 "A0005 UID FETCH 2:3 " + Self.headerFetchAttributes,
-                #"A0006 SELECT "INBOX""#
+                #"A0006 SELECT "INBOX""#,
             ]
         )
     }
@@ -126,14 +127,14 @@ final class MailMonitorReconciliationTests: XCTestCase {
         let checkpoint = CheckpointStore(accountID: account.id)
         checkpoint.reset()
         defer { CheckpointStore(accountID: account.id).reset() }
-        let searchedUIDs = (1 ... 250).map(String.init).joined(separator: " ")
+        let searchedUIDs = (1...250).map(String.init).joined(separator: " ")
         let connection = ScriptedMonitorConnection(lines: [
             "A0001 OK SELECT completed",
             "* SEARCH \(searchedUIDs)",
             "A0002 OK SEARCH completed",
             "A0003 OK FETCH completed",
             "A0004 OK FETCH completed",
-            "A0005 BAD temporary failure"
+            "A0005 BAD temporary failure",
         ])
         let (monitor, delegate) = makeMonitor(account: account, store: makeStore())
         _ = delegate
@@ -157,7 +158,7 @@ final class MailMonitorReconciliationTests: XCTestCase {
                 "A0002 UID SEARCH UID 1:* UNSEEN",
                 "A0003 UID FETCH 1:100 " + Self.headerFetchAttributes,
                 "A0004 UID FETCH 241:250 " + Self.headerFetchAttributes,
-                "A0005 UID FETCH 101:200 " + Self.headerFetchAttributes
+                "A0005 UID FETCH 101:200 " + Self.headerFetchAttributes,
             ]
         )
     }
@@ -171,7 +172,7 @@ final class MailMonitorReconciliationTests: XCTestCase {
 
         let connection = ScriptedMonitorConnection(lines: [
             "A0001 OK SELECT completed",
-            "A0002 BAD temporary failure"
+            "A0002 BAD temporary failure",
         ])
         let (monitor, delegate) = makeMonitor(account: account, store: store)
         _ = delegate
@@ -185,7 +186,8 @@ final class MailMonitorReconciliationTests: XCTestCase {
             )
             XCTFail("Expected IMAP failure.")
         } catch {
-            XCTAssertEqual(store.shownItems.map(\.id), [ReviewItemIdentity.id(accountID: account.id, header: pendingHeader)])
+            XCTAssertEqual(
+                store.shownItems.map(\.id), [ReviewItemIdentity.id(accountID: account.id, header: pendingHeader)])
         }
     }
 
@@ -261,7 +263,8 @@ private final class ReconciliationDelegate: MailMonitorDelegate {
         var admittedIdentities = Set<IMAPMessageIdentity>()
         for header in headers {
             if await (try? store.admit(header: header, account: account)) == true,
-               let identity = header.imapIdentity {
+                let identity = header.imapIdentity
+            {
                 admittedIdentities.insert(identity)
             }
         }

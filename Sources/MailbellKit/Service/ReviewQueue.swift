@@ -190,9 +190,9 @@ public final class ReviewQueue {
     public func pendingUIDs(accountID: UUID, mailbox: MessageMailbox, uidValidity: Int) -> Set<Int> {
         itemsByID.values.reduce(into: Set<Int>()) { result, item in
             guard item.accountID == accountID,
-                  item.mailbox == mailbox,
-                  let identity = item.imapIdentity,
-                  identity.uidValidity == uidValidity
+                item.mailbox == mailbox,
+                let identity = item.imapIdentity,
+                identity.uidValidity == uidValidity
             else {
                 return
             }
@@ -211,12 +211,12 @@ public final class ReviewQueue {
 
         var nextItems = itemsByID.filter { _, item in
             guard item.accountID == account.id,
-                  monitoredMailboxes.contains(item.mailbox)
+                monitoredMailboxes.contains(item.mailbox)
             else {
                 return true
             }
             guard let identity = item.imapIdentity,
-                  let snapshot = snapshotsByMailbox[item.mailbox]
+                let snapshot = snapshotsByMailbox[item.mailbox]
             else {
                 return true
             }
@@ -234,16 +234,17 @@ public final class ReviewQueue {
         // A handled message Mailbell had no location for is recorded now, so
         // the next cycle can look past it instead of spending its whole budget
         // fetching the same discarded window again.
-        try persistence.backfillLocation(fetchedHeaders.map { header in
-            HandledMessage(
-                id: ReviewItemIdentity.id(accountID: account.id, header: header),
-                identity: header.imapIdentity
-            )
-        })
+        try persistence.backfillLocation(
+            fetchedHeaders.map { header in
+                HandledMessage(
+                    id: ReviewItemIdentity.id(accountID: account.id, header: header),
+                    identity: header.imapIdentity
+                )
+            })
 
         for header in fetchedHeaders {
             guard let snapshot = snapshotsByMailbox[header.mailbox],
-                  snapshot.unreadUIDs.contains(header.uid)
+                snapshot.unreadUIDs.contains(header.uid)
             else {
                 continue
             }

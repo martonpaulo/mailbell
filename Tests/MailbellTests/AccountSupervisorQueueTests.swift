@@ -1,6 +1,7 @@
+import XCTest
+
 @testable import Mailbell
 @testable import MailbellKit
-import XCTest
 
 /// How the supervisor moves mail through the review queue: admission,
 /// reconciliation, the notification actions, Spam, and sign-in expiry.
@@ -15,7 +16,7 @@ final class AccountSupervisorQueueTests: XCTestCase {
             didReconcileUnread: [SupervisorFixture.makeSnapshot(uids: [1, 2])],
             fetchedHeaders: [
                 SupervisorFixture.makeHeader(uid: 1, subject: "First unread", gmMessageId: "first-unread"),
-                SupervisorFixture.makeHeader(uid: 2, subject: "Second unread", gmMessageId: "second-unread")
+                SupervisorFixture.makeHeader(uid: 2, subject: "Second unread", gmMessageId: "second-unread"),
             ]
         )
 
@@ -33,8 +34,12 @@ final class AccountSupervisorQueueTests: XCTestCase {
         XCTAssertEqual(supervisor.shownItems.count, 1)
         XCTAssertEqual(supervisor.menuBarIconSystemImage, "bell.fill")
 
-        await supervisor.monitor(account.id, didReconcileUnread: [SupervisorFixture.makeSnapshot(
-            uids: [])],
+        await supervisor.monitor(
+            account.id,
+            didReconcileUnread: [
+                SupervisorFixture.makeSnapshot(
+                    uids: [])
+            ],
             fetchedHeaders: []
         )
 
@@ -72,11 +77,13 @@ final class AccountSupervisorQueueTests: XCTestCase {
         let second = MailAccount(providerID: .gmail, email: "second@example.com")
         var openedURLs: [URL] = []
         var openedAccountIDs: [UUID?] = []
-        let supervisor = SupervisorFixture.makeSupervisor(accounts: [first, second], webmailOpen: { url, account in
-            openedURLs.append(url)
-            openedAccountIDs.append(account?.id)
-            return .opened
-        })
+        let supervisor = SupervisorFixture.makeSupervisor(
+            accounts: [first, second],
+            webmailOpen: { url, account in
+                openedURLs.append(url)
+                openedAccountIDs.append(account?.id)
+                return .opened
+            })
 
         await supervisor.openGmail(accountID: second.id)
 
@@ -202,10 +209,10 @@ final class AccountSupervisorQueueTests: XCTestCase {
         let (supervisor, account) = SupervisorFixture.makeSupervisor(
             includeSpam: true,
             monitorFactory: { account, _, includeSpam in
-            let monitor = SpyMonitor(account: account, hasSession: true, includeSpam: includeSpam)
-            monitors.append(monitor)
-            return monitor
-        })
+                let monitor = SpyMonitor(account: account, hasSession: true, includeSpam: includeSpam)
+                monitors.append(monitor)
+                return monitor
+            })
 
         _ = await SupervisorFixture.admit(
             SupervisorFixture.makeHeader(mailbox: .spam, gmMessageId: "spam"),

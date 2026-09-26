@@ -13,12 +13,12 @@ struct BuildProblemPanel: View {
         Label(SettingsCopy.BuildProblem.headline, systemImage: SettingsStatusTone.warning.systemImage)
 
         Text(SettingsCopy.BuildProblem.explanation)
-        .foregroundStyle(.secondary)
-        .textSelection(.enabled)
+            .foregroundStyle(.secondary)
+            .textSelection(.enabled)
 
         Text(SettingsCopy.BuildProblem.nextStep)
-        .foregroundStyle(.secondary)
-        .textSelection(.enabled)
+            .foregroundStyle(.secondary)
+            .textSelection(.enabled)
 
         Link(SettingsCopy.BuildProblem.reportAction, destination: ProjectLinks.issues)
 

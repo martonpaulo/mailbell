@@ -1,11 +1,12 @@
-@testable import Mailbell
-@testable import MailbellKit
 import MailbellTestSupport
 import XCTest
 
+@testable import Mailbell
+@testable import MailbellKit
+
 final class MailMonitorNotificationPlanTests: XCTestCase {
     func testFetchPlanAdmitsAllFreshUIDsAndCapsNotificationsToNewestUIDs() {
-        let uids = Array(101 ... 180)
+        let uids = Array(101...180)
 
         let plan = MailMonitor.notificationPlan(
             uids: uids,
@@ -13,14 +14,14 @@ final class MailMonitorNotificationPlanTests: XCTestCase {
             notificationLimit: 10
         )
 
-        XCTAssertEqual(plan.uidsToAdmit, Array(101 ... 180))
-        XCTAssertEqual(plan.admissionBatches, [Array(101 ... 180)])
-        XCTAssertEqual(plan.uidsToNotify, Array(171 ... 180))
+        XCTAssertEqual(plan.uidsToAdmit, Array(101...180))
+        XCTAssertEqual(plan.admissionBatches, [Array(101...180)])
+        XCTAssertEqual(plan.uidsToNotify, Array(171...180))
         XCTAssertEqual(plan.lastSeenUID, 180)
     }
 
     func testFetchPlanChunksLargeBurstsWithoutChangingNotificationCap() {
-        let uids = Array(101 ... 260)
+        let uids = Array(101...260)
 
         let plan = MailMonitor.notificationPlan(
             uids: uids,
@@ -29,14 +30,16 @@ final class MailMonitorNotificationPlanTests: XCTestCase {
             admissionBatchSize: 50
         )
 
-        XCTAssertEqual(plan.admissionBatches, [
-            Array(101 ... 150),
-            Array(151 ... 200),
-            Array(201 ... 250),
-            Array(251 ... 260)
-        ])
+        XCTAssertEqual(
+            plan.admissionBatches,
+            [
+                Array(101...150),
+                Array(151...200),
+                Array(201...250),
+                Array(251...260),
+            ])
         XCTAssertEqual(plan.uidsToAdmit, uids)
-        XCTAssertEqual(plan.uidsToNotify, Array(251 ... 260))
+        XCTAssertEqual(plan.uidsToNotify, Array(251...260))
         XCTAssertEqual(plan.lastSeenUID, 260)
     }
 
@@ -120,7 +123,7 @@ final class MailMonitorNotificationPlanTests: XCTestCase {
             MailMonitor.monitoredMailboxes(includeSpam: true, spamMailboxName: "[Gmail]/Spam"),
             [
                 MonitoredMailbox(role: .inbox, name: "INBOX"),
-                MonitoredMailbox(role: .spam, name: "[Gmail]/Spam")
+                MonitoredMailbox(role: .spam, name: "[Gmail]/Spam"),
             ]
         )
     }

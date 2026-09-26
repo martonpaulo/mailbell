@@ -1,7 +1,8 @@
-@testable import Mailbell
-@testable import MailbellKit
 import MailbellTestSupport
 import XCTest
+
+@testable import Mailbell
+@testable import MailbellKit
 
 /// The supervisor half of the menu bar glyph; the pure precedence is in
 /// MailbellKitTests (#80).

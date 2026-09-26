@@ -13,20 +13,22 @@ extension AccountSupervisor {
     ) async -> Set<Int> {
         await MainActor.run { [weak self] in
             guard let self,
-                  let account = accounts.first(where: { $0.id == accountID })
+                let account = accounts.first(where: { $0.id == accountID })
             else {
                 return []
             }
-            return (try? reviewQueue.uidsToSkip(
-                accountID: account.id,
-                mailbox: mailbox,
-                mailboxName: mailboxName,
-                uidValidity: uidValidity
-            )) ?? reviewQueue.pendingUIDs(
-                accountID: account.id,
-                mailbox: mailbox,
-                uidValidity: uidValidity
-            )
+            return
+                (try? reviewQueue.uidsToSkip(
+                    accountID: account.id,
+                    mailbox: mailbox,
+                    mailboxName: mailboxName,
+                    uidValidity: uidValidity
+                ))
+                ?? reviewQueue.pendingUIDs(
+                    accountID: account.id,
+                    mailbox: mailbox,
+                    uidValidity: uidValidity
+                )
         }
     }
 
@@ -37,7 +39,7 @@ extension AccountSupervisor {
     ) async {
         await MainActor.run { [weak self] in
             guard let self,
-                  let account = accounts.first(where: { $0.id == accountID })
+                let account = accounts.first(where: { $0.id == accountID })
             else {
                 return
             }
@@ -64,7 +66,7 @@ extension AccountSupervisor {
     ) async -> Set<IMAPMessageIdentity> {
         await MainActor.run { [weak self] in
             guard let self,
-                  let account = accounts.first(where: { $0.id == accountID })
+                let account = accounts.first(where: { $0.id == accountID })
             else {
                 return []
             }

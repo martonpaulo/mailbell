@@ -1,5 +1,6 @@
-@testable import MailbellKit
 import XCTest
+
+@testable import MailbellKit
 
 final class EmailHeaderFormatterTests: XCTestCase {
     func testSenderIdentitySeparatesDisplayNameAndAddress() {
@@ -175,15 +176,16 @@ final class EmailHeaderFormatterTests: XCTestCase {
     func testTimeTextConvertsUTCHeaderCommentToLocalTime() throws {
         let localTimeZone = try XCTUnwrap(TimeZone(secondsFromGMT: -3 * 60 * 60))
         let calendar = gregorianCalendar(timeZone: localTimeZone)
-        let now = try XCTUnwrap(DateComponents(
-            calendar: calendar,
-            timeZone: localTimeZone,
-            year: 2026,
-            month: 6,
-            day: 26,
-            hour: 10,
-            minute: 30
-        ).date)
+        let now = try XCTUnwrap(
+            DateComponents(
+                calendar: calendar,
+                timeZone: localTimeZone,
+                year: 2026,
+                month: 6,
+                day: 26,
+                hour: 10,
+                minute: 30
+            ).date)
         let text = EmailHeaderFormatter.timeText(
             for: MessageHeader(
                 uid: 1,

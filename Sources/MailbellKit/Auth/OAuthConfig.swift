@@ -71,7 +71,8 @@ public struct OAuthConfig: Sendable {
     private static func readDotEnv() -> [String: String] {
         let url = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(".env")
         guard let content = try? String(contentsOf: url, encoding: .utf8) else { return [:] }
-        return content
+        return
+            content
             .split(whereSeparator: \.isNewline)
             .reduce(into: [String: String]()) { result, line in
                 let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -92,7 +93,7 @@ public struct OAuthConfig: Sendable {
 
     private static func make(clientID: String?, clientSecret: String?) throws -> OAuthConfig {
         guard let clientID = clientID?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !clientID.isEmpty
+            !clientID.isEmpty
         else {
             throw OAuthConfigIssue.missingCredentials
         }
@@ -124,12 +125,12 @@ enum OAuthConfigIssue: Error, Equatable, LocalizedError {
     }
 }
 
-private extension String {
-    func strippingMatchingQuotes() -> String {
+extension String {
+    fileprivate func strippingMatchingQuotes() -> String {
         guard count >= 2,
-              let first,
-              let last,
-              (first == "\"" && last == "\"") || (first == "'" && last == "'")
+            let first,
+            let last,
+            (first == "\"" && last == "\"") || (first == "'" && last == "'")
         else {
             return self
         }

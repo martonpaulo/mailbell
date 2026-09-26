@@ -268,7 +268,7 @@ nonisolated final class MailMonitor: AccountMonitoring, @unchecked Sendable {
             let event = try await client.idle(timeout: idleTimeout)
             try await handleIdleCycle(event: event, client: client, mailboxes: mailboxes)
             if event == .timedOut {
-                continue // re-arm IDLE
+                continue  // re-arm IDLE
             }
         }
     }
@@ -375,7 +375,7 @@ nonisolated final class MailMonitor: AccountMonitoring, @unchecked Sendable {
     private static func checkpoints(accountID: UUID) -> [MessageMailbox: CheckpointStore] {
         [
             .inbox: CheckpointStore(accountID: accountID, mailbox: "INBOX"),
-            .spam: CheckpointStore(accountID: accountID, mailbox: "SPAM")
+            .spam: CheckpointStore(accountID: accountID, mailbox: "SPAM"),
         ]
     }
 }

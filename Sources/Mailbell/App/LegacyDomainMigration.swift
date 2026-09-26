@@ -35,7 +35,7 @@ enum LegacyDomainMigration {
         "NSStatusItem VisibleCC Item-0",
         "SUEnableAutomaticChecks",
         "SUAutomaticallyUpdate",
-        "SUHasLaunchedBefore"
+        "SUHasLaunchedBefore",
     ]
 
     static func isOwned(_ name: String) -> Bool {

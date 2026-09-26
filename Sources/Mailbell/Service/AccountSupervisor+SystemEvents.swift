@@ -1,5 +1,5 @@
-import Foundation
 import AppKit
+import Foundation
 import Network
 
 /// Network availability and sleep/wake. These force a reconnect rather than

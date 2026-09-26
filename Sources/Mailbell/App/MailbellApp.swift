@@ -83,10 +83,10 @@ private struct MenuBarLabel: View {
     }
 }
 
-private extension MenuBarLabel {
+extension MenuBarLabel {
     /// Screenshot mode opens Settings through the same action the menu uses, so
     /// the captured window is the one users actually see.
-    func openSettingsForCapture() {
+    fileprivate func openSettingsForCapture() {
         guard ScreenshotMode.isEnabled else { return }
         openSettings()
         ScreenshotMode.prepareWhenReady()
@@ -112,8 +112,10 @@ struct MenuContent: View {
 
         Button {
             appState.refreshMailNow()
-        } label: { Text("Check Now") }
-            .disabled(!appState.canRequestManualRefresh)
+        } label: {
+            Text("Check Now")
+        }
+        .disabled(!appState.canRequestManualRefresh)
 
         Divider()
 

@@ -43,7 +43,8 @@ extension ReviewQueue {
             }
         }
         let representativeIDs = Set(representatives.values.map(\.id))
-        let ranked = retained
+        let ranked =
+            retained
             .map { item in
                 EvictionCandidate(
                     id: item.id,

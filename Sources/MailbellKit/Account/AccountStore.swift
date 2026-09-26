@@ -25,9 +25,10 @@ public final class AccountStore {
         saveData: ((_ data: Data, _ key: String) throws -> Void)? = nil
     ) {
         self.userDefaults = userDefaults
-        self.saveData = saveData ?? { [userDefaults] data, key in
-            userDefaults.set(data, forKey: key)
-        }
+        self.saveData =
+            saveData ?? { [userDefaults] data, key in
+                userDefaults.set(data, forKey: key)
+            }
     }
 
     public func loadAccounts() throws -> [MailAccount] {

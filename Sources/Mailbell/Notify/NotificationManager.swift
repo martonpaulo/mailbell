@@ -55,7 +55,8 @@ struct NotificationAuthorizationState: Equatable {
         if !canPostAlert {
             return String(localized: "Notification alerts are disabled for Mailbell.")
         }
-        return String(localized: "Alerts: \(alertSetting.mailbellDescription), Sound: \(soundSetting.mailbellDescription)")
+        return String(
+            localized: "Alerts: \(alertSetting.mailbellDescription), Sound: \(soundSetting.mailbellDescription)")
     }
 
     var canRequestPermission: Bool {
@@ -79,11 +80,11 @@ enum NotificationPostResult {
         switch self {
         case .posted:
             nil
-        case let .unavailable(message):
+        case .unavailable(let message):
             message
-        case let .notAuthorized(state):
+        case .notAuthorized(let state):
             state.detail
-        case let .failed(message):
+        case .failed(let message):
             message
         }
     }
@@ -134,7 +135,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, Mai
         account: MailAccount?,
         playNotificationSounds: Bool
     ) -> UNMutableNotificationContent {
-        let url = account.map { MailProviderRegistry.provider(for: $0.providerID).webmailURL(for: $0) }
+        let url =
+            account.map { MailProviderRegistry.provider(for: $0.providerID).webmailURL(for: $0) }
             ?? GmailProvider().webmailURL
         let content = UNMutableNotificationContent()
         content.title = testNotificationTitle
@@ -172,7 +174,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, Mai
 
     func requestAuthorization() async -> NotificationAuthorizationState {
         guard isBundled else {
-            Log.notify.info("Notifications unavailable (no app bundle); run the packaged .app for native notifications.")
+            Log.notify.info(
+                "Notifications unavailable (no app bundle); run the packaged .app for native notifications.")
             return .unbundled
         }
         do {
@@ -229,7 +232,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, Mai
     /// then posted.
     private func post(_ content: UNNotificationContent, identifier: String) async -> NotificationPostResult {
         guard isBundled else {
-            Log.notify.info("Notifications unavailable outside app bundle; install Mailbell.app to post native notifications.")
+            Log.notify.info(
+                "Notifications unavailable outside app bundle; install Mailbell.app to post native notifications.")
             return .unavailable(String(localized: "Notifications unavailable outside app bundle."))
         }
 
@@ -279,8 +283,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, Mai
         }
 
         guard actionIdentifier == UNNotificationDefaultActionIdentifier,
-              let urlString = userInfo[notificationWebmailURLKey] as? String,
-              let url = URL(string: urlString)
+            let urlString = userInfo[notificationWebmailURLKey] as? String,
+            let url = URL(string: urlString)
         else {
             return nil
         }
@@ -313,10 +317,12 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, Mai
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping @Sendable () -> Void
     ) {
-        guard let action = Self.responseAction(
-            actionIdentifier: response.actionIdentifier,
-            userInfo: response.notification.request.content.userInfo
-        ) else {
+        guard
+            let action = Self.responseAction(
+                actionIdentifier: response.actionIdentifier,
+                userInfo: response.notification.request.content.userInfo
+            )
+        else {
             completionHandler()
             return
         }
@@ -324,7 +330,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, Mai
         Task { @MainActor in
             defer { completionHandler() }
             switch action {
-            case let .open(emailID, accountID, url):
+            case .open(let emailID, let accountID, let url):
                 if let emailOpenHandler {
                     await emailOpenHandler(emailID, accountID, url)
                 } else if let webmailOpenHandler {
@@ -332,7 +338,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, Mai
                 } else {
                     NSWorkspace.shared.open(url)
                 }
-            case let .dismiss(emailID):
+            case .dismiss(let emailID):
                 if let emailDismissHandler {
                     await emailDismissHandler(emailID)
                 }
@@ -341,8 +347,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, Mai
     }
 }
 
-private extension UNAuthorizationStatus {
-    var mailbellDescription: String {
+extension UNAuthorizationStatus {
+    fileprivate var mailbellDescription: String {
         switch self {
         case .notDetermined:
             return String(localized: "Not requested")
@@ -360,8 +366,8 @@ private extension UNAuthorizationStatus {
     }
 }
 
-private extension UNNotificationSetting {
-    var mailbellDescription: String {
+extension UNNotificationSetting {
+    fileprivate var mailbellDescription: String {
         switch self {
         case .notSupported:
             return String(localized: "Not supported")

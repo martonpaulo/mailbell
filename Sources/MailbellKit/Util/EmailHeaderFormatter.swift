@@ -30,7 +30,7 @@ public enum EmailHeaderFormatter {
         }
 
         guard let angleStart = sender.firstIndex(of: "<"),
-              let angleEnd = sender[angleStart...].firstIndex(of: ">")
+            let angleEnd = sender[angleStart...].firstIndex(of: ">")
         else {
             let name = sender.trimmingMatchingQuotes()
             return SenderIdentity(name: name, address: name.looksLikeEmailAddress ? name : nil)
@@ -39,14 +39,15 @@ public enum EmailHeaderFormatter {
         let displayName = sender[..<angleStart]
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .trimmingMatchingQuotes()
-        let email = sender[sender.index(after: angleStart) ..< angleEnd]
+        let email = sender[sender.index(after: angleStart)..<angleEnd]
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         if !displayName.isEmpty {
             return SenderIdentity(name: displayName, address: email.nilIfEmpty)
         }
 
-        return SenderIdentity(name: email.isEmpty ? String(localized: "Unknown sender") : email, address: email.nilIfEmpty)
+        return SenderIdentity(
+            name: email.isEmpty ? String(localized: "Unknown sender") : email, address: email.nilIfEmpty)
     }
 
     static func senderDetail(from rawSender: String) -> String {
@@ -60,7 +61,8 @@ public enum EmailHeaderFormatter {
     }
 
     private static func hasSpamPrefix(_ title: String) -> Bool {
-        let normalized = title
+        let normalized =
+            title
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
         return normalized.hasPrefix("(spam)") || normalized.hasPrefix("[spam]")
@@ -187,14 +189,14 @@ public enum EmailHeaderFormatter {
     }
 }
 
-private extension StringProtocol {
-    func trimmingMatchingQuotes() -> String {
+extension StringProtocol {
+    fileprivate func trimmingMatchingQuotes() -> String {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= 2,
-              let first = trimmed.first,
-              let last = trimmed.last,
-              first == last,
-              first == "\"" || first == "'"
+            let first = trimmed.first,
+            let last = trimmed.last,
+            first == last,
+            first == "\"" || first == "'"
         else {
             return trimmed
         }
@@ -203,21 +205,21 @@ private extension StringProtocol {
     }
 }
 
-private extension String {
-    var nilIfEmpty: String? {
+extension String {
+    fileprivate var nilIfEmpty: String? {
         isEmpty ? nil : self
     }
 
-    var looksLikeEmailAddress: Bool {
+    fileprivate var looksLikeEmailAddress: Bool {
         contains("@") && !contains(" ")
     }
 
-    func uppercasingFirstCharacter(locale: Locale) -> String {
+    fileprivate func uppercasingFirstCharacter(locale: Locale) -> String {
         guard let first else { return self }
         return String(first).uppercased(with: locale) + dropFirst()
     }
 
-    func removingTrailingParenthesizedTimeZoneComment() -> String {
+    fileprivate func removingTrailingParenthesizedTimeZoneComment() -> String {
         replacing(
             #/\s+\([A-Za-z_/\-+0-9: ]+\)\s*$/#,
             with: ""

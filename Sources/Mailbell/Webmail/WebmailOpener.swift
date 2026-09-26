@@ -19,7 +19,7 @@ enum WebmailOpener {
         switch preference.browser {
         case .systemDefault:
             return openWithSystemDefault(url, workspace: workspace)
-        case let .application(bundleIdentifier, appPath):
+        case .application(let bundleIdentifier, let appPath):
             let appURL = URL(fileURLWithPath: appPath)
             guard fileManager.fileExists(atPath: appPath) else {
                 let outcome = openWithSystemDefault(url, workspace: workspace)
@@ -30,8 +30,9 @@ enum WebmailOpener {
             }
 
             if bundleIdentifier == BrowserRegistry.chromeBundleID,
-               let profileDirectory = preference.chromeProfileDirectory,
-               !profileDirectory.isEmpty {
+                let profileDirectory = preference.chromeProfileDirectory,
+                !profileDirectory.isEmpty
+            {
                 return await openChrome(
                     url: url,
                     appURL: appURL,
@@ -54,11 +55,12 @@ enum WebmailOpener {
         profileDirectory: String,
         context: OpenContext
     ) async -> WebmailOpenOutcome {
-        guard ChromeProfileStore.profileExists(
-            directory: profileDirectory,
-            homeDirectory: context.homeDirectory,
-            fileManager: context.fileManager
-        )
+        guard
+            ChromeProfileStore.profileExists(
+                directory: profileDirectory,
+                homeDirectory: context.homeDirectory,
+                fileManager: context.fileManager
+            )
         else {
             return await mergeFallback(
                 openWithApplication(url: url, appURL: appURL, workspace: context.workspace),
@@ -101,15 +103,16 @@ enum WebmailOpener {
             let configuration = NSWorkspace.OpenConfiguration()
             workspace.open([url], withApplicationAt: appURL, configuration: configuration) { _, error in
                 Task { @MainActor in
-                    let outcome: WebmailOpenOutcome = if error == nil {
-                        .opened
-                    } else {
-                        openWithSystemDefault(
-                            url,
-                            workspace: .shared,
-                            fallbackMessage: String(localized: "Couldn't open Gmail in the chosen browser.")
-                        )
-                    }
+                    let outcome: WebmailOpenOutcome =
+                        if error == nil {
+                            .opened
+                        } else {
+                            openWithSystemDefault(
+                                url,
+                                workspace: .shared,
+                                fallbackMessage: String(localized: "Couldn't open Gmail in the chosen browser.")
+                            )
+                        }
                     continuation.resume(returning: outcome)
                 }
             }
@@ -137,7 +140,7 @@ enum WebmailOpener {
         switch outcome {
         case .opened:
             .openedWithFallback(message: message)
-        case let .openedWithFallback(existing):
+        case .openedWithFallback(let existing):
             .openedWithFallback(message: "\(message) \(existing)")
         case .failed:
             .failed(message: message)

@@ -29,7 +29,7 @@ nonisolated enum Keychain {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: account
+            kSecAttrAccount as String: account,
         ]
 
         let updateStatus = SecItemUpdate(
@@ -63,7 +63,7 @@ nonisolated enum Keychain {
             kSecAttrAccount as String: account,
             kSecReturnData as String: true,
             kSecUseAuthenticationContext as String: context,
-            kSecMatchLimit as String: kSecMatchLimitOne
+            kSecMatchLimit as String: kSecMatchLimitOne,
         ]
 
         var item: CFTypeRef?
@@ -84,7 +84,7 @@ nonisolated enum Keychain {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: account
+            kSecAttrAccount as String: account,
         ]
         SecItemDelete(query as CFDictionary)
     }

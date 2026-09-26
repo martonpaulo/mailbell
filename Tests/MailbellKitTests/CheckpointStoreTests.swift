@@ -1,6 +1,7 @@
-@testable import MailbellKit
 import MailbellTestSupport
 import XCTest
+
+@testable import MailbellKit
 
 final class CheckpointStoreTests: XCTestCase {
     func testCheckpointsAreNamespacedByAccount() {

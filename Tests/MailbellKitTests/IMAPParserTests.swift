@@ -1,10 +1,11 @@
-@testable import MailbellKit
 import XCTest
+
+@testable import MailbellKit
 
 final class IMAPParserTests: XCTestCase {
     func testParsesInternalDateFromEitherSideOfTheHeaderLiteral() {
         let headerBlock = Data("From: a@example.com\r\nSubject: S\r\n\r\n".utf8)
-        let expected = Date(timeIntervalSince1970: 1_780_401_600) // 2026-06-02 12:00:00Z
+        let expected = Date(timeIntervalSince1970: 1_780_401_600)  // 2026-06-02 12:00:00Z
 
         let leading = IMAPParser.parseFetch(
             firstLine: #"* 1 FETCH (UID 7 INTERNALDATE "02-Jun-2026 12:00:00 +0000" BODY[HEADER.FIELDS (FROM)] {40}"#,
@@ -41,8 +42,9 @@ final class IMAPParserTests: XCTestCase {
 
     func testHeaderBodyCannotForgeFetchAttributes() {
         // Text inside the message must never be read as server metadata.
-        let forged = Data(("From: a@example.com\r\n"
-            + "Subject: INTERNALDATE \"01-Jan-2000 00:00:00 +0000\"\r\n\r\n").utf8)
+        let forged = Data(
+            ("From: a@example.com\r\n"
+                + "Subject: INTERNALDATE \"01-Jan-2000 00:00:00 +0000\"\r\n\r\n").utf8)
         let header = IMAPParser.parseFetch(
             firstLine: #"* 1 FETCH (UID 7 BODY[HEADER.FIELDS (FROM SUBJECT)] {70}"#,
             headerBlock: forged
@@ -78,7 +80,8 @@ final class IMAPParserTests: XCTestCase {
     }
 
     func testParsesHeaderFields() {
-        let raw = "From: Sender <sender@example.com>\r\n"
+        let raw =
+            "From: Sender <sender@example.com>\r\n"
             + "Subject: Hello\r\n"
             + "\tWorld\r\n"
             + "Date: Tue, 02 Jun 2026 12:00:00 +0000\r\n\r\n"
@@ -90,13 +93,15 @@ final class IMAPParserTests: XCTestCase {
     }
 
     func testParsesFetchHeader() {
-        let raw = "From: =?UTF-8?B?SmFuZQ==?=\r\n"
+        let raw =
+            "From: =?UTF-8?B?SmFuZQ==?=\r\n"
             + "Subject: =?UTF-8?Q?Hello_World=21?=\r\n"
             + "Date: Tue, 02 Jun 2026 12:00:00 +0000\r\n"
             + "Message-ID: <message@example.com>\r\n\r\n"
         let block = Data(raw.utf8)
 
-        let firstLine = "* 23 FETCH (UID 456 X-GM-MSGID 987654321 "
+        let firstLine =
+            "* 23 FETCH (UID 456 X-GM-MSGID 987654321 "
             + "X-GM-THRID 123456789 BODY[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)] {153}"
         let header = IMAPParser.parseFetch(firstLine: firstLine, headerBlock: block)
 

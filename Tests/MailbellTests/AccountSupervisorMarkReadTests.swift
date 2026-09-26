@@ -1,7 +1,8 @@
-@testable import Mailbell
-@testable import MailbellKit
 import MailbellTestSupport
 import XCTest
+
+@testable import Mailbell
+@testable import MailbellKit
 
 final class AccountSupervisorMarkReadTests: XCTestCase {
     @MainActor
@@ -48,7 +49,7 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
             Set(markedIdentities),
             Set([
                 IMAPMessageIdentity(uid: 41, mailboxName: "INBOX", uidValidity: 1),
-                IMAPMessageIdentity(uid: 42, mailboxName: "INBOX", uidValidity: 1)
+                IMAPMessageIdentity(uid: 42, mailboxName: "INBOX", uidValidity: 1),
             ])
         )
         XCTAssertTrue(supervisor.shownItems.isEmpty)

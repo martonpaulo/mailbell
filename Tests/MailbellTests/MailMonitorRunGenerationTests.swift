@@ -1,7 +1,8 @@
 import Foundation
+import XCTest
+
 @testable import Mailbell
 @testable import MailbellKit
-import XCTest
 
 /// A run suspends on the network several times. Cancelling its task does not
 /// stop the resumed continuation from assigning a client or publishing status,
@@ -80,7 +81,7 @@ final class MailMonitorRunGenerationTests: XCTestCase {
         let afterStop = recorder.statuses
 
         suspended.release()
-        for _ in 0 ..< 20 {
+        for _ in 0..<20 {
             await Task.yield()
         }
 
@@ -126,7 +127,7 @@ private struct Suspension: Sendable {
     }
 
     func waitUntilEntered() async {
-        for _ in 0 ..< 500 where await !state.didEnter {
+        for _ in 0..<500 where await !state.didEnter {
             await Task.yield()
         }
     }

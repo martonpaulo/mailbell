@@ -101,7 +101,8 @@ struct AccountWebmailSettingsView: View {
 
     private var missingSelectionWarning: String? {
         if let browserID = missingSelectedBrowserID,
-           let browser = browserOptions.first(where: { $0.id == browserID }) {
+            let browser = browserOptions.first(where: { $0.id == browserID })
+        {
             return String(localized: "Selected browser is unavailable: \(browser.displayName).")
         }
         if selectedBrowserSupportsChromeProfiles, let missingChromeProfileDirectory {
@@ -141,7 +142,8 @@ struct AccountWebmailSettingsView: View {
 
     private func persistPreference() {
         let candidate = browserOptions.first(where: { $0.id == selectedBrowserID }) ?? .systemDefault
-        let profile = candidate.supportsChromeProfiles && !selectedChromeProfileDirectory.isEmpty
+        let profile =
+            candidate.supportsChromeProfiles && !selectedChromeProfileDirectory.isEmpty
             ? selectedChromeProfileDirectory
             : nil
         let preference = BrowserRegistry.preference(for: candidate, chromeProfileDirectory: profile)

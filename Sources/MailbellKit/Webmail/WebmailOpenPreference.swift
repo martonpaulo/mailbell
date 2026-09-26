@@ -43,7 +43,7 @@ public enum BrowserSelection: Codable, Equatable, Sendable {
         switch self {
         case .systemDefault:
             try container.encode(Kind.systemDefault, forKey: .kind)
-        case let .application(bundleIdentifier, appPath):
+        case .application(let bundleIdentifier, let appPath):
             try container.encode(Kind.application, forKey: .kind)
             try container.encode(bundleIdentifier, forKey: .bundleIdentifier)
             try container.encode(appPath, forKey: .appPath)

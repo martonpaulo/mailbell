@@ -1,5 +1,6 @@
-@testable import Mailbell
 import XCTest
+
+@testable import Mailbell
 
 final class LogRedactionTests: XCTestCase {
     func testRedactsOAuthSecretsAndBearerValues() {
@@ -9,7 +10,7 @@ final class LogRedactionTests: XCTestCase {
             "client_secret=secret-value",
             "code_verifier=verifier-value",
             "code=oauth-code",
-            "Authorization: Bearer ya29.token-value"
+            "Authorization: Bearer ya29.token-value",
         ].joined(separator: " ")
 
         let redacted = Log.redact(message)

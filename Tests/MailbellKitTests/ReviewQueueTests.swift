@@ -1,5 +1,6 @@
-@testable import MailbellKit
 import XCTest
+
+@testable import MailbellKit
 
 final class ReviewQueueTests: XCTestCase {
     @MainActor
@@ -102,7 +103,8 @@ final class ReviewQueueTests: XCTestCase {
     func testUnreadSyncReplacesAccountItemsWithCurrentUnreadHeaders() throws {
         let store = ReviewQueueFixture.makeStore()
         let account = ReviewQueueFixture.makeAccount()
-        let firstHeader = ReviewQueueFixture.makeHeader(uid: 1, subject: "Read elsewhere", gmMessageId: "read-elsewhere")
+        let firstHeader = ReviewQueueFixture.makeHeader(
+            uid: 1, subject: "Read elsewhere", gmMessageId: "read-elsewhere")
         let secondHeader = ReviewQueueFixture.makeHeader(uid: 2, subject: "Still unread", gmMessageId: "still-unread")
 
         XCTAssertTrue(
@@ -205,7 +207,7 @@ final class ReviewQueueTests: XCTestCase {
             try store.reconcileUnread(
                 snapshots: [
                     ReviewQueueFixture.makeSnapshot(uids: []),
-                    ReviewQueueFixture.makeSnapshot(mailbox: .spam, mailboxName: "[Gmail]/Spam", uids: [42])
+                    ReviewQueueFixture.makeSnapshot(mailbox: .spam, mailboxName: "[Gmail]/Spam", uids: [42]),
                 ],
                 fetchedHeaders: [spamHeader],
                 account: account

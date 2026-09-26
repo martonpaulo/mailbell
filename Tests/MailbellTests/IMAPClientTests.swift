@@ -1,18 +1,19 @@
 import Foundation
+import XCTest
+
 @testable import Mailbell
 @testable import MailbellKit
-import XCTest
 
 final class IMAPClientTests: XCTestCase {
     private static let headerFetchAttributes =
         "(UID INTERNALDATE X-GM-MSGID X-GM-THRID "
-            + "BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])"
+        + "BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])"
 
     func testIdleReturnsMailboxChangedOnFlagUpdate() async throws {
         let connection = ScriptedIMAPConnection(lines: [
             "+ idling",
             "* 23 FETCH (FLAGS (\\Seen))",
-            "A0001 OK IDLE completed"
+            "A0001 OK IDLE completed",
         ])
         let client = IMAPClient(connection: connection)
 
@@ -26,7 +27,7 @@ final class IMAPClientTests: XCTestCase {
         let connection = ScriptedIMAPConnection(lines: [
             "+ idling",
             "* 7 EXISTS",
-            "A0001 OK IDLE completed"
+            "A0001 OK IDLE completed",
         ])
         let client = IMAPClient(connection: connection)
 
@@ -40,7 +41,7 @@ final class IMAPClientTests: XCTestCase {
         let connection = ScriptedIMAPConnection(lines: [
             "* OK [UIDVALIDITY 1] UIDs valid",
             "A0001 OK SELECT completed",
-            "A0002 OK STORE completed"
+            "A0002 OK STORE completed",
         ])
         let client = IMAPClient(connection: connection)
 
@@ -84,18 +85,18 @@ final class IMAPClientTests: XCTestCase {
     func testFetchHeadersChunksLargeUIDSets() async throws {
         let connection = ScriptedIMAPConnection(lines: [
             "A0001 OK FETCH completed",
-            "A0002 OK FETCH completed"
+            "A0002 OK FETCH completed",
         ])
         let client = IMAPClient(connection: connection)
 
-        let headers = try await client.fetchHeaders(uids: Array(1 ... 101))
+        let headers = try await client.fetchHeaders(uids: Array(1...101))
 
         XCTAssertTrue(headers.isEmpty)
         XCTAssertEqual(
             connection.sentLines,
             [
                 "A0001 UID FETCH 1:100 " + Self.headerFetchAttributes,
-                "A0002 UID FETCH 101 " + Self.headerFetchAttributes
+                "A0002 UID FETCH 101 " + Self.headerFetchAttributes,
             ]
         )
     }
@@ -119,7 +120,7 @@ final class IMAPClientTests: XCTestCase {
                 "A0001 OK FETCH completed",
                 "* 1 FETCH (UID 42 BODY[TEXT]<0> {\(bodyBlock.count)}",
                 ")",
-                "A0002 OK FETCH completed"
+                "A0002 OK FETCH completed",
             ],
             byteChunks: [headerBlock, bodyBlock]
         )
@@ -132,7 +133,7 @@ final class IMAPClientTests: XCTestCase {
             connection.sentLines,
             [
                 "A0001 UID FETCH 42 " + Self.headerFetchAttributes,
-                "A0002 UID FETCH 42 (UID BODY.PEEK[TEXT]<0.8192>)"
+                "A0002 UID FETCH 42 (UID BODY.PEEK[TEXT]<0.8192>)",
             ]
         )
     }

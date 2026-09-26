@@ -59,7 +59,7 @@ extension ReviewQueue {
         chronology: [String: Date]
     ) -> Bool {
         switch (chronology[left.conversationID], chronology[right.conversationID]) {
-        case let (leftDate?, rightDate?) where leftDate != rightDate:
+        case (let leftDate?, let rightDate?) where leftDate != rightDate:
             return leftDate > rightDate
         case (.some, .none):
             return true
@@ -84,8 +84,9 @@ extension ReviewQueue {
             return left.admissionOrder < right.admissionOrder
         }
         if let leftUID = left.imapIdentity?.uid,
-           let rightUID = right.imapIdentity?.uid,
-           leftUID != rightUID {
+            let rightUID = right.imapIdentity?.uid,
+            leftUID != rightUID
+        {
             return leftUID < rightUID
         }
         return left.subject.localizedCaseInsensitiveCompare(right.subject) == .orderedAscending

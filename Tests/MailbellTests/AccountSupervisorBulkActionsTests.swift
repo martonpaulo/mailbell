@@ -1,7 +1,8 @@
-@testable import Mailbell
-@testable import MailbellKit
 import MailbellTestSupport
 import XCTest
+
+@testable import Mailbell
+@testable import MailbellKit
 
 final class AccountSupervisorBulkActionsTests: XCTestCase {
     @MainActor
@@ -12,11 +13,13 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
             callCount += 1
             markedIdentities.append(contentsOf: identities)
         })
-        _ = await supervisor.monitor(account.id, shouldNotify: [
-            makeHeader(uid: 10, gmMessageId: "one"),
-            makeHeader(uid: 11, gmMessageId: "two"),
-            makeHeader(uid: 12, gmMessageId: "three")
-        ])
+        _ = await supervisor.monitor(
+            account.id,
+            shouldNotify: [
+                makeHeader(uid: 10, gmMessageId: "one"),
+                makeHeader(uid: 11, gmMessageId: "two"),
+                makeHeader(uid: 12, gmMessageId: "three"),
+            ])
         XCTAssertEqual(supervisor.shownItems.count, 3)
 
         let result = await supervisor.markAllAsRead()
@@ -28,7 +31,7 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
             Set([
                 IMAPMessageIdentity(uid: 10, mailboxName: "INBOX", uidValidity: 1),
                 IMAPMessageIdentity(uid: 11, mailboxName: "INBOX", uidValidity: 1),
-                IMAPMessageIdentity(uid: 12, mailboxName: "INBOX", uidValidity: 1)
+                IMAPMessageIdentity(uid: 12, mailboxName: "INBOX", uidValidity: 1),
             ])
         )
         XCTAssertTrue(supervisor.shownItems.isEmpty)
@@ -39,10 +42,12 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
         let (supervisor, account) = makeSupervisor(emailReadMarker: { _, _, _ in
             throw BulkActionTestError.failed
         })
-        _ = await supervisor.monitor(account.id, shouldNotify: [
-            makeHeader(uid: 20, gmMessageId: "one"),
-            makeHeader(uid: 21, gmMessageId: "two")
-        ])
+        _ = await supervisor.monitor(
+            account.id,
+            shouldNotify: [
+                makeHeader(uid: 20, gmMessageId: "one"),
+                makeHeader(uid: 21, gmMessageId: "two"),
+            ])
 
         let result = await supervisor.markAllAsRead()
 
@@ -53,10 +58,12 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
     @MainActor
     func testMarkAllAsReadReportsItemsWithoutIMAPIdentityAsFailed() async {
         let (supervisor, account) = makeSupervisor(emailReadMarker: { _, _, _ in })
-        _ = await supervisor.monitor(account.id, shouldNotify: [
-            makeHeader(uid: 30, gmMessageId: "with-uid"),
-            makeHeader(uid: 0, gmMessageId: "legacy-without-uid")
-        ])
+        _ = await supervisor.monitor(
+            account.id,
+            shouldNotify: [
+                makeHeader(uid: 30, gmMessageId: "with-uid"),
+                makeHeader(uid: 0, gmMessageId: "legacy-without-uid"),
+            ])
         XCTAssertEqual(supervisor.shownItems.count, 2)
 
         let result = await supervisor.markAllAsRead()
@@ -83,7 +90,7 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
         })
         let headers = [
             makeHeader(uid: 40, gmMessageId: "one"),
-            makeHeader(uid: 41, gmMessageId: "two")
+            makeHeader(uid: 41, gmMessageId: "two"),
         ]
         _ = await supervisor.monitor(account.id, shouldNotify: headers)
 
@@ -100,10 +107,12 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
     @MainActor
     func testDismissAllCountsAThreadOnce() async {
         let (supervisor, account) = makeSupervisor(emailReadMarker: { _, _, _ in })
-        _ = await supervisor.monitor(account.id, shouldNotify: [
-            makeHeader(uid: 50, gmMessageId: "message-1", gmThreadId: "thread-1"),
-            makeHeader(uid: 51, gmMessageId: "message-2", gmThreadId: "thread-1")
-        ])
+        _ = await supervisor.monitor(
+            account.id,
+            shouldNotify: [
+                makeHeader(uid: 50, gmMessageId: "message-1", gmThreadId: "thread-1"),
+                makeHeader(uid: 51, gmMessageId: "message-2", gmThreadId: "thread-1"),
+            ])
         XCTAssertEqual(supervisor.shownItems.count, 1)
 
         XCTAssertEqual(supervisor.dismissAll(), .dismissedAll(count: 1))

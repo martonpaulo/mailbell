@@ -1,7 +1,8 @@
-@testable import Mailbell
-@testable import MailbellKit
 import Synchronization
 import XCTest
+
+@testable import Mailbell
+@testable import MailbellKit
 
 final class TokenStoreTests: XCTestCase {
     func testSavePersistsSingleSessionItem() throws {

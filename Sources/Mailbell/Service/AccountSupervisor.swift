@@ -57,14 +57,16 @@ final class AccountSupervisor {
         self.accountStore = accountStore
         self.reviewQueue = reviewQueue
         self.includeSpam = includeSpam
-        self.monitorFactory = monitorFactory ?? { account, config, includeSpam in
-            MailMonitor(account: account, config: config, includeSpam: includeSpam, notifier: notifier)
-        }
+        self.monitorFactory =
+            monitorFactory ?? { account, config, includeSpam in
+                MailMonitor(account: account, config: config, includeSpam: includeSpam, notifier: notifier)
+            }
         self.emailReadMarker = emailReadMarker
         self.webmailOpen = webmailOpen
-        self.signInNeededNotifier = signInNeededNotifier ?? { account in
-            Task { await notifier.notifySignInNeeded(account: account) }
-        }
+        self.signInNeededNotifier =
+            signInNeededNotifier ?? { account in
+                Task { await notifier.notifySignInNeeded(account: account) }
+            }
         do {
             accounts = try accountStore.loadAccounts()
         } catch {
@@ -265,7 +267,7 @@ final class AccountSupervisor {
     }
 }
 
-private extension AccountSupervisor {
+extension AccountSupervisor {
 }
 
 extension AccountSupervisor: MailMonitorDelegate {
