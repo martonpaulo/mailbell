@@ -23,7 +23,7 @@ enum SettingsCopy {
         static let launchAtLoginTitle = String(localized: "Launch at login")
         // SMAppService.openSystemSettingsLoginItems() opens this pane itself,
         // so the label names it (#31).
-        static let openLoginItemsSettings = String(localized: "Open Login Items Settings")
+        static let openLoginItemsSettings = String(localized: "Open Login Items Settings…")
         static let requiresApprovalExplanation = String(
             localized: "Mailbell is waiting for your approval in System Settings › General › Login Items & Extensions."
         )

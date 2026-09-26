@@ -15,7 +15,7 @@ final class SettingsPresentationTests: XCTestCase {
     func testTheLoginItemsLabelNamesThePaneTheAPIOpens() {
         // SMAppService.openSystemSettingsLoginItems() opens Login Items itself,
         // and a plain open takes no ellipsis (#61).
-        XCTAssertEqual(SettingsCopy.Startup.openLoginItemsSettings, "Open Login Items Settings")
+        XCTAssertEqual(SettingsCopy.Startup.openLoginItemsSettings, "Open Login Items Settings…")
     }
 
     func testTheRouteToEachPreferenceIsStatedAsGuidance() {

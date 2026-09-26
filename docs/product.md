@@ -109,7 +109,7 @@ does not restate it.
 | Menu bar glyph precedence | Account problems, then a denied notification permission, then unread mail | [interface.md](interface.md#menu-bar-glyph) | [#54](https://github.com/martonpaulo/mailbell/issues/54) |
 | Accent colour | The system accent; amber only in the icon, the glyph and the site | [interface.md](interface.md#app-shape) | [#54](https://github.com/martonpaulo/mailbell/issues/54) |
 | Title case and sentence case | Title Case for pane names, buttons and menu commands only | [interface.md](interface.md#copy) | [#54](https://github.com/martonpaulo/mailbell/issues/54) |
-| Ellipsis | Only when more input or a confirmation follows | [interface.md](interface.md#copy) | [#61](https://github.com/martonpaulo/mailbell/issues/61) |
+| Ellipsis | Buttons that open a window, sheet or app; menu items only when more input follows; never on links | [interface.md](interface.md#copy) | [#61](https://github.com/martonpaulo/mailbell/issues/61) |
 | App credit | Two credit lines in `NSHumanReadableCopyright`; `LICENSE` and `NOTICE.md` unchanged | [AGENTS.md](../AGENTS.md), "Copyright" | [#73](https://github.com/martonpaulo/mailbell/issues/73) |
 | Bundle identifier | `com.martonpaulo.mailbell` from v0.4.0; preferences copied once, Keychain tokens not migrated | [AGENTS.md](../AGENTS.md), "Public identifiers" | [#47](https://github.com/martonpaulo/mailbell/issues/47) |
 | README drift | Tracked in its own issue, apart from baseline alignment | [README.md](../README.md) | [#55](https://github.com/martonpaulo/mailbell/issues/55) |

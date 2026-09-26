@@ -78,9 +78,14 @@ Decided on #54 (the denied-permission level; #72 implements it).
 - Title Case only for pane names, buttons and menu commands; sentence case for
   toggles, row labels, section headers, status values and footers. Decided on
   #54.
-- Append `…` only when more input or a confirmation follows ("Restore
-  Defaults…", "Quit Mailbell…", "Sign In Again…", "Report an Issue…"). Links and
-  plain opens have none ("Website", "Open Gmail"), and the confirm button drops
-  it. Decided on #61, following WindowHop and the HIG; this supersedes the
-  earlier rule that appended `…` to every control opening another window, view,
-  or app.
+- Ellipsis, as the HIG separates it:
+  - a **push button** that opens another window, sheet or app, or a
+    confirmation, ends with `…` ("Open Login Items Settings…", "Check for
+    Updates…", "Details…", "Manage Google Access…", "Open Gmail…", "Restore
+    Defaults…"); the confirm button drops it;
+  - a **menu item** ends with `…` only when it needs more input before it acts
+    ("Settings…" by convention, "Mark All as Read in Gmail…" while a
+    confirmation follows); "Open in Gmail" has none;
+  - a **text link** never has one ("Website", "GitHub").
+  Decided on #61 (corrected by the owner on 2026-09-26 after the first rule
+  misread the HIG).

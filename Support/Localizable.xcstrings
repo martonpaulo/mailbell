@@ -1396,12 +1396,12 @@
         }
       }
     },
-    "Open Login Items Settings" : {
+    "Open Login Items Settings…" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open Login Items Settings"
+            "value" : "Open Login Items Settings…"
           }
         }
       }
