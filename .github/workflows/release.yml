@@ -186,12 +186,7 @@ jobs:
             echo "release $GITHUB_REF_NAME already exists; skipping creation"
             exit 0
           fi
-          awk -v version="$VERSION" '
-            $0 ~ "^## " version " " { printing=1; next }
-            printing && /^## / { exit }
-            printing { print }
-          ' CHANGELOG.md > release-notes.md
-          test -s release-notes.md || { echo "Missing CHANGELOG release notes for $VERSION" >&2; exit 1; }
+          scripts/release-notes.sh --version "$VERSION" > release-notes.md
           gh release create "${{ steps.version.outputs.tag }}" \
             "artifacts/Mailbell-$VERSION.dmg" \
             "artifacts/Mailbell-$VERSION.zip" \

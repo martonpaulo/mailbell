@@ -4,12 +4,14 @@ All notable changes to Mailbell are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and
 [Keep a Changelog](https://keepachangelog.com/).
 
-## 0.3.1 — 2026-09-09
+## [Unreleased]
+
+## [0.3.1] - 2026-09-09
 
 The website moved to its own subdomain. The links the app opens follow it.
 
-> **Google OAuth unverified beta.** Unchanged: Google shows an "unverified app"
-> screen during sign-in and limits unverified clients to **100 new users**.
+**Google OAuth unverified beta.** Unchanged: Google shows an "unverified app"
+screen during sign-in and limits unverified clients to **100 new users**.
 
 ### Changed
 
@@ -18,14 +20,14 @@ The website moved to its own subdomain. The links the app opens follow it.
   `martonpaulo.com/mailbell/` path is gone and does not redirect, so 0.3.0
   and earlier open a "not found" page from those links until they update.
 
-## 0.3.0 — 2026-09-09
+## [0.3.0] - 2026-09-09
 
 Previews that were showing you CSS, base64 and invisible filler now show the
 message. Mail is listed in the order Gmail lists it. And several ways Mailbell
 could act on the wrong message, or quietly stop watching, are closed.
 
-> **Google OAuth unverified beta.** Unchanged: Google shows an "unverified app"
-> screen during sign-in and limits unverified clients to **100 new users**.
+**Google OAuth unverified beta.** Unchanged: Google shows an "unverified app"
+screen during sign-in and limits unverified clients to **100 new users**.
 
 ### Fixed
 
@@ -88,13 +90,13 @@ could act on the wrong message, or quietly stop watching, are closed.
   Google.** Removing it in Mailbell deletes your tokens locally; it does not
   tell Google anything.
 
-## 0.2.0 — 2026-08-18
+## [0.2.0] - 2026-08-18
 
 Mailbell can now alert you without a sound.
 
-> **Google OAuth unverified beta.** Unchanged from 0.1.0: Google shows an
-> "unverified app" screen during sign-in and limits unverified clients to
-> **100 new users**.
+**Google OAuth unverified beta.** Unchanged from 0.1.0: Google shows an
+"unverified app" screen during sign-in and limits unverified clients to
+**100 new users**.
 
 ### Added
 
@@ -103,13 +105,13 @@ Mailbell can now alert you without a sound.
   notification (new mail, sign-in and test) arrives silently but still shows.
   macOS settings still decide whether Mailbell may play sounds at all.
 
-## 0.1.2 — 2026-07-26
+## [0.1.2] - 2026-07-26
 
 An expired sign-in now reaches you instead of waiting to be noticed.
 
-> **Google OAuth unverified beta.** Unchanged from 0.1.0: Google shows an
-> "unverified app" screen during sign-in and limits unverified clients to
-> **100 new users**.
+**Google OAuth unverified beta.** Unchanged from 0.1.0: Google shows an
+"unverified app" screen during sign-in and limits unverified clients to
+**100 new users**.
 
 ### Added
 
@@ -119,14 +121,14 @@ An expired sign-in now reaches you instead of waiting to be noticed.
   account, fires once per expiry, and is not a preference, for the same reason
   the alert icon is not.
 
-## 0.1.1 — 2026-07-25
+## [0.1.1] - 2026-07-25
 
 Settings now follows macOS System Settings conventions, and a preview defect
 that reached real notifications is fixed.
 
-> **Google OAuth unverified beta.** Unchanged from 0.1.0: Google shows an
-> "unverified app" screen during sign-in and limits unverified clients to
-> **100 new users**.
+**Google OAuth unverified beta.** Unchanged from 0.1.0: Google shows an
+"unverified app" screen during sign-in and limits unverified clients to
+**100 new users**.
 
 ### Fixed
 
@@ -154,23 +156,20 @@ that reached real notifications is fixed.
 - Sign-in now warns about Google's unverified-app screen *before* you meet it.
 - The review count per account no longer hides behind the menu bar count
   preference.
+- Internal: one build number derivation shared by the local and CI release paths.
+- Internal: settings control-semantics rules moved into repository validation.
 
-### Internal
-
-- One build number derivation shared by the local and CI release paths.
-- Settings control-semantics rules moved into repository validation.
-
-## 0.1.0 — 2026-07-25
+## [0.1.0] - 2026-07-25
 
 First public beta.
 
-> **Google OAuth unverified beta.** Mailbell's Google OAuth client has not been
-> verified by Google yet. During sign-in Google shows an "unverified app" screen,
-> and Google limits unverified clients to **100 new users**. Mailbell still runs
-> entirely on your Mac and no Gmail data passes through any server operated by
-> this project.
+**Google OAuth unverified beta.** Mailbell's Google OAuth client has not been
+verified by Google yet. During sign-in Google shows an "unverified app" screen,
+and Google limits unverified clients to **100 new users**. Mailbell still runs
+entirely on your Mac and no Gmail data passes through any server operated by
+this project.
 
-### New
+### Added
 
 - **Mark All as Read** clears the whole review queue and marks every message read
   in Gmail, using one authenticated IMAP session per account instead of one
@@ -204,8 +203,13 @@ First public beta.
 - Every packaging path (install, DMG, release) now goes through one bundle
   builder, so the layout and the Sparkle nested-signing order have a single
   definition.
+- Internal: marking messages read batches UID sets per mailbox over a single IMAP session.
+- Internal: repository invariants are enforced by `Scripts/validate.sh` and run in CI.
 
-### Internal
-
-- Marking messages read batches UID sets per mailbox over a single IMAP session.
-- Repository invariants are enforced by `Scripts/validate.sh` and run in CI.
+[Unreleased]: https://github.com/martonpaulo/mailbell/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/martonpaulo/mailbell/releases/tag/v0.3.1
+[0.3.0]: https://github.com/martonpaulo/mailbell/releases/tag/v0.3.0
+[0.2.0]: https://github.com/martonpaulo/mailbell/releases/tag/v0.2.0
+[0.1.2]: https://github.com/martonpaulo/mailbell/releases/tag/v0.1.2
+[0.1.1]: https://github.com/martonpaulo/mailbell/releases/tag/v0.1.1
+[0.1.0]: https://github.com/martonpaulo/mailbell/releases/tag/v0.1.0

@@ -89,6 +89,10 @@ for key in MailbellGoogleClientID MailbellGoogleClientSecret; do
     fi
 done
 
+# The changelog is Keep a Changelog, read by the canonical release-notes script;
+# its newest version must be the shipped one.
+scripts/release-notes.sh --check || note "CHANGELOG.md must pass scripts/release-notes.sh --check"
+
 # The public beta must be honest about Google's review status everywhere it
 # tells users what to expect.
 for page in README.md site/index.html site/privacy.html site/terms.html; do
