@@ -15,6 +15,8 @@ final class UpdateManager {
     private(set) var automaticallyChecksForUpdates: Bool
 
     @ObservationIgnored private let controller: SPUStandardUpdaterController?
+    /// Sparkle holds its delegates weakly, so the manager owns this one.
+    @ObservationIgnored private let userDriverDelegate = UpdateUserDriverDelegate()
 
     init(bundle: Bundle = .main) {
         let feed = (bundle.object(forInfoDictionaryKey: Self.feedURLKey) as? String) ?? ""
@@ -23,7 +25,7 @@ final class UpdateManager {
             let controller = SPUStandardUpdaterController(
                 startingUpdater: true,
                 updaterDelegate: nil,
-                userDriverDelegate: nil
+                userDriverDelegate: userDriverDelegate
             )
             self.controller = controller
             automaticallyChecksForUpdates = controller.updater.automaticallyChecksForUpdates
@@ -59,6 +61,21 @@ final class UpdateManager {
 
     func checkForUpdates() {
         controller?.checkForUpdates(nil)
+    }
+}
+
+/// Sparkle's user-driver delegate. `SPUStandardUserDriverDelegate` is an
+/// Objective-C protocol, so it needs an `NSObject`; Sparkle calls it on the main
+/// thread.
+final class UpdateUserDriverDelegate: NSObject, @preconcurrency SPUStandardUserDriverDelegate {
+    private let alertSizer = UpdateAlertSizer()
+
+    /// The update window then fits its release notes (#75).
+    func standardUserDriverWillHandleShowingUpdate(
+        _ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState
+    ) {
+        guard handleShowingUpdate else { return }
+        alertSizer.fitWhenShown()
     }
 }
 
