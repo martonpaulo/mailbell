@@ -220,6 +220,17 @@ Preserve the IMAP IDLE reconnect model:
 Restore Defaults clears the last row only. Accounts, tokens, checkpoints, and
 handled history are user data, not preferences.
 
+`StorageKeys` is the one owner of every UserDefaults key, including the
+checkpoint key builder, the #47 migration marker and the two SwiftUI Settings
+keys that screenshot mode pins. Stores name a key only through it, and
+`scripts/validate.sh` fails on a key string literal passed to a UserDefaults
+accessor anywhere else (#79). New keys end in `.v1`. Two predate that rule and
+stay unversioned: the account list (`mailbell.accounts`) and the checkpoint keys
+(`mailbell.account.<uuid>.mailbox.<name>.uidValidity` and `.lastSeenUID`).
+Renaming them would need a migration whose only effect is risk to every user's
+accounts and gap-fill anchors, and a stored value is migrated only when its old
+representation is invalid ([feature defaults](feature-defaults.md)). Decided on #62.
+
 ## Screenshots
 
 Screenshots are captured from the **real on-screen window**, never rendered

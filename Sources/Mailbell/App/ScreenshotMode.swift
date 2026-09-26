@@ -25,11 +25,6 @@ enum ScreenshotMode {
     /// controls.
     static let readyLine = "READY"
 
-    /// SwiftUI restores the last selected Settings tab and the last window
-    /// frame from UserDefaults, so a capture would otherwise depend on whatever
-    /// the developer last had open.
-    static let selectedTabDefaultsKey = "com_apple_SwiftUI_Settings_selectedTabIndex"
-    static let windowFrameDefaultsKey = "NSWindow Frame com_apple_SwiftUI_Settings_window"
     static let paneArgument = "--screenshot-pane"
 
     /// Pins Light or Dark. Without it Settings follows the system appearance, so
@@ -65,10 +60,13 @@ enum ScreenshotMode {
         return pane
     }
 
-    /// Pins the environment-dependent state before the scene reads it.
+    /// Pins the environment-dependent state before the scene reads it. SwiftUI
+    /// restores the last selected Settings tab and the last window frame from
+    /// UserDefaults, so a capture would otherwise depend on whatever the
+    /// developer last had open.
     static func pinEnvironment(defaults: UserDefaults = .standard, pane: Int = requestedPane()) {
-        defaults.removeObject(forKey: windowFrameDefaultsKey)
-        defaults.set(pane, forKey: selectedTabDefaultsKey)
+        defaults.removeObject(forKey: StorageKeys.systemSettingsWindowFrame)
+        defaults.set(pane, forKey: StorageKeys.systemSettingsSelectedTab)
     }
 
     static func isEnabled(arguments: [String]) -> Bool {

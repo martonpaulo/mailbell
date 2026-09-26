@@ -47,13 +47,13 @@ final class ScreenshotModeTests: XCTestCase {
 
     func testPinningClearsTheSavedFrameAndSelectsThePane() {
         let defaults = TestDefaults.make()
-        defaults.set("stale frame", forKey: ScreenshotMode.windowFrameDefaultsKey)
-        defaults.set(3, forKey: ScreenshotMode.selectedTabDefaultsKey)
+        defaults.set("stale frame", forKey: StorageKeys.systemSettingsWindowFrame)
+        defaults.set(3, forKey: StorageKeys.systemSettingsSelectedTab)
 
         ScreenshotMode.pinEnvironment(defaults: defaults, pane: 1)
 
-        XCTAssertNil(defaults.object(forKey: ScreenshotMode.windowFrameDefaultsKey))
-        XCTAssertEqual(defaults.integer(forKey: ScreenshotMode.selectedTabDefaultsKey), 1)
+        XCTAssertNil(defaults.object(forKey: StorageKeys.systemSettingsWindowFrame))
+        XCTAssertEqual(defaults.integer(forKey: StorageKeys.systemSettingsSelectedTab), 1)
     }
 
     /// scripts/lib/capture.sh reads these exact lines, and READY last.

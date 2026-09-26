@@ -38,13 +38,13 @@ final class EmailStorePersistenceTests: XCTestCase {
     func testCorruptHandledPersistenceIsBackedUpOnceAndRecoveredWithWarning() throws {
         let defaults = EmailStoreFixture.makeDefaults()
         let corrupt = Data("not-json".utf8)
-        defaults.set(corrupt, forKey: EmailStorePersistence.recordsKey)
+        defaults.set(corrupt, forKey: StorageKeys.handledRecords)
         let persistence = EmailStorePersistence(userDefaults: defaults)
 
         XCTAssertFalse(try persistence.isHandled("anything"))
 
-        XCTAssertEqual(defaults.data(forKey: EmailStorePersistence.corruptBackupKey), corrupt)
-        let activeData = try XCTUnwrap(defaults.data(forKey: EmailStorePersistence.recordsKey))
+        XCTAssertEqual(defaults.data(forKey: StorageKeys.handledRecordsCorruptBackup), corrupt)
+        let activeData = try XCTUnwrap(defaults.data(forKey: StorageKeys.handledRecords))
         let decoded = try JSONDecoder().decode([String: String].self, from: activeData)
         XCTAssertTrue(decoded.isEmpty)
         XCTAssertEqual(persistence.takeRecoveryWarning(), EmailStorePersistence.recoveryWarning)
@@ -58,11 +58,11 @@ final class EmailStorePersistenceTests: XCTestCase {
     func testCorruptHandledPersistenceBackupFailurePreservesOriginalPayload() {
         let defaults = EmailStoreFixture.makeDefaults()
         let corrupt = Data("not-json".utf8)
-        defaults.set(corrupt, forKey: EmailStorePersistence.recordsKey)
+        defaults.set(corrupt, forKey: StorageKeys.handledRecords)
         let persistence = EmailStorePersistence(
             userDefaults: defaults,
             saveData: { _, key in
-                if key == EmailStorePersistence.corruptBackupKey {
+                if key == StorageKeys.handledRecordsCorruptBackup {
                     throw EmailStorePersistence.PersistenceError.saveFailed("disk full")
                 }
             }
@@ -71,8 +71,8 @@ final class EmailStorePersistenceTests: XCTestCase {
         XCTAssertThrowsError(try persistence.isHandled("anything")) { error in
             XCTAssertEqual(error.localizedDescription, "Couldn't save Mailbell's review history. Try again.")
         }
-        XCTAssertEqual(defaults.data(forKey: EmailStorePersistence.recordsKey), corrupt)
-        XCTAssertNil(defaults.data(forKey: EmailStorePersistence.corruptBackupKey))
+        XCTAssertEqual(defaults.data(forKey: StorageKeys.handledRecords), corrupt)
+        XCTAssertNil(defaults.data(forKey: StorageKeys.handledRecordsCorruptBackup))
         XCTAssertNil(persistence.takeRecoveryWarning())
     }
 

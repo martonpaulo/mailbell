@@ -35,8 +35,6 @@ final class EmailStorePersistence {
     )
 
     private let userDefaults: UserDefaults
-    static let recordsKey = "mailbell.emailStore.handledRecords.v1"
-    static let corruptBackupKey = "mailbell.emailStore.handledRecords.corruptBackup.v1"
     private let maxRecordCount: Int
     private let now: () -> Date
     private let saveData: (_ data: Data, _ key: String) throws -> Void
@@ -146,7 +144,7 @@ final class EmailStorePersistence {
         if let cachedRecords {
             return cachedRecords
         }
-        guard let data = userDefaults.data(forKey: Self.recordsKey) else {
+        guard let data = userDefaults.data(forKey: StorageKeys.handledRecords) else {
             cachedRecords = [:]
             return [:]
         }
@@ -165,9 +163,9 @@ final class EmailStorePersistence {
     private func recoverCorruptRecords(_ data: Data) throws {
         let emptyRecords = [String: EmailStoreRecord]()
         do {
-            try saveData(data, Self.corruptBackupKey)
+            try saveData(data, StorageKeys.handledRecordsCorruptBackup)
             let emptyData = try JSONEncoder().encode(emptyRecords)
-            try saveData(emptyData, Self.recordsKey)
+            try saveData(emptyData, StorageKeys.handledRecords)
         } catch let error as PersistenceError {
             throw error
         } catch let error as EncodingError {
@@ -186,7 +184,7 @@ final class EmailStorePersistence {
         }
 
         do {
-            try saveData(data, Self.recordsKey)
+            try saveData(data, StorageKeys.handledRecords)
         } catch let error as PersistenceError {
             throw error
         } catch {

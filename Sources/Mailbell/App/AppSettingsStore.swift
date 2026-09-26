@@ -9,17 +9,6 @@ struct AppSettingsStore {
         static let playNotificationSounds = true
     }
 
-    enum Key {
-        static let showPendingCount = "mailbell.settings.showPendingCount.v1"
-        static let includeSpam = "mailbell.settings.includeSpam.v1"
-        static let playNotificationSounds = "mailbell.settings.playNotificationSounds.v1"
-
-        /// Every preference Restore Defaults resets. Identity, tokens, account
-        /// metadata, IMAP checkpoints, and handled-message history are user
-        /// data, not preferences, and are deliberately absent.
-        static let configurable = [showPendingCount, includeSpam, playNotificationSounds]
-    }
-
     private let userDefaults: UserDefaults
 
     init(userDefaults: UserDefaults = .standard) {
@@ -28,37 +17,37 @@ struct AppSettingsStore {
 
     var showPendingCount: Bool {
         get {
-            guard userDefaults.object(forKey: Key.showPendingCount) != nil else {
+            guard userDefaults.object(forKey: StorageKeys.showPendingCount) != nil else {
                 return Defaults.showPendingCount
             }
-            return userDefaults.bool(forKey: Key.showPendingCount)
+            return userDefaults.bool(forKey: StorageKeys.showPendingCount)
         }
         nonmutating set {
-            userDefaults.set(newValue, forKey: Key.showPendingCount)
+            userDefaults.set(newValue, forKey: StorageKeys.showPendingCount)
         }
     }
 
     var includeSpam: Bool {
         get {
-            guard userDefaults.object(forKey: Key.includeSpam) != nil else {
+            guard userDefaults.object(forKey: StorageKeys.includeSpam) != nil else {
                 return Defaults.includeSpam
             }
-            return userDefaults.bool(forKey: Key.includeSpam)
+            return userDefaults.bool(forKey: StorageKeys.includeSpam)
         }
         nonmutating set {
-            userDefaults.set(newValue, forKey: Key.includeSpam)
+            userDefaults.set(newValue, forKey: StorageKeys.includeSpam)
         }
     }
 
     var playNotificationSounds: Bool {
         get {
-            guard userDefaults.object(forKey: Key.playNotificationSounds) != nil else {
+            guard userDefaults.object(forKey: StorageKeys.playNotificationSounds) != nil else {
                 return Defaults.playNotificationSounds
             }
-            return userDefaults.bool(forKey: Key.playNotificationSounds)
+            return userDefaults.bool(forKey: StorageKeys.playNotificationSounds)
         }
         nonmutating set {
-            userDefaults.set(newValue, forKey: Key.playNotificationSounds)
+            userDefaults.set(newValue, forKey: StorageKeys.playNotificationSounds)
         }
     }
 
@@ -66,7 +55,7 @@ struct AppSettingsStore {
     /// `Defaults`. Never touches accounts, Keychain tokens, or notification
     /// permission.
     func restoreDefaults() {
-        for key in Key.configurable {
+        for key in StorageKeys.settingsConfigurable {
             userDefaults.removeObject(forKey: key)
         }
     }

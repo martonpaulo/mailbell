@@ -13,9 +13,9 @@ final class LegacyDomainMigrationTests: XCTestCase {
         [
             "mailbell.accounts": Data([1, 2, 3]),
             checkpointKey: 42,
-            AppSettingsStore.Key.includeSpam: true,
-            AppSettingsStore.Key.showPendingCount: false,
-            ScreenshotMode.windowFrameDefaultsKey: "0 0 720 560",
+            StorageKeys.includeSpam: true,
+            StorageKeys.showPendingCount: false,
+            StorageKeys.systemSettingsWindowFrame: "0 0 720 560",
             "NSStatusItem Preferred Position Item-0": 310,
             "SUAutomaticallyUpdate": true,
             "SULastCheckTime": Date(timeIntervalSince1970: 0),
@@ -34,12 +34,12 @@ final class LegacyDomainMigrationTests: XCTestCase {
             [
                 "mailbell.accounts",
                 checkpointKey,
-                AppSettingsStore.Key.includeSpam,
-                AppSettingsStore.Key.showPendingCount,
-                ScreenshotMode.windowFrameDefaultsKey,
+                StorageKeys.includeSpam,
+                StorageKeys.showPendingCount,
+                StorageKeys.systemSettingsWindowFrame,
                 "NSStatusItem Preferred Position Item-0",
                 "SUAutomaticallyUpdate",
-                LegacyDomainMigration.markerKey
+                StorageKeys.legacyDomainCopied
             ]
         )
         XCTAssertEqual(values[checkpointKey] as? Int, 42)
@@ -49,19 +49,19 @@ final class LegacyDomainMigrationTests: XCTestCase {
         let values = try XCTUnwrap(
             LegacyDomainMigration.valuesToCopy(
                 legacyDomain: legacyDomain,
-                currentDomain: [AppSettingsStore.Key.includeSpam: false]
+                currentDomain: [StorageKeys.includeSpam: false]
             )
         )
 
-        XCTAssertNil(values[AppSettingsStore.Key.includeSpam])
-        XCTAssertEqual(values[AppSettingsStore.Key.showPendingCount] as? Bool, false)
+        XCTAssertNil(values[StorageKeys.includeSpam])
+        XCTAssertEqual(values[StorageKeys.showPendingCount] as? Bool, false)
     }
 
     func testCopiesNothingOnceTheMarkerExists() {
         XCTAssertNil(
             LegacyDomainMigration.valuesToCopy(
                 legacyDomain: legacyDomain,
-                currentDomain: [LegacyDomainMigration.markerKey: true]
+                currentDomain: [StorageKeys.legacyDomainCopied: true]
             )
         )
     }
@@ -69,7 +69,7 @@ final class LegacyDomainMigrationTests: XCTestCase {
     func testWritesOnlyTheMarkerWithoutALegacyDomain() {
         for legacy in [nil, [:]] as [[String: Any]?] {
             let values = LegacyDomainMigration.valuesToCopy(legacyDomain: legacy, currentDomain: [:])
-            XCTAssertEqual(values?.keys.sorted(), [LegacyDomainMigration.markerKey])
+            XCTAssertEqual(values?.keys.sorted(), [StorageKeys.legacyDomainCopied])
         }
     }
 
@@ -90,10 +90,10 @@ final class LegacyDomainMigrationTests: XCTestCase {
         XCTAssertEqual(current.defaults.integer(forKey: checkpointKey), 42)
         XCTAssertTrue(AppSettingsStore(userDefaults: current.defaults).includeSpam)
         XCTAssertNil(current.defaults.object(forKey: "SULastCheckTime"))
-        XCTAssertTrue(current.defaults.bool(forKey: LegacyDomainMigration.markerKey))
+        XCTAssertTrue(current.defaults.bool(forKey: StorageKeys.legacyDomainCopied))
 
         legacy.defaults.set(99, forKey: checkpointKey)
-        legacy.defaults.set(false, forKey: AppSettingsStore.Key.includeSpam)
+        legacy.defaults.set(false, forKey: StorageKeys.includeSpam)
         LegacyDomainMigration.migrate(
             current.defaults,
             currentDomain: current.persistentDomain ?? [:],
@@ -110,6 +110,6 @@ final class LegacyDomainMigrationTests: XCTestCase {
 
         AppSettingsStore(userDefaults: current.defaults).restoreDefaults()
 
-        XCTAssertTrue(current.defaults.bool(forKey: LegacyDomainMigration.markerKey))
+        XCTAssertTrue(current.defaults.bool(forKey: StorageKeys.legacyDomainCopied))
     }
 }

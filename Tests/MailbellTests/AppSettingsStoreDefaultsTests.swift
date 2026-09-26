@@ -27,7 +27,7 @@ final class AppSettingsStoreDefaultsTests: XCTestCase {
         XCTAssertEqual(store.showPendingCount, AppSettingsStore.Defaults.showPendingCount)
         XCTAssertEqual(store.includeSpam, AppSettingsStore.Defaults.includeSpam)
         XCTAssertEqual(store.playNotificationSounds, AppSettingsStore.Defaults.playNotificationSounds)
-        for key in AppSettingsStore.Key.configurable {
+        for key in StorageKeys.settingsConfigurable {
             XCTAssertNil(defaults.object(forKey: key), "\(key) must be cleared, not rewritten")
         }
     }
@@ -38,12 +38,12 @@ final class AppSettingsStoreDefaultsTests: XCTestCase {
         let account = MailAccount(providerID: .gmail, email: "keep@example.com")
         let accountStore = AccountStore(userDefaults: defaults)
         XCTAssertNoThrow(try accountStore.saveAccounts([account]))
-        defaults.set(Data("handled".utf8), forKey: EmailStorePersistence.recordsKey)
+        defaults.set(Data("handled".utf8), forKey: StorageKeys.handledRecords)
 
         store.restoreDefaults()
 
         XCTAssertEqual(try accountStore.loadAccounts().map(\.email), ["keep@example.com"])
-        XCTAssertNotNil(defaults.data(forKey: EmailStorePersistence.recordsKey))
+        XCTAssertNotNil(defaults.data(forKey: StorageKeys.handledRecords))
     }
 
     private func makeDefaults() -> UserDefaults {

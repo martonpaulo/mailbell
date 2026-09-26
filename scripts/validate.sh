@@ -68,6 +68,13 @@ fi
 if grep -rln 'UserDefaults(suiteName' Tests | grep -v '^Tests/MailbellTests/TestDefaults.swift$' | grep -q .; then
     note "a test makes a UserDefaults suite outside Tests/MailbellTests/TestDefaults.swift"
 fi
+# Every UserDefaults key has one owner, StorageKeys (#79): a key string literal passed to a
+# UserDefaults accessor anywhere else in Sources/ fails. LegacyDomainMigration's list of
+# system and Sparkle names is only compared against, never passed to an accessor.
+stray_keys=$(grep -rnE 'forKey: *"|(suiteName|persistentDomain\(forName)): *"|@AppStorage\( *"' Sources \
+    | grep -vE '^[^:]+:[0-9]+:[[:space:]]*//' | grep -v '/StorageKeys\.swift:' || true)
+[ -z "$stray_keys" ] \
+    || note "name UserDefaults keys through StorageKeys, not a string literal: $(echo "$stray_keys" | head -3)"
 if [ -f .env.example ] && grep -qE '^[A-Z_]+=.+' .env.example; then
     note ".env.example must list variable names with empty values only"
 fi

@@ -18,7 +18,6 @@ final class AccountStore {
     }
 
     private let userDefaults: UserDefaults
-    private let accountsKey = "mailbell.accounts"
     private let saveData: (_ data: Data, _ key: String) throws -> Void
 
     init(
@@ -32,7 +31,7 @@ final class AccountStore {
     }
 
     func loadAccounts() throws -> [MailAccount] {
-        guard let data = userDefaults.data(forKey: accountsKey) else {
+        guard let data = userDefaults.data(forKey: StorageKeys.accounts) else {
             return []
         }
         do {
@@ -46,7 +45,7 @@ final class AccountStore {
         do {
             let data = try JSONEncoder().encode(accounts)
             do {
-                try saveData(data, accountsKey)
+                try saveData(data, StorageKeys.accounts)
             } catch let error as AccountStoreError {
                 throw error
             } catch {

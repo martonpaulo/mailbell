@@ -10,13 +10,15 @@ import Foundation
 /// existing `reauthRequired` path.
 ///
 /// Only names Mailbell owns are copied. A name the current domain already
-/// stores keeps its value. `markerKey` records that the copy ran, even when
-/// there was nothing to copy; it is migration state, not a preference, so
-/// Restore Defaults leaves it alone.
+/// stores keeps its value. `StorageKeys.legacyDomainCopied` records that the
+/// copy ran, even when there was nothing to copy; it is migration state, not a
+/// preference, so Restore Defaults leaves it alone.
+///
+/// `ownedShellNames` is the one list of key names outside `StorageKeys`: it
+/// names system and Sparkle keys Mailbell never reads itself, only copies.
 enum LegacyDomainMigration {
     /// The only place the previous identifier may appear (`scripts/validate.sh`).
     static let legacyDomainName = "com.perso.mailbell"
-    static let markerKey = "mailbell.migration.legacyDomainCopied.v1"
 
     /// Accounts, IMAP checkpoints, handled-message records and settings.
     /// Copying the checkpoints lets the first connection after sign-in gap-fill
@@ -26,8 +28,8 @@ enum LegacyDomainMigration {
     /// System and Sparkle names that hold a user choice. Sparkle's own
     /// bookkeeping (`SULastCheckTime`, `SUUpdateGroupIdentifier`) is not copied.
     static let ownedShellNames: Set<String> = [
-        ScreenshotMode.selectedTabDefaultsKey,
-        ScreenshotMode.windowFrameDefaultsKey,
+        StorageKeys.systemSettingsSelectedTab,
+        StorageKeys.systemSettingsWindowFrame,
         "NSStatusItem Preferred Position Item-0",
         "NSStatusItem VisibleCC Item-0",
         "SUEnableAutomaticChecks",
@@ -42,12 +44,12 @@ enum LegacyDomainMigration {
     /// What to write into the current domain, or nil when the copy already ran.
     /// Always includes the marker when it has not run.
     static func valuesToCopy(legacyDomain: [String: Any]?, currentDomain: [String: Any]) -> [String: Any]? {
-        guard currentDomain[markerKey] == nil else { return nil }
+        guard currentDomain[StorageKeys.legacyDomainCopied] == nil else { return nil }
         var values: [String: Any] = [:]
         for (name, value) in legacyDomain ?? [:] where isOwned(name) && currentDomain[name] == nil {
             values[name] = value
         }
-        values[markerKey] = true
+        values[StorageKeys.legacyDomainCopied] = true
         return values
     }
 

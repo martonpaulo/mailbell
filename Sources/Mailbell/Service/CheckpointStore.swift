@@ -3,28 +3,25 @@ import Foundation
 // Nonisolated: moved inside MailMonitor run tasks.
 nonisolated struct CheckpointStore {
     private let userDefaults: UserDefaults
-    private let uidValidityKey: String
-    private let lastUIDKey: String
+    private let keys: StorageKeys.Checkpoint
 
     init(accountID: UUID, mailbox: String = "INBOX", userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
-        let namespace = "mailbell.account.\(accountID.uuidString).mailbox.\(mailbox)"
-        uidValidityKey = "\(namespace).uidValidity"
-        lastUIDKey = "\(namespace).lastSeenUID"
+        keys = StorageKeys.checkpoint(accountID: accountID, mailbox: mailbox)
     }
 
     var lastSeenUID: Int {
-        get { userDefaults.integer(forKey: lastUIDKey) }
-        set { userDefaults.set(newValue, forKey: lastUIDKey) }
+        get { userDefaults.integer(forKey: keys.lastSeenUID) }
+        set { userDefaults.set(newValue, forKey: keys.lastSeenUID) }
     }
 
     var storedUIDValidity: Int {
-        get { userDefaults.integer(forKey: uidValidityKey) }
-        set { userDefaults.set(newValue, forKey: uidValidityKey) }
+        get { userDefaults.integer(forKey: keys.uidValidity) }
+        set { userDefaults.set(newValue, forKey: keys.uidValidity) }
     }
 
     func reset() {
-        userDefaults.removeObject(forKey: uidValidityKey)
-        userDefaults.removeObject(forKey: lastUIDKey)
+        userDefaults.removeObject(forKey: keys.uidValidity)
+        userDefaults.removeObject(forKey: keys.lastSeenUID)
     }
 }
