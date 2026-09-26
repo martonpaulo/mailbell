@@ -29,7 +29,7 @@ final class MenuBarIconTests: XCTestCase {
         XCTAssertFalse(supervisor.needsAttention)
         XCTAssertEqual(supervisor.menuBarIconSystemImage, MenuBarIcon.idle)
 
-        supervisor.statuses[account.id] = .reauthRequired
+        supervisor.statuses[account.id] = .signInRequired
         XCTAssertTrue(supervisor.needsAttention)
         XCTAssertEqual(supervisor.menuBarIconSystemImage, MenuBarIcon.attention)
 

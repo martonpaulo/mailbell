@@ -163,7 +163,7 @@ final class AccountSupervisorTests: XCTestCase {
         })
 
         XCTAssertEqual(supervisor.refreshNow(), .signInRequired)
-        XCTAssertEqual(supervisor.accountStates.first?.status, .reauthRequired)
+        XCTAssertEqual(supervisor.accountStates.first?.status, .signInRequired)
     }
 
     @MainActor

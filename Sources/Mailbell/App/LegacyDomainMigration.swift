@@ -8,7 +8,7 @@ import MailbellKit
 /// the new identifier starts from an empty domain. The old domain is only read
 /// and stays in place, so an older build still finds its settings. Keychain
 /// tokens are not copied: every account asks to sign in again once, through the
-/// existing `reauthRequired` path.
+/// existing `signInRequired` path.
 ///
 /// Only names Mailbell owns are copied. A name the current domain already
 /// stores keeps its value. `StorageKeys.legacyDomainCopied` records that the

@@ -41,7 +41,7 @@ extension AccountSupervisor {
 
         switch oauthError {
         case .refreshFailed, .noRefreshToken:
-            statuses[accountID] = .reauthRequired
+            statuses[accountID] = .signInRequired
             connectionErrors[accountID] = oauthError.localizedDescription
         default:
             break

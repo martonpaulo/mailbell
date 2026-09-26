@@ -230,13 +230,13 @@ final class AccountSupervisorQueueTests: XCTestCase {
         await Task.yield()
         XCTAssertTrue(notified.isEmpty)
 
-        supervisor.monitor(account.id, didChangeStatus: .reauthRequired, error: "Token revoked")
+        supervisor.monitor(account.id, didChangeStatus: .signInRequired, error: "Token revoked")
         await Task.yield()
         XCTAssertEqual(notified, [account.email])
 
         // A later update while the account is still waiting must not alert again.
         supervisor.monitor(account.id, didNotify: SupervisorFixture.makeHeader(), result: .posted)
-        supervisor.monitor(account.id, didChangeStatus: .reauthRequired, error: "Token revoked")
+        supervisor.monitor(account.id, didChangeStatus: .signInRequired, error: "Token revoked")
         await Task.yield()
         XCTAssertEqual(notified, [account.email])
     }
@@ -250,7 +250,7 @@ final class AccountSupervisorQueueTests: XCTestCase {
             signInNeededNotifier: { notified.append($0.email) }
         )
 
-        supervisor.monitor(account.id, didChangeStatus: .reauthRequired, error: "Token revoked")
+        supervisor.monitor(account.id, didChangeStatus: .signInRequired, error: "Token revoked")
         await Task.yield()
 
         XCTAssertTrue(notified.isEmpty)

@@ -14,7 +14,7 @@ public enum AccountPresentation {
             return "arrow.clockwise.circle"
         case .connected:
             return "checkmark.circle.fill"
-        case .reauthRequired, .error:
+        case .signInRequired, .error:
             return "exclamationmark.triangle.fill"
         }
     }
@@ -34,7 +34,7 @@ public enum AccountPresentation {
             return String(localized: "Connected")
         case .reconnecting:
             return String(localized: "Reconnecting")
-        case .reauthRequired:
+        case .signInRequired:
             return String(localized: "Sign in needed")
         case .error:
             return String(localized: "Needs attention")
@@ -54,7 +54,7 @@ public enum AccountPresentation {
                 : String(localized: "Monitoring Inbox.")
         case .reconnecting:
             return String(localized: "Reconnecting.")
-        case .reauthRequired:
+        case .signInRequired:
             return String(localized: "Sign in again to resume monitoring.")
         case .error:
             return String(localized: "Check the error and reconnect.")

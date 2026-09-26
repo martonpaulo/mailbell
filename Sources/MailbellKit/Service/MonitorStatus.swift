@@ -5,7 +5,7 @@ public enum MonitorStatus: Equatable, Sendable {
     case connecting
     case connected
     case reconnecting
-    case reauthRequired
+    case signInRequired
     case error
 
     /// The account cannot recover on its own: the user has to sign in again or
@@ -14,12 +14,12 @@ public enum MonitorStatus: Equatable, Sendable {
     /// ordinary errors, which Reconnect handles, so nothing tells the user to
     /// do the wrong thing.
     public var needsSignIn: Bool {
-        self == .reauthRequired
+        self == .signInRequired
     }
 
     public var needsAttention: Bool {
         switch self {
-        case .reauthRequired, .error:
+        case .signInRequired, .error:
             true
         case .signedOut, .connecting, .connected, .reconnecting:
             false
@@ -28,7 +28,7 @@ public enum MonitorStatus: Equatable, Sendable {
 
     public var sortPriority: Int {
         switch self {
-        case .reauthRequired, .error:
+        case .signInRequired, .error:
             0
         case .connecting, .reconnecting:
             1

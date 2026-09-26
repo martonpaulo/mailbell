@@ -55,7 +55,7 @@ token persistence.
   the bundle identifier. UserDefaults never sees a token. A new identifier
   orphans the tokens by design: after the 0.4.0 move every account signs in
   again once (Decided on #47).
-- A refresh failure or a revoked grant becomes `reauthRequired` and is surfaced,
+- A refresh failure or a revoked grant becomes `signInRequired` and is surfaced,
   never swallowed by a retry loop.
 
 ### IMAP
@@ -221,7 +221,7 @@ Preserve the IMAP IDLE reconnect model:
   issuing `STORE`, so a rebuilt mailbox that reused the number cannot be
   mutated. Pending items from a superseded generation are dropped on
   reconciliation rather than left actionable.
-- Refresh-token failure or revocation must surface as `reauthRequired` and must
+- Refresh-token failure or revocation must surface as `signInRequired` and must
   raise the menu bar alert icon. Do not hide it behind silent retry loops.
 - Transient network failures may retry with bounded backoff but must not mask
   credential failure.

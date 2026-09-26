@@ -106,7 +106,7 @@ Two viable configurations:
 
 When minting the token, request `access_type=offline` and `prompt=consent` so Google returns a durable refresh token.
 
-Even then, a refresh token can be revoked by inactivity, account changes, manual revocation, or per-client token limits. Refresh-token failure must route to `reauthRequired` with a clear reconnect affordance. It must not become a silent retry loop.
+Even then, a refresh token can be revoked by inactivity, account changes, manual revocation, or per-client token limits. Refresh-token failure must route to `signInRequired` with a clear reconnect affordance. It must not become a silent retry loop.
 
 ## Data Access Contract
 
@@ -195,11 +195,11 @@ tokenExpired
   -> reconnecting
 
 refreshFailed / tokenRevoked
-  -> reauthRequired         (prompt user to reconnect; re-run OAuth)
+  -> signInRequired         (prompt user to reconnect; re-run OAuth)
   -> authorizing
 ```
 
-The reconnect checkpoint is the per-account, per-mailbox pair `(UIDVALIDITY, lastSeenUID)`. If `UIDVALIDITY` is unchanged, fetch unread UIDs above the checkpoint and notify the gap. If it changed, rebaseline without notifying the backlog. A dead refresh token is not recoverable automatically and must route to `reauthRequired`.
+The reconnect checkpoint is the per-account, per-mailbox pair `(UIDVALIDITY, lastSeenUID)`. If `UIDVALIDITY` is unchanged, fetch unread UIDs above the checkpoint and notify the gap. If it changed, rebaseline without notifying the backlog. A dead refresh token is not recoverable automatically and must route to `signInRequired`.
 
 ## Burst And Checkpoint Contract
 

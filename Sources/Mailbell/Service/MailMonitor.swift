@@ -216,7 +216,7 @@ nonisolated final class MailMonitor: AccountMonitoring, @unchecked Sendable {
             case .refreshFailed, .noRefreshToken:
                 // The refresh token is gone; only the user can fix this.
                 Log.monitor.error("Token revoked: \(Log.detail(oauthError), privacy: .private)")
-                notifyStatus(.reauthRequired, error: oauthError.localizedDescription)
+                notifyStatus(.signInRequired, error: oauthError.localizedDescription)
                 releaseClient()
                 return .stop
             default:
@@ -227,7 +227,7 @@ nonisolated final class MailMonitor: AccountMonitoring, @unchecked Sendable {
 
         if case .authFailed = error as? IMAPClient.IMAPError {
             Log.monitor.error("IMAP authentication rejected: \(Log.detail(error), privacy: .private)")
-            notifyStatus(.reauthRequired, error: error.localizedDescription)
+            notifyStatus(.signInRequired, error: error.localizedDescription)
             releaseClient()
             return .stop
         }

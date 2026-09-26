@@ -25,7 +25,7 @@ public enum AccountRecoveryAction: Equatable, Sendable {
         switch state.status {
         case .signedOut, .error:
             return .reconnect
-        case .reauthRequired:
+        case .signInRequired:
             return .signInAgain
         case .connecting, .connected, .reconnecting:
             return nil

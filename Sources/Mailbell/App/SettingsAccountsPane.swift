@@ -197,7 +197,7 @@ extension SettingsView {
                 SettingsProgressValue(title, context: context)
             case .signedOut:
                 SettingsStatusValue(title, tone: .inactive, context: context)
-            case .reauthRequired, .error:
+            case .signInRequired, .error:
                 SettingsStatusValue(title, tone: .error, context: context)
             }
         }

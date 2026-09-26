@@ -94,7 +94,7 @@ extension AccountSupervisor {
             monitor.forceReconnect()
             monitor.start()
         } else {
-            statuses[accountID] = .reauthRequired
+            statuses[accountID] = .signInRequired
         }
         publish()
     }

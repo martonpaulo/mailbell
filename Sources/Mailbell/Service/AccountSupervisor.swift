@@ -132,8 +132,8 @@ final class AccountSupervisor {
         let enabledStates = accountStates.filter(\.account.isEnabled)
         guard !enabledStates.isEmpty else { return .signedOut }
 
-        if enabledStates.contains(where: { $0.status == .reauthRequired }) {
-            return .reauthRequired
+        if enabledStates.contains(where: { $0.status == .signInRequired }) {
+            return .signInRequired
         }
         if enabledStates.contains(where: { $0.status == .error }) {
             return .error

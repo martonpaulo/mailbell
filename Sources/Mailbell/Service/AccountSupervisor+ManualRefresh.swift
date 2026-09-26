@@ -32,7 +32,7 @@ extension AccountSupervisor {
         var setupFailed = false
 
         for account in enabledAccounts {
-            if statuses[account.id] == .reauthRequired {
+            if statuses[account.id] == .signInRequired {
                 needsSignIn = true
                 continue
             }
@@ -48,7 +48,7 @@ extension AccountSupervisor {
             }
 
             guard hasSession else {
-                statuses[account.id] = .reauthRequired
+                statuses[account.id] = .signInRequired
                 needsSignIn = true
                 continue
             }

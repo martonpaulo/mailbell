@@ -55,8 +55,8 @@ final class AccountPresentationTests: XCTestCase {
         )
     }
 
-    func testOnlyReauthRequiredCountsAsNeedingSignIn() {
-        XCTAssertTrue(MonitorStatus.reauthRequired.needsSignIn)
+    func testOnlySignInRequiredCountsAsNeedingSignIn() {
+        XCTAssertTrue(MonitorStatus.signInRequired.needsSignIn)
         XCTAssertFalse(MonitorStatus.error.needsSignIn)
         XCTAssertTrue(MonitorStatus.error.needsAttention, "still attention, just not sign-in")
         XCTAssertFalse(MonitorStatus.connected.needsSignIn)
@@ -66,7 +66,7 @@ final class AccountPresentationTests: XCTestCase {
     func testRecoveryActionMapping() {
         XCTAssertNil(AccountRecoveryAction.needed(for: state(status: .connected)))
         XCTAssertNil(AccountRecoveryAction.needed(for: state(status: .reconnecting)))
-        XCTAssertEqual(AccountRecoveryAction.needed(for: state(status: .reauthRequired)), .signInAgain)
+        XCTAssertEqual(AccountRecoveryAction.needed(for: state(status: .signInRequired)), .signInAgain)
         XCTAssertEqual(AccountRecoveryAction.needed(for: state(status: .error)), .reconnect)
         XCTAssertEqual(AccountRecoveryAction.needed(for: state(status: .signedOut)), .reconnect)
         XCTAssertEqual(AccountRecoveryAction.needed(for: state(status: .signedOut, isEnabled: false)), .enable)
@@ -88,7 +88,7 @@ final class AccountPresentationTests: XCTestCase {
 
     func testAccountStatusPresentation() {
         XCTAssertEqual(AccountPresentation.statusText(for: state(status: .connected)), "Connected")
-        XCTAssertEqual(AccountPresentation.statusText(for: state(status: .reauthRequired)), "Sign in needed")
+        XCTAssertEqual(AccountPresentation.statusText(for: state(status: .signInRequired)), "Sign in needed")
     }
 
     func testAccountMenuTitleCombinesStatusAndEmail() {
@@ -112,7 +112,7 @@ final class AccountPresentationTests: XCTestCase {
             "arrow.clockwise.circle"
         )
         XCTAssertEqual(
-            AccountPresentation.menuIconSystemName(for: state(status: .reauthRequired)),
+            AccountPresentation.menuIconSystemName(for: state(status: .signInRequired)),
             "exclamationmark.triangle.fill"
         )
         XCTAssertEqual(

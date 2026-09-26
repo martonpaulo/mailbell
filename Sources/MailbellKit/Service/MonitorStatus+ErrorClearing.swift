@@ -3,7 +3,7 @@ extension MonitorStatus {
         switch self {
         case .signedOut, .connected:
             true
-        case .connecting, .reconnecting, .reauthRequired, .error:
+        case .connecting, .reconnecting, .signInRequired, .error:
             false
         }
     }

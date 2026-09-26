@@ -31,7 +31,7 @@ final class MenuBarIconTests: XCTestCase {
     }
 
     func testOnlyUnrecoverableStatusesNeedAttention() {
-        XCTAssertTrue(MonitorStatus.reauthRequired.needsAttention)
+        XCTAssertTrue(MonitorStatus.signInRequired.needsAttention)
         XCTAssertTrue(MonitorStatus.error.needsAttention)
         XCTAssertFalse(MonitorStatus.connected.needsAttention)
         XCTAssertFalse(MonitorStatus.connecting.needsAttention)
