@@ -4,17 +4,15 @@ import Foundation
 /// it. macOS owns the permission; this only reads it back and reports it.
 @MainActor
 extension AppState {
-    func refreshNotificationAuthorizationState(showStatusMessage: Bool = false) {
+    /// Runs when Settings appears and whenever Mailbell becomes active, so a
+    /// change made in System Settings shows up without a refresh button.
+    func refreshNotificationAuthorizationState() {
         notificationAuthorizationTask?.cancel()
         let notificationManager = notificationManager
         notificationAuthorizationTask = Task { [weak self] in
             let state = await notificationManager.authorizationState()
             guard !Task.isCancelled else { return }
             self?.applyNotificationAuthorizationState(state)
-            if showStatusMessage {
-                self?.notificationTestMessage = nil
-                self?.notificationStatusMessage = String(localized: "Notification permission refreshed.")
-            }
         }
     }
 
@@ -26,7 +24,6 @@ extension AppState {
             guard !Task.isCancelled else { return }
             self?.applyNotificationAuthorizationState(state)
             self?.notificationTestMessage = nil
-            self?.notificationStatusMessage = nil
         }
     }
 
@@ -40,16 +37,11 @@ extension AppState {
         Task {
             isSendingTestNotification = true
             notificationTestMessage = nil
-            notificationStatusMessage = nil
             defer { isSendingTestNotification = false }
             let result = await notificationManager.notifyTest(account: accounts.first?.account)
             let state = await notificationManager.authorizationState()
             applyNotificationAuthorizationState(state)
-            if let message = result.userMessage {
-                notificationTestMessage = message
-            } else {
-                notificationTestMessage = String(localized: "Test notification sent.")
-            }
+            notificationTestMessage = result.userMessage ?? SettingsCopy.Notifications.testSent
         }
     }
 }

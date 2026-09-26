@@ -1,27 +1,29 @@
 import AppKit
+import MailbellKit
 import SwiftUI
 
-/// How Mailbell presents itself: menu bar, startup, and updates. Restore
-/// Defaults is pane-scoped, so it sits below every box.
+/// How Mailbell presents itself and whether its alerts get through, laid out
+/// like WindowHop's General pane: the app card with its live status and Launch
+/// at login, the menu bar, notifications, permissions last, and a footer box
+/// with Restore Defaults… and Quit Mailbell….
 extension SettingsView {
-    var pendingCountSection: some View {
-        Section {
-            SettingsToggleRow(
-                title: SettingsCopy.MenuBar.showCountTitle,
-                description: SettingsCopy.MenuBar.showCountDescription,
-                isOn: Binding(
-                    get: { appState.showsMenuBarCount },
-                    set: { appState.setShowsMenuBarCount($0) }
-                )
-            )
-        } header: {
-            Text(SettingsCopy.MenuBar.sectionTitle)
-        }
-    }
-
-    var startupSection: some View {
+    var appCardSection: some View {
         let launchAtLogin = appState.launchAtLogin
         return Section {
+            HStack(spacing: Token.Space.md) {
+                AppIconImage(size: Token.Size.appCardIcon)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: Token.Space.xxs) {
+                    Text(SettingsCopy.AppCard.name)
+                        .font(.headline)
+                    Text(generalStatusText)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
+                Spacer(minLength: 0)
+            }
+            .accessibilityElement(children: .combine)
+
             // The binding, not onChange: the toggle shows the status macOS
             // reports, and only a click requests a change. A refreshed status
             // never flows back into a change handler.
@@ -47,55 +49,170 @@ extension SettingsView {
                     }
                 }
             }
-        } header: {
-            Text(SettingsCopy.Startup.sectionTitle)
         }
     }
 
-    var updatesSection: some View {
+    var menuBarSection: some View {
         Section {
             SettingsToggleRow(
-                title: SettingsCopy.Updates.automaticTitle,
-                description: SettingsCopy.Updates.description(isUpdaterAvailable: appState.isUpdaterAvailable),
+                title: SettingsCopy.MenuBar.showCountTitle,
+                description: SettingsCopy.MenuBar.showCountDescription,
                 isOn: Binding(
-                    get: { appState.automaticallyChecksForUpdates },
-                    set: { appState.setAutomaticallyChecksForUpdates($0) }
+                    get: { appState.showsMenuBarCount },
+                    set: { appState.setShowsMenuBarCount($0) }
                 )
             )
-            .disabled(!appState.isUpdaterAvailable)
+        } header: {
+            Text(SettingsCopy.MenuBar.sectionTitle)
+        }
+    }
 
-            SettingsRow(title: SettingsCopy.Updates.installedVersionTitle) {
-                Text(appVersionText)
-                    .textSelection(.enabled)
-            }
+    var notificationsSection: some View {
+        Section {
+            SettingsToggleRow(
+                title: SettingsCopy.Notifications.playSoundsTitle,
+                description: SettingsCopy.Notifications.playSoundsDescription,
+                isOn: Binding(
+                    get: { appState.playNotificationSounds },
+                    set: { appState.setPlayNotificationSounds($0) }
+                )
+            )
 
-            SettingsActionRow {
-                Button(SettingsCopy.Updates.checkNow) {
-                    appState.checkForUpdates()
+            // Row-scoped: the test belongs to this row, so its button sits in it.
+            SettingsRow(
+                title: SettingsCopy.Notifications.testTitle,
+                description: SettingsCopy.Notifications.testRowDescription(result: appState.notificationTestMessage)
+            ) {
+                SettingsActionRow {
+                    if appState.isSendingTestNotification {
+                        ProgressView()
+                            .controlSize(.small)
+                            .accessibilityLabel(SettingsCopy.Notifications.sendingTestAccessibilityLabel)
+                    }
+                    Button(SettingsCopy.Notifications.sendTest) {
+                        appState.sendTestNotification()
+                    }
+                    .disabled(appState.isSendingTestNotification)
                 }
-                .disabled(!appState.isUpdaterAvailable)
             }
         } header: {
-            Text(SettingsCopy.Updates.sectionTitle)
-        } footer: {
-            // Pane-scoped: below every box, the way "Advanced…" sits at the
-            // bottom of Privacy & Security.
-            settingsFooter(SettingsCopy.RestoreDefaults.footer) {
-                Button(SettingsCopy.RestoreDefaults.action, role: .destructive) {
+            Text(SettingsCopy.Notifications.sectionTitle)
+        }
+    }
+
+    /// Last, as WindowHop places Accessibility: whether macOS lets the alerts
+    /// through. When it does not, the fix takes the place of the check mark.
+    var permissionsSection: some View {
+        let state = appState.notificationAuthorizationState
+        return Section {
+            SettingsRow(
+                title: SettingsCopy.Permissions.notificationsTitle,
+                description: SettingsCopy.Permissions.notificationsRowDescription(for: state)
+            ) {
+                notificationPermissionControl(for: state)
+            }
+
+            if state.alertsOff {
+                SettingsRow(
+                    title: SettingsCopy.Permissions.alertsTitle,
+                    description: SettingsCopy.Permissions.alertsOffDescription
+                ) {
+                    SettingsStatusValue(
+                        SettingsCopy.Permissions.off,
+                        tone: .warning,
+                        context: SettingsCopy.Permissions.alertsTitle
+                    )
+                }
+            }
+
+            if state.soundOff {
+                SettingsRow(
+                    title: SettingsCopy.Permissions.soundTitle,
+                    description: SettingsCopy.Permissions.soundOffDescription
+                ) {
+                    SettingsStatusValue(
+                        SettingsCopy.Permissions.off,
+                        tone: .inactive,
+                        context: SettingsCopy.Permissions.soundTitle
+                    )
+                }
+            }
+
+            if state.alertsOff || state.soundOff {
+                SettingsActionRow {
+                    Button(SettingsCopy.Permissions.openSystemSettings) {
+                        SystemSettings.open()
+                    }
+                }
+            }
+        } header: {
+            Text(SettingsCopy.Permissions.sectionTitle)
+        }
+    }
+
+    @ViewBuilder
+    func notificationPermissionControl(for state: NotificationAuthorizationState) -> some View {
+        let value = SettingsCopy.Permissions.notificationsValue(for: state)
+        let context = SettingsCopy.Permissions.notificationsTitle
+        if state.canRequestPermission {
+            Button(SettingsCopy.Permissions.allow) {
+                appState.requestNotificationAuthorization()
+            }
+        } else if state.isDenied {
+            Button(SettingsCopy.Permissions.openSystemSettings) {
+                SystemSettings.open()
+            }
+        } else if state.isBundled {
+            SettingsStatusValue(value, tone: .success, context: context)
+        } else {
+            SettingsStatusValue(value, tone: .inactive, context: context)
+        }
+    }
+
+    /// A box of its own at the bottom, as in WindowHop: Restore Defaults…
+    /// leading and Quit Mailbell… trailing. Neither loses data, so neither is
+    /// styled as destructive; both confirm first and say what changes.
+    var generalFooterSection: some View {
+        Section {
+            SettingsActionRow {
+                Button(SettingsCopy.RestoreDefaults.action) {
                     showsRestoreDefaultsConfirmation = true
                 }
                 .confirmationDialog(
                     SettingsCopy.RestoreDefaults.confirmTitle,
                     isPresented: $showsRestoreDefaultsConfirmation
                 ) {
-                    Button(SettingsCopy.RestoreDefaults.confirmAction, role: .destructive) {
+                    Button(SettingsCopy.RestoreDefaults.confirmAction) {
                         appState.restoreDefaults()
                     }
                     Button(SettingsCopy.RestoreDefaults.cancel, role: .cancel) {}
                 } message: {
                     Text(SettingsCopy.RestoreDefaults.confirmMessage)
                 }
+            } trailing: {
+                Button(SettingsCopy.Quit.action) {
+                    showsQuitConfirmation = true
+                }
+                .confirmationDialog(
+                    SettingsCopy.Quit.confirmTitle,
+                    isPresented: $showsQuitConfirmation
+                ) {
+                    Button(SettingsCopy.Quit.confirmAction) {
+                        appState.quit()
+                    }
+                    Button(SettingsCopy.Quit.cancel, role: .cancel) {}
+                } message: {
+                    Text(SettingsCopy.Quit.confirmMessage)
+                }
             }
         }
+    }
+
+    var generalStatusText: String {
+        GeneralStatus.text(
+            accounts: appState.accounts,
+            conversationsToReview: appState.shownItems.count,
+            notificationsDenied: appState.notificationAuthorizationState.isDenied
+        )
     }
 }

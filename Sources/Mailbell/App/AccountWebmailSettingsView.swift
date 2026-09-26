@@ -13,25 +13,31 @@ struct AccountWebmailSettingsView: View {
 
     var body: some View {
         Group {
-            // The section header already names the account, so this row says
-            // what the control does instead of repeating the address.
-            Picker("Open with", selection: $selectedBrowserID) {
+            // The sheet's title names the account, so the visible label says
+            // what the control does; the accessible name adds the address.
+            Picker(SettingsCopy.AccountDetails.openGmailWith, selection: $selectedBrowserID) {
                 ForEach(browserOptions) { browser in
                     Text(browserLabel(for: browser)).tag(browser.id)
                 }
             }
             .pickerStyle(.menu)
+            .accessibilityLabel(
+                SettingsCopy.AccountDetails.openGmailWithAccessibilityLabel(email: accountState.account.email)
+            )
             .onChange(of: selectedBrowserID) {
                 userChangedPreference()
             }
 
             if selectedBrowserSupportsChromeProfiles {
-                Picker("Chrome profile", selection: $selectedChromeProfileDirectory) {
+                Picker(SettingsCopy.AccountDetails.chromeProfile, selection: $selectedChromeProfileDirectory) {
                     ForEach(chromeProfileOptions) { option in
                         Text(option.label).tag(option.directory)
                     }
                 }
                 .pickerStyle(.menu)
+                .accessibilityLabel(
+                    SettingsCopy.AccountDetails.chromeProfileAccessibilityLabel(email: accountState.account.email)
+                )
                 .onChange(of: selectedChromeProfileDirectory) {
                     userChangedPreference()
                 }
@@ -103,10 +109,10 @@ struct AccountWebmailSettingsView: View {
         if let browserID = missingSelectedBrowserID,
             let browser = browserOptions.first(where: { $0.id == browserID })
         {
-            return String(localized: "Selected browser is unavailable: \(browser.displayName).")
+            return SettingsCopy.AccountDetails.unavailableBrowser(browser.displayName)
         }
         if selectedBrowserSupportsChromeProfiles, let missingChromeProfileDirectory {
-            return String(localized: "Selected Chrome profile is unavailable: \(missingChromeProfileDirectory).")
+            return SettingsCopy.AccountDetails.unavailableChromeProfile(missingChromeProfileDirectory)
         }
         return nil
     }
@@ -163,7 +169,7 @@ struct AccountWebmailSettingsView: View {
         profiles: [ChromeProfileCandidate]
     ) -> [ChromeProfilePickerOption] {
         var options = [
-            ChromeProfilePickerOption(directory: "", label: String(localized: "Default (no explicit profile)"))
+            ChromeProfilePickerOption(directory: "", label: SettingsCopy.AccountDetails.lastChromeProfile)
         ]
         options += profiles.map { profile in
             ChromeProfilePickerOption(directory: profile.directory, label: profile.pickerLabel)

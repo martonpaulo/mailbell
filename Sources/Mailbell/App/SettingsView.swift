@@ -1,15 +1,16 @@
 import AppKit
 import MailbellKit
 import SwiftUI
-import UserNotifications
 
-/// Four panes, each owning one coherent question:
-/// how Mailbell presents itself, whether alerts get through, which mailboxes it
-/// watches, and what it is. Nothing that belongs to one account is split across
-/// two panes.
-enum SettingsTab: CaseIterable, Identifiable {
+/// Three panes, each owning one coherent question (docs/interface.md,
+/// "Settings"): how Mailbell presents itself and whether alerts get through,
+/// which mailboxes it watches, and what it is. Nothing that belongs to one
+/// account is split across two panes.
+///
+/// The raw values are stable identifiers: a stored pane is restored by name,
+/// never by position, so reordering or merging panes cannot reopen the wrong one.
+enum SettingsTab: String, CaseIterable, Identifiable {
     case general
-    case notifications
     case accounts
     case about
 
@@ -21,8 +22,6 @@ enum SettingsTab: CaseIterable, Identifiable {
         switch self {
         case .general:
             String(localized: "General")
-        case .notifications:
-            String(localized: "Notifications")
         case .accounts:
             String(localized: "Accounts")
         case .about:
@@ -34,8 +33,6 @@ enum SettingsTab: CaseIterable, Identifiable {
         switch self {
         case .general:
             "gearshape"
-        case .notifications:
-            "bell"
         case .accounts:
             "person.crop.circle"
         case .about:
@@ -49,19 +46,15 @@ struct SettingsView: View {
     @State var webmailBrowsers: [BrowserCandidate] = []
     @State var chromeProfiles: [ChromeProfileCandidate] = []
     @State var didLoadWebmailOptions = false
-    @State var accountPendingRemoval: MailAccount?
+    @State var accountShowingDetails: AccountDetailsTarget?
     @State var showsRestoreDefaultsConfirmation = false
+    @State var showsQuitConfirmation = false
 
     var body: some View {
         TabView {
             generalTab
                 .tabItem {
                     Label(SettingsTab.general.title, systemImage: SettingsTab.general.systemImage)
-                }
-
-            notificationsTab
-                .tabItem {
-                    Label(SettingsTab.notifications.title, systemImage: SettingsTab.notifications.systemImage)
                 }
 
             accountsTab
@@ -77,51 +70,35 @@ struct SettingsView: View {
         .onAppear {
             refreshBehaviorState()
         }
-        .confirmationDialog(
-            accountRemovalTitle,
-            isPresented: accountRemovalBinding,
-            titleVisibility: .visible
-        ) {
-            Button(SettingsCopy.Accounts.confirmRemoveAction, role: .destructive) {
-                if let account = accountPendingRemoval {
-                    appState.removeAccount(accountID: account.id)
-                    accountPendingRemoval = nil
-                }
-            }
-            Button(SettingsCopy.Accounts.cancel, role: .cancel) {
-                accountPendingRemoval = nil
-            }
-        } message: {
-            Text(SettingsCopy.Accounts.removeMessage)
-        }
     }
 
     var generalTab: some View {
         Form {
-            pendingCountSection
-            startupSection
-            updatesSection
-        }
-        .formStyle(.grouped)
-    }
-
-    var notificationsTab: some View {
-        Form {
-            notificationSoundSection
-            notificationStatusSection
+            appCardSection
+            menuBarSection
+            notificationsSection
+            permissionsSection
+            generalFooterSection
         }
         .formStyle(.grouped)
     }
 
     /// Everything about an account lives here, including where its mail opens,
-    /// so a user never has to remember which pane holds which half.
+    /// so a person never has to remember which pane holds which half.
     var accountsTab: some View {
         Form {
-            accountOverviewSection
+            accountsSection
             watchedMailboxesSection
-            accountSections
         }
         .formStyle(.grouped)
+        .sheet(item: accountDetailsBinding) { state in
+            AccountDetailsSheet(
+                appState: appState,
+                accountID: state.id,
+                browsers: webmailBrowsers,
+                chromeProfiles: chromeProfiles
+            )
+        }
         .task {
             await loadWebmailOptionsIfNeeded()
         }
@@ -130,6 +107,7 @@ struct SettingsView: View {
     var aboutTab: some View {
         Form {
             aboutAppSection
+            updatesSection
             aboutLinksSection
             aboutLegalSection
         }
@@ -143,28 +121,8 @@ struct SettingsView: View {
             .textSelection(.enabled)
     }
 
-    /// Explanatory text plus the section's own actions, rendered below the group
-    /// box the way System Settings places a section-scoped button.
-    func settingsFooter(
-        _ text: String?,
-        @ViewBuilder actions: () -> some View
-    ) -> some View {
-        VStack(alignment: .leading, spacing: Token.Space.sm) {
-            if let text, !text.isEmpty {
-                settingsFooter(text)
-            }
-            SettingsActionRow {
-                actions()
-            }
-        }
-    }
-
     func refreshBehaviorState() {
         appState.refreshNotificationAuthorizationState()
         appState.launchAtLogin.refresh()
-    }
-
-    func shownConversationCount(accountID: UUID) -> Int {
-        appState.shownConversationCount(accountID: accountID)
     }
 }

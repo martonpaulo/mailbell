@@ -12,9 +12,21 @@ All notable changes to Mailbell are documented here. This project follows
   Your settings, watched accounts, and the mail you already handled carry
   over. macOS treats the new identifier as a new app, so after you update:
   - **each Gmail account must sign in again once** (Settings › Accounts ›
-    Sign in Again);
+    Details… › Sign In Again…);
   - **notification permission must be granted again**;
   - **"Open Mailbell at login" must be turned on again** if you used it.
+- **Settings is three panes: General, Accounts and About.**
+  - General opens with Mailbell's status ("Watching 2 accounts. 12
+    conversations to review.", or the problem to fix), then the menu bar
+    count, notification sounds and a test notification, and the notification
+    permission last. Restore Defaults… and Quit Mailbell… sit at the bottom.
+  - Accounts lists each account once, with its status. Details… opens
+    everything about that account; Sign In Again… or Reconnect appears only
+    when the account needs it.
+  - Updates moved to About. The Alerts and Sound rows appear only when macOS
+    has them off, and Mailbell no longer asks for a Dock badge it never showed.
+  - The sign-in note names the exact link on Google's warning screen:
+    "Go to Mailbell (unsafe)".
 
 ## [0.3.1] - 2026-09-09
 

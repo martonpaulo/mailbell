@@ -3,7 +3,7 @@ import MailbellKit
 import SwiftUI
 import UserNotifications
 
-/// Identity, version, project links, and legal notices.
+/// Identity, version, updates, project links, and legal notices.
 extension SettingsView {
     var aboutAppSection: some View {
         Section {
@@ -64,14 +64,36 @@ extension SettingsView {
         Section {
             Link(SettingsCopy.About.privacyPolicy, destination: ProjectLinks.privacyPolicy)
             Link(SettingsCopy.About.termsOfService, destination: ProjectLinks.termsOfService)
-            Link(SettingsCopy.About.manageGoogleAccess, destination: ProjectLinks.googleAccountPermissions)
             SettingsRow(title: SettingsCopy.About.licenseTitle) {
                 Text(SettingsCopy.About.licenseValue)
             }
         } header: {
             Text(SettingsCopy.About.legalSectionTitle)
-        } footer: {
-            settingsFooter(SettingsCopy.About.legalFooter)
+        }
+    }
+
+    /// Updates live in About (Decided on #54); #73 gives this section its
+    /// final shape.
+    var updatesSection: some View {
+        Section {
+            SettingsToggleRow(
+                title: SettingsCopy.Updates.automaticTitle,
+                description: SettingsCopy.Updates.description(isUpdaterAvailable: appState.isUpdaterAvailable),
+                isOn: Binding(
+                    get: { appState.automaticallyChecksForUpdates },
+                    set: { appState.setAutomaticallyChecksForUpdates($0) }
+                )
+            )
+            .disabled(!appState.isUpdaterAvailable)
+
+            SettingsActionRow {
+                Button(SettingsCopy.Updates.checkNow) {
+                    appState.checkForUpdates()
+                }
+                .disabled(!appState.isUpdaterAvailable)
+            }
+        } header: {
+            Text(SettingsCopy.Updates.sectionTitle)
         }
     }
 

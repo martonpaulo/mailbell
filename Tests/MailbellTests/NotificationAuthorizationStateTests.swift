@@ -17,8 +17,7 @@ final class NotificationAuthorizationStateTests: XCTestCase {
             isBundled: true,
             status: .denied,
             alertSetting: .enabled,
-            soundSetting: .enabled,
-            badgeSetting: .enabled
+            soundSetting: .enabled
         )
 
         XCTAssertFalse(state.canPostAlert)
@@ -32,8 +31,7 @@ final class NotificationAuthorizationStateTests: XCTestCase {
             isBundled: true,
             status: .notDetermined,
             alertSetting: .notSupported,
-            soundSetting: .notSupported,
-            badgeSetting: .notSupported
+            soundSetting: .notSupported
         )
 
         XCTAssertFalse(state.canPostAlert)
@@ -47,8 +45,7 @@ final class NotificationAuthorizationStateTests: XCTestCase {
             isBundled: true,
             status: .authorized,
             alertSetting: .disabled,
-            soundSetting: .enabled,
-            badgeSetting: .enabled
+            soundSetting: .enabled
         )
 
         XCTAssertFalse(state.canPostAlert)
@@ -61,8 +58,7 @@ final class NotificationAuthorizationStateTests: XCTestCase {
             isBundled: true,
             status: .authorized,
             alertSetting: .enabled,
-            soundSetting: .disabled,
-            badgeSetting: .enabled
+            soundSetting: .disabled
         )
 
         XCTAssertTrue(state.canPostAlert)

@@ -72,15 +72,31 @@ struct SettingsStatusValue: View {
 ///   Privacy…`. Build these in the last section's `footer`.
 ///
 /// Buttons are always sized to their content, never leading-aligned across the
-/// full row width.
-struct SettingsActionRow<Content: View>: View {
-    @ViewBuilder let content: Content
+/// full row width. The one exception is a two-sided bar, such as General's
+/// footer box (Restore Defaults… and Quit Mailbell…) or a sheet's bottom bar
+/// (Remove Account… and Done): `init(leading:trailing:)` puts the first group
+/// at the leading edge and the second at the trailing edge.
+struct SettingsActionRow<Leading: View, Content: View>: View {
+    let leading: Leading
+    let content: Content
+
+    init(@ViewBuilder leading: () -> Leading, @ViewBuilder trailing: () -> Content) {
+        self.leading = leading()
+        content = trailing()
+    }
 
     var body: some View {
         HStack(spacing: Token.Space.sm) {
+            leading
             Spacer(minLength: 0)
             content
         }
+    }
+}
+
+extension SettingsActionRow where Leading == EmptyView {
+    init(@ViewBuilder content: () -> Content) {
+        self.init(leading: { EmptyView() }, trailing: content)
     }
 }
 

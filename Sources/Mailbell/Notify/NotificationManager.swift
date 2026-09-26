@@ -21,14 +21,12 @@ struct NotificationAuthorizationState: Equatable {
     let status: UNAuthorizationStatus
     let alertSetting: UNNotificationSetting
     let soundSetting: UNNotificationSetting
-    let badgeSetting: UNNotificationSetting
 
     static let unbundled = NotificationAuthorizationState(
         isBundled: false,
         status: .notDetermined,
         alertSetting: .notSupported,
-        soundSetting: .notSupported,
-        badgeSetting: .notSupported
+        soundSetting: .notSupported
     )
 
     var canPostAlert: Bool {
@@ -61,6 +59,25 @@ struct NotificationAuthorizationState: Equatable {
 
     var canRequestPermission: Bool {
         isBundled && status == .notDetermined
+    }
+
+    /// The person turned Mailbell's notifications off in System Settings.
+    var isDenied: Bool {
+        isBundled && status == .denied
+    }
+
+    /// Permission is granted, but macOS shows no banner or alert.
+    var alertsOff: Bool {
+        isGranted && alertSetting == .disabled
+    }
+
+    /// Permission is granted, but macOS plays no sound.
+    var soundOff: Bool {
+        isGranted && soundSetting == .disabled
+    }
+
+    private var isGranted: Bool {
+        isBundled && (status == .authorized || status == .provisional)
     }
 
     var shouldOpenSystemSettings: Bool {
@@ -167,8 +184,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, Mai
             isBundled: true,
             status: settings.authorizationStatus,
             alertSetting: settings.alertSetting,
-            soundSetting: settings.soundSetting,
-            badgeSetting: settings.badgeSetting
+            soundSetting: settings.soundSetting
         )
     }
 
@@ -179,7 +195,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, Mai
             return .unbundled
         }
         do {
-            let granted = try await notificationCenter.requestAuthorization(options: [.alert, .sound, .badge])
+            let granted = try await notificationCenter.requestAuthorization(options: [.alert, .sound])
             Log.notify.info("Notification authorization granted: \(granted, privacy: .public)")
         } catch {
             Log.notify.error("Notification authorization error: \(Log.detail(error), privacy: .private)")

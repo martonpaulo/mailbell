@@ -2,24 +2,33 @@ import AppKit
 import MailbellKit
 import SwiftUI
 
-/// Everything about connected Gmail accounts: which mailboxes are watched,
-/// each account's status and recovery actions, where its mail opens, and
-/// removal. An account is never described half here and half somewhere else.
+/// The Accounts pane, laid out like the account lists in macOS System
+/// Settings: one grouped row per account with a status and Details…, then
+/// Add Gmail Account… as the section's last row, and the unverified-app note
+/// as the section footer. Everything about one account lives in its Details…
+/// sheet (`AccountDetailsSheet`).
 extension SettingsView {
-    var accountOverviewSection: some View {
+    var accountsSection: some View {
         Section {
             // A build with no OAuth client cannot sign in at all, so the
-            // explanation belongs here, where the user is blocked, not in a
-            // diagnostics pane they would have to go looking for.
+            // explanation belongs here, where the person is blocked.
             if let setupMessage = appState.buildProblemDetails {
                 BuildProblemPanel(details: setupMessage)
             }
 
-            SettingsRow(
-                title: SettingsCopy.Accounts.connectedTitle,
-                description: signInGuidanceText
-            ) {
-                connectedAccountsValue
+            if appState.hasAccounts {
+                ForEach(appState.accounts) { state in
+                    accountRow(for: state)
+                }
+            } else {
+                Text(AccountPresentation.overview(appState.accounts))
+                    .foregroundStyle(.secondary)
+            }
+
+            if let error = appState.lastError {
+                SettingsRow(title: SettingsCopy.Accounts.signInFailedTitle, description: error) {
+                    EmptyView()
+                }
             }
 
             SettingsActionRow {
@@ -27,13 +36,9 @@ extension SettingsView {
                     ProgressView()
                         .controlSize(.small)
                         .accessibilityLabel(SettingsCopy.Accounts.waitingForSignInAccessibilityLabel)
+                    Text(SettingsCopy.Accounts.waitingForSignIn)
+                        .foregroundStyle(.secondary)
                 }
-
-                Button(SettingsCopy.Accounts.checkForNewMail) {
-                    appState.refreshMailNow()
-                }
-                .disabled(!appState.canRequestManualRefresh)
-
                 Button(SettingsCopy.Accounts.addAccount) {
                     appState.addGoogleAccount()
                 }
@@ -42,22 +47,14 @@ extension SettingsView {
         } header: {
             Text(SettingsCopy.Accounts.sectionTitle)
         } footer: {
-            settingsFooter(accountOverviewFooterText)
+            settingsFooter(SettingsCopy.Accounts.unverifiedNote)
         }
     }
 
-    /// Applies to every account, so it sits above the per-account sections
-    /// rather than hiding behind an "Advanced" pane.
+    /// One Spam preference for every account, so it sits in the pane rather
+    /// than in one account's sheet, where it would read as per-account.
     var watchedMailboxesSection: some View {
         Section {
-            SettingsRow(title: SettingsCopy.WatchedMailboxes.inboxTitle) {
-                SettingsStatusValue(
-                    SettingsCopy.WatchedMailboxes.inboxValue,
-                    tone: .success,
-                    context: SettingsCopy.WatchedMailboxes.inboxTitle
-                )
-            }
-
             SettingsToggleRow(
                 title: SettingsCopy.WatchedMailboxes.spamTitle,
                 description: SettingsCopy.WatchedMailboxes.spamDescription,
@@ -71,155 +68,36 @@ extension SettingsView {
         }
     }
 
-    var accountSections: some View {
-        ForEach(appState.accounts) { state in
-            accountSection(for: state)
-        }
-    }
-
-    func accountSection(for state: AccountRuntimeState) -> some View {
-        Section {
-            // The label states what being on means, so it never reads inverted
-            // the way an action label would.
-            SettingsToggleRow(
-                title: SettingsCopy.Accounts.watchAccountTitle,
-                description: accountDetailText(for: state),
-                isOn: Binding(
-                    get: { state.account.isEnabled },
-                    set: { appState.setAccountEnabled($0, accountID: state.account.id) }
-                )
+    func accountRow(for state: AccountRuntimeState) -> some View {
+        let email = state.account.email
+        return HStack(spacing: Token.Space.md) {
+            AccountIconTile()
+            Text(email)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer(minLength: Token.Space.sm)
+            AccountStatusLabel(
+                text: AccountPresentation.statusText(for: state, includeSpam: appState.includeSpam),
+                level: AccountPresentation.statusLevel(for: state)
             )
-
-            SettingsRow(title: SettingsCopy.Accounts.statusTitle, description: state.lastError) {
-                accountStatusValue(for: state)
+            Button(SettingsCopy.Accounts.details) {
+                accountShowingDetails = AccountDetailsTarget(id: state.account.id)
             }
-
-            // Always shown: hiding a status row behind a menu bar display
-            // preference would make Settings lie about what is pending.
-            SettingsRow(title: MenuCopy.menuSectionTitle) {
-                Text(MenuCopy.reviewCountText(shownConversationCount(accountID: state.account.id)))
-            }
-
-            AccountWebmailSettingsView(
-                appState: appState,
-                accountState: state,
-                browsers: webmailBrowsers,
-                chromeProfiles: chromeProfiles
-            )
-
-            // A fallback open still clears the pending item, so the routing
-            // warning has to be visible somewhere the user can act on it.
-            if let error = state.webmailOpenError {
-                SettingsRow(title: SettingsCopy.Accounts.webmailOpenIssueTitle, description: error) {
-                    EmptyView()
-                }
-            }
-
-            accountActionRow(for: state)
-        } header: {
-            Text(state.account.email)
+            .accessibilityLabel(SettingsCopy.Accounts.detailsAccessibilityLabel(email: email))
         }
     }
 
-    var connectedAccountsValue: some View {
-        Group {
-            if appState.hasAccounts {
-                Text(SettingsCopy.Accounts.accountCount(appState.accounts.count))
-            } else {
-                SettingsStatusValue(
-                    SettingsCopy.Accounts.noAccountValue,
-                    tone: .inactive,
-                    context: SettingsCopy.Accounts.connectedTitle
-                )
-            }
-        }
-    }
-
-    var accountRemovalTitle: String {
-        SettingsCopy.Accounts.removeTitle(email: accountPendingRemoval?.email)
-    }
-
-    var accountRemovalBinding: Binding<Bool> {
+    var accountDetailsBinding: Binding<AccountDetailsTarget?> {
         Binding(
-            get: { accountPendingRemoval != nil },
-            set: { isPresented in
-                if !isPresented {
-                    accountPendingRemoval = nil
-                }
-            }
+            get: {
+                // A removed account closes its sheet.
+                guard let target = accountShowingDetails,
+                    appState.accounts.contains(where: { $0.account.id == target.id })
+                else { return nil }
+                return target
+            },
+            set: { accountShowingDetails = $0 }
         )
-    }
-
-    /// One action row per account, ordered the way System Settings orders a
-    /// group: the destructive action first, then recovery, then the everyday one.
-    func accountActionRow(for state: AccountRuntimeState) -> some View {
-        let needsSignIn = AccountRecoveryAction.needed(for: state) == .signInAgain
-        return SettingsActionRow {
-            if needsSignIn, appState.isAuthorizing {
-                ProgressView()
-                    .controlSize(.small)
-                    .accessibilityLabel(SettingsCopy.Accounts.waitingForSignInAccessibilityLabel)
-            }
-
-            Button(SettingsCopy.Accounts.removeAccount, role: .destructive) {
-                accountPendingRemoval = state.account
-            }
-
-            if needsSignIn {
-                Button(SettingsCopy.Accounts.signInAgain) {
-                    appState.reauthenticate(accountID: state.account.id)
-                }
-                .disabled(appState.isAuthorizing)
-            } else {
-                Button(SettingsCopy.Accounts.reconnect) {
-                    appState.reconnect(accountID: state.account.id)
-                }
-                .disabled(!state.account.isEnabled || appState.isAuthorizing)
-            }
-
-            Button(SettingsCopy.Accounts.openGmail) {
-                appState.openGmail(accountID: state.account.id)
-            }
-        }
-    }
-
-    @ViewBuilder
-    func accountStatusValue(for state: AccountRuntimeState) -> some View {
-        let title = AccountPresentation.statusText(for: state)
-        let context = SettingsCopy.Accounts.statusTitle
-        if !state.account.isEnabled {
-            SettingsStatusValue(title, tone: .inactive, context: context)
-        } else {
-            switch state.status {
-            case .connected:
-                SettingsStatusValue(title, tone: .success, context: context)
-            case .connecting, .reconnecting:
-                SettingsProgressValue(title, context: context)
-            case .signedOut:
-                SettingsStatusValue(title, tone: .inactive, context: context)
-            case .signInRequired, .error:
-                SettingsStatusValue(title, tone: .error, context: context)
-            }
-        }
-    }
-
-    var accountOverviewFooterText: String {
-        [appState.manualRefreshMessage, appState.lastError]
-            .compactMap { $0 }
-            .filter { !$0.isEmpty }
-            .joined(separator: "\n")
-    }
-
-    var signInGuidanceText: String {
-        SettingsCopy.Accounts.signInGuidance(
-            isAuthorizing: appState.isAuthorizing,
-            hasAccounts: appState.hasAccounts,
-            canRefresh: appState.canRequestManualRefresh
-        )
-    }
-
-    func accountDetailText(for state: AccountRuntimeState) -> String {
-        AccountPresentation.detailText(for: state, includeSpam: appState.includeSpam)
     }
 
     /// Browser and Chrome-profile discovery touches the filesystem, so it runs
@@ -229,5 +107,64 @@ extension SettingsView {
         didLoadWebmailOptions = true
         webmailBrowsers = BrowserRegistry.browsers()
         chromeProfiles = await ChromeProfileStore.loadProfilesAsync()
+    }
+}
+
+/// Which account's Details… sheet is open.
+struct AccountDetailsTarget: Identifiable, Equatable {
+    let id: UUID
+}
+
+/// The envelope tile at the start of an account row, as System Settings shows
+/// an icon tile before each account.
+private struct AccountIconTile: View {
+    var body: some View {
+        Image(systemName: "envelope.fill")
+            .foregroundStyle(.white)
+            .frame(width: Token.Size.accountIconTile, height: Token.Size.accountIconTile)
+            .background(
+                RoundedRectangle(cornerRadius: Token.Radius.iconTile)
+                    .fill(Color.secondary)
+            )
+            .accessibilityHidden(true)
+    }
+}
+
+/// An account's status: a coloured dot and the words. The words carry the
+/// state, so colour is never the only cue.
+struct AccountStatusLabel: View {
+    let text: String
+    let level: AccountStatusLevel
+
+    var body: some View {
+        HStack(spacing: Token.Space.xs) {
+            if level == .progress {
+                ProgressView()
+                    .controlSize(.mini)
+            } else {
+                Circle()
+                    .fill(level.dotColor)
+                    .frame(width: Token.Size.statusDot, height: Token.Size.statusDot)
+            }
+            Text(text)
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text)
+    }
+}
+
+extension AccountStatusLevel {
+    var dotColor: Color {
+        switch self {
+        case .active:
+            .green
+        case .progress, .inactive:
+            .secondary
+        case .warning:
+            .orange
+        case .error:
+            .red
+        }
     }
 }

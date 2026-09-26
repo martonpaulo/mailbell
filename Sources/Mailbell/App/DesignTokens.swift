@@ -21,8 +21,22 @@ enum Token {
         static let paneWidth: CGFloat = 620
         static let paneHeight: CGFloat = 560
         static let aboutIcon: CGFloat = 56
+        /// The icon on General's app card.
+        static let appCardIcon: CGFloat = 40
+        /// The icon tile at the start of an account row, as System Settings
+        /// draws one before each account.
+        static let accountIconTile: CGFloat = 26
+        /// The status dot beside an account's status text.
+        static let statusDot: CGFloat = 8
+        /// An account's Details… sheet, as wide as the Wi-Fi details sheet.
+        static let accountSheetWidth: CGFloat = 460
         /// Gap between the menu bar glyph and its count.
         static let menuBarCountSpacing: CGFloat = 3
+    }
+
+    enum Radius {
+        /// The account row's icon tile.
+        static let iconTile: CGFloat = 6
     }
 
     enum Font {

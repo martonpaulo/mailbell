@@ -87,15 +87,53 @@ final class AccountPresentationTests: XCTestCase {
         XCTAssertEqual(MenuCopy.menuBarAccessibilityLabel(count: 2, showsCount: false), "Mailbell")
     }
 
-    func testAccountStatusPresentation() {
-        XCTAssertEqual(AccountPresentation.statusText(for: state(status: .connected)), "Connected")
-        XCTAssertEqual(AccountPresentation.statusText(for: state(status: .signInRequired)), "Sign in needed")
+    // MARK: - Account list row (#68)
+
+    func testEachStatusReadsAsOneShortPhrase() {
+        XCTAssertEqual(AccountPresentation.statusText(for: state(status: .connected, isEnabled: false)), "Paused")
+        XCTAssertEqual(AccountPresentation.statusText(for: state(status: .connecting)), "Connecting…")
+        XCTAssertEqual(AccountPresentation.statusText(for: state(status: .connected)), "Watching Inbox")
+        XCTAssertEqual(
+            AccountPresentation.statusText(for: state(status: .connected), includeSpam: true),
+            "Watching Inbox and Spam"
+        )
+        XCTAssertEqual(AccountPresentation.statusText(for: state(status: .reconnecting)), "Reconnecting…")
+        XCTAssertEqual(AccountPresentation.statusText(for: state(status: .signInRequired)), "Sign-in needed")
+        XCTAssertEqual(AccountPresentation.statusText(for: state(status: .error)), "Can't connect")
+        XCTAssertEqual(AccountPresentation.statusText(for: state(status: .signedOut)), "Not connected")
+    }
+
+    func testTheStatusDotFollowsTheStatus() {
+        XCTAssertEqual(AccountPresentation.statusLevel(for: state(status: .connected)), .active)
+        XCTAssertEqual(AccountPresentation.statusLevel(for: state(status: .connecting)), .progress)
+        XCTAssertEqual(AccountPresentation.statusLevel(for: state(status: .reconnecting)), .progress)
+        XCTAssertEqual(AccountPresentation.statusLevel(for: state(status: .signInRequired)), .warning)
+        XCTAssertEqual(AccountPresentation.statusLevel(for: state(status: .error)), .error)
+        XCTAssertEqual(AccountPresentation.statusLevel(for: state(status: .signedOut)), .inactive)
+        // A paused account is a choice, never shown as a problem.
+        XCTAssertEqual(AccountPresentation.statusLevel(for: state(status: .error, isEnabled: false)), .inactive)
+    }
+
+    func testTheOverviewCountsAccountsAndThoseNeedingSignIn() {
+        XCTAssertEqual(AccountPresentation.overview([]), "No Gmail account")
+        XCTAssertEqual(AccountPresentation.overview([state(status: .connected)]), "1 account")
+        XCTAssertEqual(
+            AccountPresentation.overview([state(status: .connected), state(status: .signInRequired)]),
+            "2 accounts (1 needs sign-in)"
+        )
+        XCTAssertEqual(
+            AccountPresentation.overview([
+                state(status: .signInRequired), state(status: .signInRequired),
+                state(status: .signInRequired, isEnabled: false),
+            ]),
+            "3 accounts (2 need sign-in)"
+        )
     }
 
     func testAccountMenuTitleCombinesStatusAndEmail() {
         XCTAssertEqual(
             AccountPresentation.menuTitle(for: state(email: "example@example.com", status: .connected)),
-            "Connected • example@example.com"
+            "Watching Inbox • example@example.com"
         )
     }
 
@@ -119,21 +157,6 @@ final class AccountPresentationTests: XCTestCase {
         XCTAssertEqual(
             AccountPresentation.menuIconSystemName(for: state(status: .signedOut, isEnabled: false)),
             "pause.circle"
-        )
-    }
-
-    func testAccountDetailPresentationOmitsProviderPrefix() {
-        XCTAssertEqual(
-            AccountPresentation.detailText(for: state(status: .connected)),
-            "Monitoring Inbox."
-        )
-        XCTAssertEqual(
-            AccountPresentation.detailText(for: state(status: .connected), includeSpam: true),
-            "Monitoring Inbox and Spam."
-        )
-        XCTAssertEqual(
-            AccountPresentation.detailText(for: state(status: .reconnecting)),
-            "Reconnecting."
         )
     }
 

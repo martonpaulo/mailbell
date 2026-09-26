@@ -166,7 +166,8 @@ grep -qi '100' README.md || note "README must state Google's 100-new-user cap"
 # same two disclosures have to be there and not only in public copy.
 settings_copy=Sources/Mailbell/App/SettingsCopy.swift
 if [ -f "$settings_copy" ]; then
-    grep -qi 'unverified' "$settings_copy" \
+    # The Accounts note says it plainly ("Google hasn't verified Mailbell yet", #68).
+    grep -qiE "unverified|hasn't verified" "$settings_copy" \
         || note "$settings_copy must disclose the unverified Google OAuth status"
     grep -q '100 new users' "$settings_copy" \
         || note "$settings_copy must state Google's 100-new-user cap"

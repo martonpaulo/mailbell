@@ -67,15 +67,14 @@ variants() {
   done
 }
 
-# The pane index matches the tab order: General 0, Notifications 1, Accounts 2, About 3. Light
-# matches the site's default appearance; without the flag Settings follows the operator's system.
+# The pane index matches the tab order: General 0, Accounts 1, About 2 (#68). Light matches the
+# site's default appearance; without the flag Settings follows the operator's system.
 capture_pane() {
   capture_window --name "$1" --output-dir "$OUT_DIR" -- \
     "$app/Contents/MacOS/Mailbell" --screenshot-mode --screenshot-pane "$2" --screenshot-appearance light
 }
 capture_pane general 0
-capture_pane notifications 1
-capture_pane about 3
+capture_pane about 2
 
 # The hero's srcset and imagesrcset in site/index.html list exactly these widths. There is no
 # 1200 px width: resampled, it weighs more than the full-size lossless file, so a phone would pay

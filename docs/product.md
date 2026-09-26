@@ -105,6 +105,7 @@ does not restate it.
 | Package layout | Pure logic in a `MailbellKit` library target | [AGENTS.md](../AGENTS.md), "Architecture" | [#44](https://github.com/martonpaulo/mailbell/issues/44) |
 | Where UI text lives | One English-only String Catalog; no locale added | [AGENTS.md](../AGENTS.md), "Product copy" | [#44](https://github.com/martonpaulo/mailbell/issues/44), [#61](https://github.com/martonpaulo/mailbell/issues/61) |
 | Settings panes | Three panes: General, Accounts, About; updates and the automatic-updates toggle in About | [interface.md](interface.md#settings) | [#54](https://github.com/martonpaulo/mailbell/issues/54) |
+| Settings layout | General and About like WindowHop; Accounts as a System Settings list with a Details… sheet; Spam watching stays one pane-level preference | [interface.md](interface.md#settings) | [#68](https://github.com/martonpaulo/mailbell/issues/68) |
 | Restore Defaults scope | Each pane resets only its own preferences | [feature-defaults.md](feature-defaults.md#rules) | [#54](https://github.com/martonpaulo/mailbell/issues/54) |
 | Menu bar glyph precedence | Account problems, then a denied notification permission, then unread mail | [interface.md](interface.md#menu-bar-glyph) | [#54](https://github.com/martonpaulo/mailbell/issues/54) |
 | Accent colour | The system accent; amber only in the icon, the glyph and the site | [interface.md](interface.md#app-shape) | [#54](https://github.com/martonpaulo/mailbell/issues/54) |

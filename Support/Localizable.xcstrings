@@ -1,6 +1,36 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ (%lld need sign-in)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$lld need sign-in)"
+          }
+        }
+      }
+    },
+    "%@ (1 needs sign-in)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (1 needs sign-in)"
+          }
+        }
+      }
+    },
+    "%@ isn't available. Gmail opens in your default browser." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ isn't available. Gmail opens in your default browser."
+          }
+        }
+      }
+    },
     "%@ needs sign-in" : {
       "comment" : "Notification title; the placeholder is a Gmail address.",
       "localizations" : {
@@ -8,6 +38,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ needs sign-in"
+          }
+        }
+      }
+    },
+    "%@ needs sign-in." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ needs sign-in."
           }
         }
       }
@@ -38,6 +78,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld accounts"
+          }
+        }
+      }
+    },
+    "%lld accounts need sign-in." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld accounts need sign-in."
+          }
+        }
+      }
+    },
+    "%lld conversations to review." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld conversations to review."
           }
         }
       }
@@ -82,6 +142,16 @@
         }
       }
     },
+    "1 conversation to review." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 conversation to review."
+          }
+        }
+      }
+    },
     "1 message" : {
       "localizations" : {
         "en" : {
@@ -98,16 +168,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1 more conversation awaiting review. Open Gmail to see the rest."
-          }
-        }
-      }
-    },
-    "A test notification confirms macOS will actually show Mailbell's alerts. Sound follows both the Mailbell setting above and macOS. Refresh after changing anything in System Settings." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A test notification confirms macOS will actually show Mailbell's alerts. Sound follows both the Mailbell setting above and macOS. Refresh after changing anything in System Settings."
           }
         }
       }
@@ -158,6 +218,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add Gmail Account…"
+          }
+        }
+      }
+    },
+    "Adds unread Spam to alerts and the menu. The Inbox is always watched." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adds unread Spam to alerts and the menu. The Inbox is always watched."
           }
         }
       }
@@ -232,22 +302,12 @@
         }
       }
     },
-    "Also watch the Spam folder" : {
+    "Also watch Spam" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Also watch the Spam folder"
-          }
-        }
-      }
-    },
-    "Always watched" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Always watched"
+            "value" : "Also watch Spam"
           }
         }
       }
@@ -302,16 +362,6 @@
         }
       }
     },
-    "Badge" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Badge"
-          }
-        }
-      }
-    },
     "Build Configuration" : {
       "comment" : "Settings section header",
       "localizations" : {
@@ -353,6 +403,36 @@
         }
       }
     },
+    "Can't connect" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't connect"
+          }
+        }
+      }
+    },
+    "Can't connect to %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't connect to %@."
+          }
+        }
+      }
+    },
+    "Can't connect to %lld accounts." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't connect to %lld accounts."
+          }
+        }
+      }
+    },
     "Cancel" : {
       "localizations" : {
         "en" : {
@@ -373,32 +453,12 @@
         }
       }
     },
-    "Check for New Mail" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Check for New Mail"
-          }
-        }
-      }
-    },
     "Check for Updates…" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Check for Updates…"
-          }
-        }
-      }
-    },
-    "Check the error and reconnect." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Check the error and reconnect."
           }
         }
       }
@@ -423,32 +483,22 @@
         }
       }
     },
-    "Connected" : {
+    "Chrome profile for %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Connected"
+            "value" : "Chrome profile for %@"
           }
         }
       }
     },
-    "Connecting" : {
+    "Connecting…" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Connecting"
-          }
-        }
-      }
-    },
-    "Connecting." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Connecting."
+            "value" : "Connecting…"
           }
         }
       }
@@ -603,12 +653,12 @@
         }
       }
     },
-    "Default (no explicit profile)" : {
+    "Counts conversations to review. The menu always shows the count." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Default (no explicit profile)"
+            "value" : "Counts conversations to review. The menu always shows the count."
           }
         }
       }
@@ -619,6 +669,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Denied"
+          }
+        }
+      }
+    },
+    "Details for %@…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details for %@…"
+          }
+        }
+      }
+    },
+    "Details…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details…"
           }
         }
       }
@@ -683,6 +753,16 @@
         }
       }
     },
+    "Done" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        }
+      }
+    },
     "Enable Account" : {
       "localizations" : {
         "en" : {
@@ -733,13 +813,13 @@
         }
       }
     },
-    "Gmail" : {
+    "Gmail accounts" : {
       "comment" : "Settings section header",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gmail"
+            "value" : "Gmail accounts"
           }
         }
       }
@@ -754,22 +834,22 @@
         }
       }
     },
-    "Gmail monitoring is paused for this account." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gmail monitoring is paused for this account."
-          }
-        }
-      }
-    },
     "Gmail sent an unexpected response. Mailbell will try again." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gmail sent an unexpected response. Mailbell will try again."
+          }
+        }
+      }
+    },
+    "Google access" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google access"
           }
         }
       }
@@ -784,12 +864,32 @@
         }
       }
     },
+    "Google ended this sign-in. Sign in again to resume." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google ended this sign-in. Sign in again to resume."
+          }
+        }
+      }
+    },
     "Google ended this sign-in. Sign in again." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Google ended this sign-in. Sign in again."
+          }
+        }
+      }
+    },
+    "Google hasn't verified Mailbell yet. During sign-in, choose Advanced, then “Go to Mailbell (unsafe)”. Until verification, Google allows 100 new users." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google hasn't verified Mailbell yet. During sign-in, choose Advanced, then “Go to Mailbell (unsafe)”. Until verification, Google allows 100 new users."
           }
         }
       }
@@ -844,22 +944,12 @@
         }
       }
     },
-    "In System Settings, go to Notifications, then choose Mailbell." : {
+    "In System Settings, choose Notifications, then Mailbell, and turn on Allow notifications." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In System Settings, go to Notifications, then choose Mailbell."
-          }
-        }
-      }
-    },
-    "Inbox" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inbox"
+            "value" : "In System Settings, choose Notifications, then Mailbell, and turn on Allow notifications."
           }
         }
       }
@@ -874,32 +964,22 @@
         }
       }
     },
-    "Installed version" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Installed version"
-          }
-        }
-      }
-    },
-    "Last Open Gmail" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Last Open Gmail"
-          }
-        }
-      }
-    },
     "Last action: " : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Last action: "
+          }
+        }
+      }
+    },
+    "Last profile used in Chrome" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last profile used in Chrome"
           }
         }
       }
@@ -995,32 +1075,12 @@
         }
       }
     },
-    "Mailbell deletes this account's sign-in from your Keychain and stops watching it. Nothing in Gmail changes, and no mail is deleted." : {
+    "Mailbell deletes this account's sign-in from the Keychain and stops watching it. Your mail in Gmail is unchanged." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mailbell deletes this account's sign-in from your Keychain and stops watching it. Nothing in Gmail changes, and no mail is deleted."
-          }
-        }
-      }
-    },
-    "Mailbell is in public beta and its Google OAuth client is not verified by Google yet, so Google shows an \"unverified app\" screen during sign-in and caps unverified apps at 100 new users. Revoke access at any time in your Google Account." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mailbell is in public beta and its Google OAuth client is not verified by Google yet, so Google shows an \"unverified app\" screen during sign-in and caps unverified apps at 100 new users. Revoke access at any time in your Google Account."
-          }
-        }
-      }
-    },
-    "Mailbell is notified as mail arrives. Checking manually is only useful after a connection problem." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mailbell is notified as mail arrives. Checking manually is only useful after a connection problem."
+            "value" : "Mailbell deletes this account's sign-in from the Keychain and stops watching it. Your mail in Gmail is unchanged."
           }
         }
       }
@@ -1031,16 +1091,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mailbell is waiting for your approval in System Settings › General › Login Items & Extensions."
-          }
-        }
-      }
-    },
-    "Mailbell notifications" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mailbell notifications"
           }
         }
       }
@@ -1081,6 +1131,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mailbell stopped watching this account. Choose Sign In Again in the Mailbell menu."
+          }
+        }
+      }
+    },
+    "Mailbell stops watching for new mail until you open it again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mailbell stops watching for new mail until you open it again."
           }
         }
       }
@@ -1135,12 +1195,22 @@
         }
       }
     },
-    "Manage Google Access" : {
+    "Manage Google Access…" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manage Google Access"
+            "value" : "Manage Google Access…"
+          }
+        }
+      }
+    },
+    "Manage Google access for %@…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage Google access for %@…"
           }
         }
       }
@@ -1195,13 +1265,13 @@
         }
       }
     },
-    "Menu Bar" : {
+    "Menu bar" : {
       "comment" : "Settings section header",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Menu Bar"
+            "value" : "Menu bar"
           }
         }
       }
@@ -1216,42 +1286,52 @@
         }
       }
     },
-    "Monitoring Inbox and Spam." : {
+    "Needed to alert you about new mail." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Monitoring Inbox and Spam."
+            "value" : "Needed to alert you about new mail."
           }
         }
       }
     },
-    "Monitoring Inbox." : {
+    "New mail arrives without a banner." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Monitoring Inbox."
+            "value" : "New mail arrives without a banner."
           }
         }
       }
     },
-    "Needs attention" : {
+    "New mail arrives without a sound." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Needs attention"
+            "value" : "New mail arrives without a sound."
           }
         }
       }
     },
-    "No account yet" : {
+    "No Gmail account" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No account yet"
+            "value" : "No Gmail account"
+          }
+        }
+      }
+    },
+    "No Gmail account. Add one in Accounts." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Gmail account. Add one in Accounts."
           }
         }
       }
@@ -1286,22 +1366,32 @@
         }
       }
     },
+    "Not allowed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not allowed"
+          }
+        }
+      }
+    },
+    "Not available" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not available"
+          }
+        }
+      }
+    },
     "Not connected" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Not connected"
-          }
-        }
-      }
-    },
-    "Not connected." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Not connected."
           }
         }
       }
@@ -1326,6 +1416,16 @@
         }
       }
     },
+    "Nothing to review." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing to review."
+          }
+        }
+      }
+    },
     "Notification alerts are disabled for Mailbell." : {
       "localizations" : {
         "en" : {
@@ -1346,22 +1446,23 @@
         }
       }
     },
-    "Notification permission refreshed." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notification permission refreshed."
-          }
-        }
-      }
-    },
     "Notifications" : {
+      "comment" : "Settings section header",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notifications"
+          }
+        }
+      }
+    },
+    "Notifications are off in System Settings." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications are off in System Settings."
           }
         }
       }
@@ -1372,6 +1473,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notifications unavailable outside app bundle."
+          }
+        }
+      }
+    },
+    "Off" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
           }
         }
       }
@@ -1396,6 +1507,46 @@
         }
       }
     },
+    "Open Gmail for %@ with" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Gmail for %@ with"
+          }
+        }
+      }
+    },
+    "Open Gmail for %@…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Gmail for %@…"
+          }
+        }
+      }
+    },
+    "Open Gmail with" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Gmail with"
+          }
+        }
+      }
+    },
+    "Open Gmail…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Gmail…"
+          }
+        }
+      }
+    },
     "Open Login Items Settings…" : {
       "localizations" : {
         "en" : {
@@ -1416,16 +1567,6 @@
         }
       }
     },
-    "Open with" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open with"
-          }
-        }
-      }
-    },
     "Opening Gmail: " : {
       "localizations" : {
         "en" : {
@@ -1436,13 +1577,43 @@
         }
       }
     },
-    "Permission" : {
+    "Paused" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused"
+          }
+        }
+      }
+    },
+    "Paused accounts stay signed in but send no alerts." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused accounts stay signed in but send no alerts."
+          }
+        }
+      }
+    },
+    "Paused. No account is being watched." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused. No account is being watched."
+          }
+        }
+      }
+    },
+    "Permissions" : {
       "comment" : "Settings section header",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Permission"
+            "value" : "Permissions"
           }
         }
       }
@@ -1467,12 +1638,42 @@
         }
       }
     },
+    "Problem opening Gmail" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Problem opening Gmail"
+          }
+        }
+      }
+    },
     "Quit Mailbell" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Quit Mailbell"
+          }
+        }
+      }
+    },
+    "Quit Mailbell?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quit Mailbell?"
+          }
+        }
+      }
+    },
+    "Quit Mailbell…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quit Mailbell…"
           }
         }
       }
@@ -1487,32 +1688,22 @@
         }
       }
     },
-    "Reconnecting" : {
+    "Reconnect %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reconnecting"
+            "value" : "Reconnect %@"
           }
         }
       }
     },
-    "Reconnecting." : {
+    "Reconnecting…" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reconnecting."
-          }
-        }
-      }
-    },
-    "Refresh Status" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Refresh Status"
+            "value" : "Reconnecting…"
           }
         }
       }
@@ -1523,6 +1714,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Remove %@?"
+          }
+        }
+      }
+    },
+    "Remove %@…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove %@…"
           }
         }
       }
@@ -1543,16 +1744,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Remove Account…"
-          }
-        }
-      }
-    },
-    "Remove this account?" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remove this account?"
           }
         }
       }
@@ -1597,22 +1788,12 @@
         }
       }
     },
-    "Restore all settings to their defaults?" : {
+    "Restore all Mailbell settings?" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Restore all settings to their defaults?"
-          }
-        }
-      }
-    },
-    "Restoring defaults resets Mailbell's own preferences only. Nothing is removed from Gmail and no account is disconnected." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restoring defaults resets Mailbell's own preferences only. Nothing is removed from Gmail and no account is disconnected."
+            "value" : "Restore all Mailbell settings?"
           }
         }
       }
@@ -1627,22 +1808,22 @@
         }
       }
     },
-    "Selected Chrome profile is unavailable: %@." : {
+    "Review or remove Mailbell's access in your Google Account." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Selected Chrome profile is unavailable: %@."
+            "value" : "Review or remove Mailbell's access in your Google Account."
           }
         }
       }
     },
-    "Selected browser is unavailable: %@." : {
+    "See how new mail looks." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Selected browser is unavailable: %@."
+            "value" : "See how new mail looks."
           }
         }
       }
@@ -1653,16 +1834,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Send Test Notification"
-          }
-        }
-      }
-    },
-    "Sending a test notification…" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sending a test notification…"
           }
         }
       }
@@ -1687,12 +1858,22 @@
         }
       }
     },
-    "Show the number of messages awaiting review" : {
+    "Show count in the menu bar" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Show the number of messages awaiting review"
+            "value" : "Show count in the menu bar"
+          }
+        }
+      }
+    },
+    "Sign In Again…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign In Again…"
           }
         }
       }
@@ -1707,12 +1888,12 @@
         }
       }
     },
-    "Sign in Again…" : {
+    "Sign in again to %@…" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sign in Again…"
+            "value" : "Sign in again to %@…"
           }
         }
       }
@@ -1727,22 +1908,12 @@
         }
       }
     },
-    "Sign in again to resume monitoring." : {
+    "Sign-in didn't finish" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sign in again to resume monitoring."
-          }
-        }
-      }
-    },
-    "Sign in needed" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sign in needed"
+            "value" : "Sign-in didn't finish"
           }
         }
       }
@@ -1757,12 +1928,12 @@
         }
       }
     },
-    "Sign-in opens in your browser. Google has not verified Mailbell yet, so it shows an \"unverified app\" warning: choose Advanced, then continue. Google also caps unverified apps at 100 new users, so sign-in can stop working for new people until verification completes." : {
+    "Sign-in needed" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sign-in opens in your browser. Google has not verified Mailbell yet, so it shows an \"unverified app\" warning: choose Advanced, then continue. Google also caps unverified apps at 100 new users, so sign-in can stop working for new people until verification completes."
+            "value" : "Sign-in needed"
           }
         }
       }
@@ -1788,23 +1959,12 @@
         }
       }
     },
-    "Startup" : {
-      "comment" : "Settings section header",
+    "Sound also follows your System Settings." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Startup"
-          }
-        }
-      }
-    },
-    "Status" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Status"
+            "value" : "Sound also follows your System Settings."
           }
         }
       }
@@ -1840,6 +2000,16 @@
         }
       }
     },
+    "Test notification" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test notification"
+          }
+        }
+      }
+    },
     "Test notification sent." : {
       "localizations" : {
         "en" : {
@@ -1860,12 +2030,12 @@
         }
       }
     },
-    "The bell is always visible. Turn this off to keep the menu bar quiet and see the count only when you open the menu." : {
+    "The Chrome profile %@ isn't available. Gmail opens in the last profile used." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The bell is always visible. Turn this off to keep the menu bar quiet and see the count only when you open the menu."
+            "value" : "The Chrome profile %@ isn't available. Gmail opens in the last profile used."
           }
         }
       }
@@ -1890,12 +2060,12 @@
         }
       }
     },
-    "The menu bar count, notification sound, and watched mailboxes return to their defaults. Your Gmail accounts, sign-ins, login item, and notification permission are not affected." : {
+    "The menu bar count, notification sounds, and Spam watching return to their original values. Accounts, sign-ins, launch at login, and notification permission are unchanged." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The menu bar count, notification sound, and watched mailboxes return to their defaults. Your Gmail accounts, sign-ins, login item, and notification permission are not affected."
+            "value" : "The menu bar count, notification sounds, and Spam watching return to their original values. Accounts, sign-ins, launch at login, and notification permission are unchanged."
           }
         }
       }
@@ -1970,26 +2140,6 @@
         }
       }
     },
-    "Turn an account back on to watch it for new mail." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Turn an account back on to watch it for new mail."
-          }
-        }
-      }
-    },
-    "Unavailable" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unavailable"
-          }
-        }
-      }
-    },
     "Unavailable outside app bundle" : {
       "localizations" : {
         "en" : {
@@ -2016,16 +2166,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unknown sender"
-          }
-        }
-      }
-    },
-    "Unread Spam can then reach notifications and the review count. Turning this off also clears any Spam already awaiting review. Nothing in Gmail changes either way." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unread Spam can then reach notifications and the review count. Turning this off also clears any Spam already awaiting review. Nothing in Gmail changes either way."
           }
         }
       }
@@ -2081,43 +2221,73 @@
         }
       }
     },
-    "Watch this account for new mail" : {
+    "Watch %@ for new mail" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Watch this account for new mail"
+            "value" : "Watch %@ for new mail"
           }
         }
       }
     },
-    "Watched Mailboxes" : {
+    "Watch for new mail" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watch for new mail"
+          }
+        }
+      }
+    },
+    "Watched mailboxes" : {
       "comment" : "Settings section header",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Watched Mailboxes"
+            "value" : "Watched mailboxes"
           }
         }
       }
     },
-    "When off, notifications stay visual and the menu bar review queue keeps working." : {
+    "Watching %lld accounts." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "When off, notifications stay visual and the menu bar review queue keeps working."
+            "value" : "Watching %lld accounts."
           }
         }
       }
     },
-    "macOS controls whether Mailbell's alerts, sound, and badge get through." : {
+    "Watching 1 account." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS controls whether Mailbell's alerts, sound, and badge get through."
+            "value" : "Watching 1 account."
+          }
+        }
+      }
+    },
+    "Watching Inbox" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watching Inbox"
+          }
+        }
+      }
+    },
+    "Watching Inbox and Spam" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watching Inbox and Spam"
           }
         }
       }

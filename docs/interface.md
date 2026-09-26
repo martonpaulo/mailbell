@@ -27,10 +27,19 @@ Decided on #54 (the denied-permission level; #72 implements it).
 - Settings stays small and native: three panes, each owning one question.
   Decided on #54, which supersedes the earlier four-pane rule; #68, #73 and #74
   implement it.
-  - **General**: how Mailbell presents itself and whether alerts get through
-    (menu bar, startup, notification permission and sounds).
+  - **General**: how Mailbell presents itself and whether alerts get through,
+    laid out like WindowHop's General pane: an app card (icon, name, one-line
+    status, Launch at login), Menu bar, Notifications, Permissions last, and a
+    footer box with Restore Defaults… leading and Quit Mailbell… trailing.
   - **Accounts**: which mailboxes are watched, and everything about each
-    account.
+    account, laid out like the account lists in System Settings: one grouped
+    row per account (status dot, address, status, Details…), Add Gmail
+    Account… as the section's last row, and the unverified-app note as its
+    footer. Details… opens a sheet with the account's recovery row (only when
+    `AccountRecoveryAction` asks for one), its settings, Google access, and a
+    bottom bar: Remove Account… leading, Open Gmail… and Done trailing. Spam
+    watching is one preference for every account, so it is a pane section, not
+    a sheet row. Decided on #68.
   - **About**: what it is and how it is updated (version, build and release
     date, the automatic-updates toggle, Check for Updates…, Report an Issue…,
     project links).
@@ -57,7 +66,9 @@ Decided on #54 (the denied-permission level; #72 implements it).
     - *pane-scoped* → below every box, trailing, in the last section's footer
       (`Advanced…` in Privacy & Security).
   - Buttons are sized to their content and trailing-aligned. Leading-aligned,
-    full-width buttons are not the platform convention.
+    full-width buttons are not the platform convention. The one exception is
+    a two-sided bar, `SettingsActionRow(leading:trailing:)`: General's footer
+    box and a sheet's bottom bar, as WindowHop and System Settings draw them.
   - A control that opens System Settings names what it actually opens; it names
     a pane only when a documented public API opens that pane. Decided on #31.
   - Destructive actions use `role: .destructive`, never a hand-applied red, and

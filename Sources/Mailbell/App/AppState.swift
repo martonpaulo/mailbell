@@ -14,7 +14,6 @@ final class AppState {
     private(set) var isAuthorizing = false
     var isSendingTestNotification = false
     var notificationAuthorizationState: NotificationAuthorizationState = .unbundled
-    var notificationStatusMessage: String?
     var notificationTestMessage: String?
     var manualRefreshMessage: String?
     private(set) var shownItems: [ReviewItem] = []
@@ -85,6 +84,7 @@ final class AppState {
         activationTask = Task { [weak self] in
             for await _ in NotificationCenter.default.notifications(named: NSApplication.didBecomeActiveNotification) {
                 self?.launchAtLogin.refresh()
+                self?.refreshNotificationAuthorizationState()
             }
         }
     }
