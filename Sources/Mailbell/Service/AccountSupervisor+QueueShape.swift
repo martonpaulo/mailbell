@@ -8,7 +8,10 @@ extension AccountSupervisor {
         reviewQueue.hiddenConversationCount(accountID: accountID)
     }
 
-    var retainedMessageCount: Int {
-        accountStates.reduce(0) { $0 + reviewQueue.retainedMessageCount(accountID: $1.account.id) }
+    /// Conversations each account holds beyond its visible rows.
+    var hiddenConversationCounts: [UUID: Int] {
+        accounts.reduce(into: [:]) { counts, account in
+            counts[account.id] = reviewQueue.hiddenConversationCount(accountID: account.id)
+        }
     }
 }

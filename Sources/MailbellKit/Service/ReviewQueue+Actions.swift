@@ -35,14 +35,14 @@ extension ReviewQueue {
     }
 
     /// Dismisses every pending item in one persistence write and returns how
-    /// many groups (menu rows) were cleared.
+    /// many messages were cleared, the unit the bulk scope and its result name.
     @discardableResult
     public func dismissAll() throws -> Int {
         guard !itemsByID.isEmpty else { return 0 }
-        let groupCount = Set(itemsByID.values.map(\.conversationID)).count
+        let messageCount = itemsByID.count
         try persistence.mark(itemsByID.values.map(handledMessage), disposition: .dismissed)
         itemsByID = [:]
-        return groupCount
+        return messageCount
     }
 
     func removeGroup(containing id: String, disposition: HandledDisposition) throws {

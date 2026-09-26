@@ -48,16 +48,16 @@ final class MenuBarIconTests: XCTestCase {
                 needsAttention: true,
                 needsSignIn: true
             ),
-            "Mailbell, sign in needed"
+            "Mailbell, sign-in needed"
         )
         // Attention that is not an expired sign-in must not say "sign in".
         XCTAssertEqual(
             MenuCopy.menuBarAccessibilityLabel(count: 3, showsCount: true, needsAttention: true),
-            "Mailbell, account needs attention"
+            "Mailbell, can't connect"
         )
         XCTAssertEqual(
             MenuCopy.menuBarAccessibilityLabel(count: 3, showsCount: true, needsAttention: false),
-            "Mailbell, 3 messages awaiting review"
+            "Mailbell, 3 conversations to review"
         )
     }
 }

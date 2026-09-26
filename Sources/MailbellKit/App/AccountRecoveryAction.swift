@@ -5,14 +5,16 @@ public enum AccountRecoveryAction: Equatable, Sendable {
     case reconnect
     case signInAgain
 
+    /// Menu command titles. Sign-in continues in the browser, so that command
+    /// asks for more input and ends with an ellipsis.
     public var title: String {
         switch self {
         case .enable:
-            String(localized: "Enable Account")
+            String(localized: "Resume Watching")
         case .reconnect:
             String(localized: "Reconnect")
         case .signInAgain:
-            String(localized: "Sign in Again")
+            String(localized: "Sign In Again…")
         }
     }
 

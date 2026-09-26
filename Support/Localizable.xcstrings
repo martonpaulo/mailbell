@@ -1,6 +1,16 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ %lld couldn't be updated. Try again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ %lld couldn't be updated. Try again."
+          }
+        }
+      }
+    },
     "%@ (%lld need sign-in)" : {
       "localizations" : {
         "en" : {
@@ -11,12 +21,34 @@
         }
       }
     },
+    "%@ (%lld)" : {
+      "comment" : "A sender followed by the number of messages in the conversation.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (%lld)"
+          }
+        }
+      }
+    },
     "%@ (1 needs sign-in)" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ (1 needs sign-in)"
+          }
+        }
+      }
+    },
+    "%@ <%@>" : {
+      "comment" : "A sender's name followed by their email address.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ <%@>"
           }
         }
       }
@@ -32,7 +64,7 @@
       }
     },
     "%@ needs sign-in" : {
-      "comment" : "Notification title; the placeholder is a Gmail address.",
+      "comment" : "The placeholder is a Gmail address.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -52,12 +84,13 @@
         }
       }
     },
-    "%@ • %@" : {
+    "%@ · %@" : {
+      "comment" : "A menu row's subtitle: the subject, then when it arrived.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ • %@"
+            "value" : "%@ · %@"
           }
         }
       }
@@ -92,6 +125,26 @@
         }
       }
     },
+    "%lld conversations" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld conversations"
+          }
+        }
+      }
+    },
+    "%lld conversations to review" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld conversations to review"
+          }
+        }
+      }
+    },
     "%lld conversations to review." : {
       "localizations" : {
         "en" : {
@@ -102,22 +155,22 @@
         }
       }
     },
-    "%lld messages" : {
+    "%lld more conversations not shown. Open Gmail to see them." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld messages"
+            "value" : "%lld more conversations not shown. Open Gmail to see them."
           }
         }
       }
     },
-    "%lld more conversations awaiting review. Open Gmail to see the rest." : {
+    "%lld of them aren't shown in the menu. Gmail shows them as read on all your devices." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld more conversations awaiting review. Open Gmail to see the rest."
+            "value" : "%lld of them aren't shown in the menu. Gmail shows them as read on all your devices."
           }
         }
       }
@@ -142,6 +195,26 @@
         }
       }
     },
+    "1 conversation" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 conversation"
+          }
+        }
+      }
+    },
+    "1 conversation to review" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 conversation to review"
+          }
+        }
+      }
+    },
     "1 conversation to review." : {
       "localizations" : {
         "en" : {
@@ -152,22 +225,22 @@
         }
       }
     },
-    "1 message" : {
+    "1 more conversation not shown. Open Gmail to see it." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1 message"
+            "value" : "1 more conversation not shown. Open Gmail to see it."
           }
         }
       }
     },
-    "1 more conversation awaiting review. Open Gmail to see the rest." : {
+    "1 of them isn't shown in the menu. Gmail shows them as read on all your devices." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1 more conversation awaiting review. Open Gmail to see the rest."
+            "value" : "1 of them isn't shown in the menu. Gmail shows them as read on all your devices."
           }
         }
       }
@@ -198,16 +271,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Accounts"
-          }
-        }
-      }
-    },
-    "Add Gmail Account" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add Gmail Account"
           }
         }
       }
@@ -252,12 +315,12 @@
         }
       }
     },
-    "All Messages" : {
+    "All Conversations" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "All Messages"
+            "value" : "All Conversations"
           }
         }
       }
@@ -312,52 +375,12 @@
         }
       }
     },
-    "Applies to %lld retained messages" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Applies to %lld retained messages"
-          }
-        }
-      }
-    },
-    "Applies to 1 retained message" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Applies to 1 retained message"
-          }
-        }
-      }
-    },
-    "Authorizing…" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Authorizing…"
-          }
-        }
-      }
-    },
     "Automatically check for updates" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Automatically check for updates"
-          }
-        }
-      }
-    },
-    "Awaiting Review" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Awaiting Review"
           }
         }
       }
@@ -413,6 +436,17 @@
         }
       }
     },
+    "Can't connect to %@" : {
+      "comment" : "The placeholder is a Gmail address.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't connect to %@"
+          }
+        }
+      }
+    },
     "Can't connect to %@." : {
       "localizations" : {
         "en" : {
@@ -443,12 +477,12 @@
         }
       }
     },
-    "Check Now" : {
+    "Check for New Mail" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Check Now"
+            "value" : "Check for New Mail"
           }
         }
       }
@@ -509,6 +543,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't mark messages as read in Gmail. Try again."
+          }
+        }
+      }
+    },
+    "Couldn't mark “%@” as read in Gmail. Try again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't mark “%@” as read in Gmail. Try again."
           }
         }
       }
@@ -733,22 +777,42 @@
         }
       }
     },
-    "Dismiss All" : {
+    "Dismiss (Keep Unread in Gmail)" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dismiss All"
+            "value" : "Dismiss (Keep Unread in Gmail)"
           }
         }
       }
     },
-    "Dismissed %@ from Mailbell." : {
+    "Dismiss All (Keep Unread in Gmail)" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dismissed %@ from Mailbell."
+            "value" : "Dismiss All (Keep Unread in Gmail)"
+          }
+        }
+      }
+    },
+    "Dismissed %lld messages. They stay unread in Gmail." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dismissed %lld messages. They stay unread in Gmail."
+          }
+        }
+      }
+    },
+    "Dismissed 1 message. It stays unread in Gmail." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dismissed 1 message. It stays unread in Gmail."
           }
         }
       }
@@ -759,16 +823,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Done"
-          }
-        }
-      }
-    },
-    "Enable Account" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enable Account"
           }
         }
       }
@@ -954,22 +1008,42 @@
         }
       }
     },
+    "Includes %lld messages in %lld conversations." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Includes %lld messages in %lld conversations."
+          }
+        }
+      }
+    },
+    "Includes %lld messages in 1 conversation." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Includes %lld messages in 1 conversation."
+          }
+        }
+      }
+    },
+    "Includes 1 message in 1 conversation." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Includes 1 message in 1 conversation."
+          }
+        }
+      }
+    },
     "Install and run Mailbell.app to use macOS notifications." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Install and run Mailbell.app to use macOS notifications."
-          }
-        }
-      }
-    },
-    "Last action: " : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Last action: "
           }
         }
       }
@@ -1065,6 +1139,16 @@
         }
       }
     },
+    "Mailbell can't watch this account until you sign in again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mailbell can't watch this account until you sign in again."
+          }
+        }
+      }
+    },
     "Mailbell couldn't change this setting. Open Mailbell from the Applications folder and try again." : {
       "localizations" : {
         "en" : {
@@ -1155,42 +1239,33 @@
         }
       }
     },
-    "Mailbell, %lld messages awaiting review" : {
+    "Mailbell, %@" : {
+      "comment" : "The placeholder is a count to review.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mailbell, %lld messages awaiting review"
+            "value" : "Mailbell, %@"
           }
         }
       }
     },
-    "Mailbell, 1 message awaiting review" : {
+    "Mailbell, can't connect" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mailbell, 1 message awaiting review"
+            "value" : "Mailbell, can't connect"
           }
         }
       }
     },
-    "Mailbell, account needs attention" : {
+    "Mailbell, sign-in needed" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mailbell, account needs attention"
-          }
-        }
-      }
-    },
-    "Mailbell, sign in needed" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mailbell, sign in needed"
+            "value" : "Mailbell, sign-in needed"
           }
         }
       }
@@ -1215,12 +1290,42 @@
         }
       }
     },
-    "Mark All as Read" : {
+    "Mark %lld messages as read in Gmail?" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mark All as Read"
+            "value" : "Mark %lld messages as read in Gmail?"
+          }
+        }
+      }
+    },
+    "Mark 1 message as read in Gmail?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark 1 message as read in Gmail?"
+          }
+        }
+      }
+    },
+    "Mark All as Read in Gmail" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark All as Read in Gmail"
+          }
+        }
+      }
+    },
+    "Mark All as Read in Gmail…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark All as Read in Gmail…"
           }
         }
       }
@@ -1235,32 +1340,42 @@
         }
       }
     },
-    "Marked %@ as read in Gmail." : {
+    "Mark as Read in Gmail" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Marked %@ as read in Gmail."
+            "value" : "Mark as Read in Gmail"
           }
         }
       }
     },
-    "Marked %lld as read. %lld could not be updated in Gmail." : {
+    "Marked %lld messages as read in Gmail." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Marked %lld as read. %lld could not be updated in Gmail."
+            "value" : "Marked %lld messages as read in Gmail."
           }
         }
       }
     },
-    "Marking All as Read…" : {
+    "Marked 1 message as read in Gmail." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Marking All as Read…"
+            "value" : "Marked 1 message as read in Gmail."
+          }
+        }
+      }
+    },
+    "Marking as Read in Gmail…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marking as Read in Gmail…"
           }
         }
       }
@@ -1336,22 +1451,12 @@
         }
       }
     },
-    "No messages" : {
+    "No conversations" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No messages"
-          }
-        }
-      }
-    },
-    "No messages awaiting review." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No messages awaiting review."
+            "value" : "No conversations"
           }
         }
       }
@@ -1416,6 +1521,16 @@
         }
       }
     },
+    "Nothing to review" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing to review"
+          }
+        }
+      }
+    },
     "Nothing to review." : {
       "localizations" : {
         "en" : {
@@ -1457,6 +1572,16 @@
         }
       }
     },
+    "Notifications are off" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications are off"
+          }
+        }
+      }
+    },
     "Notifications are off in System Settings." : {
       "localizations" : {
         "en" : {
@@ -1483,16 +1608,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Off"
-          }
-        }
-      }
-    },
-    "Open" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open"
           }
         }
       }
@@ -1557,6 +1672,16 @@
         }
       }
     },
+    "Open System Settings" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open System Settings"
+          }
+        }
+      }
+    },
     "Open System Settings…" : {
       "localizations" : {
         "en" : {
@@ -1567,12 +1692,12 @@
         }
       }
     },
-    "Opening Gmail: " : {
+    "Open in Gmail" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Opening Gmail: "
+            "value" : "Open in Gmail"
           }
         }
       }
@@ -1798,6 +1923,16 @@
         }
       }
     },
+    "Resume Watching" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume Watching"
+          }
+        }
+      }
+    },
     "Resume watching an account to check for new mail." : {
       "localizations" : {
         "en" : {
@@ -1878,16 +2013,6 @@
         }
       }
     },
-    "Sign in Again" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sign in Again"
-          }
-        }
-      }
-    },
     "Sign in again to %@…" : {
       "localizations" : {
         "en" : {
@@ -1918,16 +2043,6 @@
         }
       }
     },
-    "Sign-in failed: " : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sign-in failed: "
-          }
-        }
-      }
-    },
     "Sign-in needed" : {
       "localizations" : {
         "en" : {
@@ -1945,6 +2060,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Signed in as %@, but this account is %@. Sign in with %@."
+          }
+        }
+      }
+    },
+    "Signing In…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signing In…"
           }
         }
       }
@@ -2140,6 +2265,27 @@
         }
       }
     },
+    "To %@ · %@" : {
+      "comment" : "The account a message was sent to, then when.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To %@ · %@"
+          }
+        }
+      }
+    },
+    "To review" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To review"
+          }
+        }
+      }
+    },
     "Unavailable outside app bundle" : {
       "localizations" : {
         "en" : {
@@ -2288,6 +2434,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Watching Inbox and Spam"
+          }
+        }
+      }
+    },
+    "Yesterday" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yesterday"
           }
         }
       }

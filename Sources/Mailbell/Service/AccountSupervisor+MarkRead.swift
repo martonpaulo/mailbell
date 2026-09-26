@@ -2,16 +2,19 @@ import Foundation
 import MailbellKit
 
 extension AccountSupervisor {
-    func markAsRead(itemID id: String) async {
-        guard let item = reviewQueue.item(id: id) else { return }
+    /// Returns whether Gmail marked the conversation as read, so the caller
+    /// can report a failure the menu is no longer open to show.
+    @discardableResult
+    func markAsRead(itemID id: String) async -> Bool {
+        guard let item = reviewQueue.item(id: id) else { return false }
         let submission = reviewQueue.readSubmission(containing: id)
         guard !submission.isEmpty else {
             Log.monitor.error("Cannot mark email as read because the pending item has no IMAP UID.")
-            return
+            return false
         }
         guard let account = accounts.first(where: { $0.id == item.accountID }) else {
             Log.monitor.error("Cannot mark email as read because the account was not found.")
-            return
+            return false
         }
 
         do {
@@ -20,9 +23,11 @@ extension AccountSupervisor {
             try reviewQueue.markRead(submission: submission)
             applyReviewQueueWarning(accountID: account.id)
             publish()
+            return true
         } catch {
             applyMarkAsReadFailure(error, accountID: account.id)
             publish()
+            return false
         }
     }
 

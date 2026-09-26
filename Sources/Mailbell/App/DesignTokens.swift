@@ -39,6 +39,13 @@ enum Token {
         static let iconTile: CGFloat = 6
     }
 
+    /// Colours the system does not supply. The menu colours no text; only a
+    /// problem row's alert symbol carries a palette, the system warning orange.
+    enum Palette {
+        static let alertGlyph = SwiftUI.Color.white
+        static let alertFill = SwiftUI.Color.orange
+    }
+
     enum Font {
         static let aboutTitle = SwiftUI.Font.title3
         static let footnote = SwiftUI.Font.footnote

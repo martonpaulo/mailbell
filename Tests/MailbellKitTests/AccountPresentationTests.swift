@@ -10,11 +10,11 @@ final class AccountPresentationTests: XCTestCase {
         XCTAssertNil(MenuCopy.overflowNotice(hiddenConversations: 0))
         XCTAssertEqual(
             MenuCopy.overflowNotice(hiddenConversations: 1),
-            "1 more conversation awaiting review. Open Gmail to see the rest."
+            "1 more conversation not shown. Open Gmail to see it."
         )
         XCTAssertEqual(
             MenuCopy.overflowNotice(hiddenConversations: 12),
-            "12 more conversations awaiting review. Open Gmail to see the rest."
+            "12 more conversations not shown. Open Gmail to see them."
         )
     }
 
@@ -27,9 +27,13 @@ final class AccountPresentationTests: XCTestCase {
         XCTAssertTrue(notice.contains("Open Gmail"), "the notice carries its recovery action")
     }
 
-    func testBulkActionScopeNamesEveryRetainedMessage() {
-        XCTAssertEqual(MenuCopy.bulkActionScope(retainedMessages: 1), "Applies to 1 retained message")
-        XCTAssertEqual(MenuCopy.bulkActionScope(retainedMessages: 240), "Applies to 240 retained messages")
+    func testBulkScopeNamesMessagesAndConversations() {
+        XCTAssertEqual(MenuCopy.bulkScope(messages: 1, conversations: 1), "Includes 1 message in 1 conversation.")
+        XCTAssertEqual(MenuCopy.bulkScope(messages: 4, conversations: 1), "Includes 4 messages in 1 conversation.")
+        XCTAssertEqual(
+            MenuCopy.bulkScope(messages: 37, conversations: 12),
+            "Includes 37 messages in 12 conversations."
+        )
     }
 
     // MARK: - Menu bar accessibility label (#30)
@@ -37,7 +41,7 @@ final class AccountPresentationTests: XCTestCase {
     func testTheLabelSaysSignInOnlyWhenSigningInIsTheRemedy() {
         XCTAssertEqual(
             MenuCopy.menuBarAccessibilityLabel(count: 0, needsAttention: true, needsSignIn: true),
-            "Mailbell, sign in needed"
+            "Mailbell, sign-in needed"
         )
     }
 
@@ -45,14 +49,14 @@ final class AccountPresentationTests: XCTestCase {
         // MonitorStatus.error also needs attention, but Reconnect is its remedy.
         let label = MenuCopy.menuBarAccessibilityLabel(count: 0, needsAttention: true, needsSignIn: false)
 
-        XCTAssertEqual(label, "Mailbell, account needs attention")
-        XCTAssertFalse(label.lowercased().contains("sign in"))
+        XCTAssertEqual(label, "Mailbell, can't connect")
+        XCTAssertFalse(label.lowercased().contains("sign"))
     }
 
     func testAttentionStillOutranksTheReviewCount() {
         XCTAssertEqual(
             MenuCopy.menuBarAccessibilityLabel(count: 5, needsAttention: true, needsSignIn: false),
-            "Mailbell, account needs attention"
+            "Mailbell, can't connect"
         )
     }
 
@@ -73,18 +77,47 @@ final class AccountPresentationTests: XCTestCase {
         XCTAssertEqual(AccountRecoveryAction.needed(for: state(status: .signedOut, isEnabled: false)), .enable)
     }
 
-    func testMenuCopyDoesNotClaimGmailUnreadState() {
-        XCTAssertEqual(MenuCopy.menuSectionTitle, "Awaiting Review")
-        XCTAssertEqual(MenuCopy.emptyMenuTitle, "No messages")
-        XCTAssertEqual(MenuCopy.openActionTitle, "Open")
-        XCTAssertEqual(MenuCopy.markAsReadActionTitle, "Mark as Read")
-        XCTAssertEqual(MenuCopy.dismissActionTitle, "Dismiss")
-        XCTAssertEqual(MenuCopy.reviewCountText(0), "No messages")
-        XCTAssertEqual(MenuCopy.reviewCountText(1), "1 message")
-        XCTAssertEqual(MenuCopy.reviewCountText(2), "2 messages")
-        XCTAssertEqual(MenuCopy.menuBarAccessibilityLabel(count: 2), "Mailbell, 2 messages awaiting review")
-        XCTAssertEqual(MenuCopy.menuBarAccessibilityLabel(count: 1), "Mailbell, 1 message awaiting review")
+    func testRecoveryTitlesUseTheMenuTerms() {
+        XCTAssertEqual(AccountRecoveryAction.enable.title, "Resume Watching")
+        XCTAssertEqual(AccountRecoveryAction.reconnect.title, "Reconnect")
+        XCTAssertEqual(AccountRecoveryAction.signInAgain.title, "Sign In Again…")
+    }
+
+    // MARK: - One counting unit (#69)
+
+    func testTheMenuCountsConversations() {
+        XCTAssertEqual(MenuCopy.menuSectionTitle, "To review")
+        XCTAssertEqual(MenuCopy.toReview(0), "Nothing to review")
+        XCTAssertEqual(MenuCopy.toReview(1), "1 conversation to review")
+        XCTAssertEqual(MenuCopy.toReview(12), "12 conversations to review")
+        XCTAssertEqual(MenuCopy.reviewCountText(0), "No conversations")
+        XCTAssertEqual(MenuCopy.reviewCountText(1), "1 conversation")
+        XCTAssertEqual(MenuCopy.reviewCountText(2), "2 conversations")
+    }
+
+    func testTheAccessibilityLabelUsesTheSameUnitAsTheMenu() {
+        XCTAssertEqual(MenuCopy.menuBarAccessibilityLabel(count: 12), "Mailbell, 12 conversations to review")
+        XCTAssertEqual(MenuCopy.menuBarAccessibilityLabel(count: 1), "Mailbell, 1 conversation to review")
         XCTAssertEqual(MenuCopy.menuBarAccessibilityLabel(count: 2, showsCount: false), "Mailbell")
+        XCTAssertEqual(MenuCopy.menuBarAccessibilityLabel(count: 0), "Mailbell")
+    }
+
+    func testActionLabelsSayWhereTheyAct() {
+        XCTAssertEqual(MenuCopy.openInGmail, "Open in Gmail")
+        XCTAssertEqual(MenuCopy.markAsRead, "Mark as Read in Gmail")
+        XCTAssertEqual(MenuCopy.dismiss, "Dismiss (Keep Unread in Gmail)")
+        XCTAssertEqual(MenuCopy.dismissAll, "Dismiss All (Keep Unread in Gmail)")
+        XCTAssertEqual(MenuCopy.checkForNewMail, "Check for New Mail")
+    }
+
+    func testBulkResultsCountMessages() {
+        XCTAssertEqual(MenuCopy.BulkResult.marked(messages: 10), "Marked 10 messages as read in Gmail.")
+        XCTAssertEqual(
+            MenuCopy.BulkResult.partiallyMarked(marked: 10, failed: 2),
+            "Marked 10 messages as read in Gmail. 2 couldn't be updated. Try again."
+        )
+        XCTAssertEqual(MenuCopy.BulkResult.dismissed(messages: 12), "Dismissed 12 messages. They stay unread in Gmail.")
+        XCTAssertEqual(MenuCopy.BulkResult.dismissed(messages: 1), "Dismissed 1 message. It stays unread in Gmail.")
     }
 
     // MARK: - Account list row (#68)
@@ -130,12 +163,6 @@ final class AccountPresentationTests: XCTestCase {
         )
     }
 
-    func testAccountMenuTitleCombinesStatusAndEmail() {
-        XCTAssertEqual(
-            AccountPresentation.menuTitle(for: state(email: "example@example.com", status: .connected)),
-            "Watching Inbox • example@example.com"
-        )
-    }
 
     func testAccountMenuIconReflectsStatus() {
         XCTAssertEqual(

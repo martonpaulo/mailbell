@@ -19,8 +19,9 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
         XCTAssertTrue(didAdmit)
         let item = try XCTUnwrap(supervisor.shownItems.first)
 
-        await supervisor.markAsRead(itemID: item.id)
+        let didMark = await supervisor.markAsRead(itemID: item.id)
 
+        XCTAssertTrue(didMark)
         XCTAssertEqual(markedAccounts, [account.id])
         XCTAssertEqual(markedIdentities, [IMAPMessageIdentity(uid: 42, mailboxName: "INBOX", uidValidity: 1)])
         XCTAssertTrue(supervisor.shownItems.isEmpty)
@@ -66,8 +67,9 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
         XCTAssertTrue(didAdmit)
         let item = try XCTUnwrap(supervisor.shownItems.first)
 
-        await supervisor.markAsRead(itemID: item.id)
+        let didMark = await supervisor.markAsRead(itemID: item.id)
 
+        XCTAssertFalse(didMark, "the menu reports the failure on its last-action line")
         XCTAssertEqual(supervisor.shownItems.map(\.id), [item.id])
     }
 

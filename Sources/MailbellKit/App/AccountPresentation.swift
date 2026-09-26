@@ -1,10 +1,6 @@
 import Foundation
 
 public enum AccountPresentation {
-    public static func menuTitle(for state: AccountRuntimeState) -> String {
-        String(localized: "\(statusText(for: state)) • \(state.account.email)")
-    }
-
     public static func menuIconSystemName(for state: AccountRuntimeState) -> String {
         guard state.account.isEnabled else { return "pause.circle" }
         switch state.status {

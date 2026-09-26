@@ -4,13 +4,13 @@ import UserNotifications
 
 /// Expired sign-in is the one account failure Mailbell cannot recover from on
 /// its own, and the menu bar alert glyph only helps a user who happens to look
-/// at it. The wording lives here so the notification and any future surface
-/// share one definition.
+/// at it. The title is the menu's problem row title (`MenuCopy.needsSignIn`),
+/// so both surfaces name the state with one definition.
 ///
 /// Nonisolated: a pure helper, like EmailNotificationContentBuilder.
 nonisolated enum SignInNotificationContentBuilder {
     static func title(email: String) -> String {
-        String(localized: "\(email) needs sign-in", comment: "Notification title; the placeholder is a Gmail address.")
+        MenuCopy.needsSignIn(email)
     }
 
     static let body = String(

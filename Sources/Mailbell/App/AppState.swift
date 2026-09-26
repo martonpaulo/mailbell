@@ -9,7 +9,11 @@ import SwiftUI
 final class AppState {
     private(set) var status: MonitorStatus = .signedOut
     private(set) var accounts: [AccountRuntimeState] = []
-    private(set) var lastError: String?
+    /// Why the last Google sign-in failed; the menu shows it as a problem row.
+    private(set) var signInError: String?
+    /// Why saved accounts could not be read; its own problem row, never
+    /// overwritten by a sign-in result.
+    private(set) var accountStoreError: String?
     private(set) var buildProblemDetails: String?
     private(set) var isAuthorizing = false
     var isSendingTestNotification = false
@@ -18,11 +22,17 @@ final class AppState {
     var manualRefreshMessage: String?
     private(set) var shownItems: [ReviewItem] = []
     private(set) var shownConversationCounts: [UUID: Int] = [:]
+    private(set) var hiddenConversationCounts: [UUID: Int] = [:]
+    private(set) var conversationSizes: [String: Int] = [:]
+    private(set) var reach = ReviewReach(messages: 0, conversations: 0)
+    private(set) var canMarkAllQueuedAsRead = false
     private(set) var menuBarIconSystemImage = MenuBarIcon.idle
     private(set) var needsAttention = false
     private(set) var needsSignIn = false
     private(set) var isMarkingAllAsRead = false
-    private(set) var bulkActionMessage: String?
+    /// The outcome of the last queue action. An action closes the menu, so
+    /// the result has to wait for the next time the menu opens.
+    private(set) var lastActionMessage: String?
     private(set) var showsMenuBarCount: Bool
     private(set) var includeSpam: Bool
     private(set) var playNotificationSounds: Bool
@@ -52,13 +62,9 @@ final class AppState {
         supervisor.delegate = self
         accounts = supervisor.accountStates
         status = supervisor.aggregateStatus
-        shownItems = supervisor.shownItems
-        shownConversationCounts = supervisor.reviewQueue.shownConversationCounts
-        menuBarIconSystemImage = supervisor.menuBarIconSystemImage
-        needsAttention = supervisor.needsAttention
-        needsSignIn = supervisor.needsSignIn
         buildProblemDetails = supervisor.buildProblemDetails
-        lastError = supervisor.accountStoreError
+        accountStoreError = supervisor.accountStoreError
+        syncQueue()
 
         notificationManager.emailOpenHandler = { [weak self] emailID, accountID, url in
             await self?.supervisor.open(itemID: emailID, accountID: accountID, url: url)
@@ -93,6 +99,25 @@ final class AppState {
         !accounts.isEmpty
     }
 
+    /// Settings' one-line summary of both error sources.
+    var lastError: String? {
+        signInError ?? accountStoreError
+    }
+
+    /// Copies the queue's shape from the supervisor, which is not observable,
+    /// so every view that reads it is invalidated together.
+    private func syncQueue() {
+        shownItems = supervisor.shownItems
+        shownConversationCounts = supervisor.reviewQueue.shownConversationCounts
+        hiddenConversationCounts = supervisor.hiddenConversationCounts
+        conversationSizes = supervisor.reviewQueue.conversationSizes(of: shownItems)
+        reach = supervisor.reviewQueue.reach
+        canMarkAllQueuedAsRead = supervisor.canMarkAllAsRead
+        menuBarIconSystemImage = supervisor.menuBarIconSystemImage
+        needsAttention = supervisor.needsAttention
+        needsSignIn = supervisor.needsSignIn
+    }
+
     var canRequestManualRefresh: Bool {
         AccountPresentation.canRefresh(accounts) && !isAuthorizing
     }
@@ -108,11 +133,11 @@ final class AppState {
             defer { isAuthorizing = false }
             do {
                 try await supervisor.addGmailAccount()
-                lastError = nil
+                signInError = nil
                 buildProblemDetails = supervisor.buildProblemDetails
             } catch {
                 Log.auth.error("Sign-in failed: \(Log.detail(error), privacy: .private)")
-                lastError = error.localizedDescription
+                signInError = error.localizedDescription
                 buildProblemDetails = supervisor.buildProblemDetails
             }
         }
@@ -125,11 +150,11 @@ final class AppState {
             defer { isAuthorizing = false }
             do {
                 try await supervisor.reauthenticate(accountID: accountID)
-                lastError = nil
+                signInError = nil
                 buildProblemDetails = supervisor.buildProblemDetails
             } catch {
                 Log.auth.error("Sign-in failed: \(Log.detail(error), privacy: .private)")
-                lastError = error.localizedDescription
+                signInError = error.localizedDescription
                 buildProblemDetails = supervisor.buildProblemDetails
             }
         }
@@ -150,11 +175,7 @@ final class AppState {
         includeSpam = isIncluded
         settingsStore.includeSpam = isIncluded
         supervisor.setIncludeSpam(isIncluded)
-        shownItems = supervisor.shownItems
-        shownConversationCounts = supervisor.reviewQueue.shownConversationCounts
-        menuBarIconSystemImage = supervisor.menuBarIconSystemImage
-        needsAttention = supervisor.needsAttention
-        needsSignIn = supervisor.needsSignIn
+        syncQueue()
     }
 
     func setPlayNotificationSounds(_ isEnabled: Bool) {
@@ -185,60 +206,50 @@ final class AppState {
         }
     }
 
-    func hiddenConversationCount(accountID: UUID) -> Int {
-        supervisor.hiddenConversationCount(accountID: accountID)
-    }
-
-    var retainedMessageCount: Int {
-        supervisor.retainedMessageCount
-    }
-
     func open(itemID id: String) {
-        clearBulkActionResult()
+        clearLastActionResult()
         Task {
             await supervisor.open(itemID: id)
         }
     }
 
+    /// A failed mark reports through the last-action line, naming the message,
+    /// because the menu closed before the server answered.
     func markAsRead(itemID id: String) {
-        clearBulkActionResult()
+        clearLastActionResult()
+        let subject = shownItems.first { $0.id == id }?.subject
         Task {
-            await supervisor.markAsRead(itemID: id)
+            let didMark = await supervisor.markAsRead(itemID: id)
+            if !didMark, let subject {
+                lastActionMessage = MenuCopy.markAsReadFailed(subject: MenuPresentation.truncated(subject))
+            }
         }
     }
 
     func dismiss(itemID id: String) {
-        clearBulkActionResult()
+        clearLastActionResult()
         supervisor.dismiss(itemID: id)
     }
 
-    /// A per-message action makes a whole-queue result stale. Clearing it is
-    /// what stops "Marked 5 as read" from sitting above a queue it no longer
+    /// A new action makes the last result stale. Clearing it is what stops
+    /// "Marked 5 messages as read" from sitting above a queue it no longer
     /// describes, or beside a different account's later action.
-    private func clearBulkActionResult() {
-        bulkActionMessage = nil
-    }
-
-    var hasPendingEmails: Bool {
-        !shownItems.isEmpty
-    }
-
-    var canMarkAllAsRead: Bool {
-        supervisor.canMarkAllAsRead && !isMarkingAllAsRead
+    private func clearLastActionResult() {
+        lastActionMessage = nil
     }
 
     func markAllAsRead() {
         guard !isMarkingAllAsRead else { return }
         Task {
             isMarkingAllAsRead = true
-            bulkActionMessage = nil
+            lastActionMessage = nil
             defer { isMarkingAllAsRead = false }
-            bulkActionMessage = await supervisor.markAllAsRead().message
+            lastActionMessage = await supervisor.markAllAsRead().message
         }
     }
 
     func dismissAll() {
-        bulkActionMessage = supervisor.dismissAll().message
+        lastActionMessage = supervisor.dismissAll().message
     }
 
     var isUpdaterAvailable: Bool {
@@ -270,11 +281,7 @@ final class AppState {
             includeSpam = restoredIncludeSpam
             supervisor.setIncludeSpam(restoredIncludeSpam)
         }
-        shownItems = supervisor.shownItems
-        shownConversationCounts = supervisor.reviewQueue.shownConversationCounts
-        menuBarIconSystemImage = supervisor.menuBarIconSystemImage
-        needsAttention = supervisor.needsAttention
-        needsSignIn = supervisor.needsSignIn
+        syncQueue()
     }
 
     func quit() {
@@ -291,14 +298,8 @@ extension AppState: AccountSupervisorDelegate {
     func accountSupervisorDidUpdate(states: [AccountRuntimeState], aggregateStatus: MonitorStatus) {
         accounts = states
         status = aggregateStatus
-        shownItems = supervisor.shownItems
-        shownConversationCounts = supervisor.reviewQueue.shownConversationCounts
-        menuBarIconSystemImage = supervisor.menuBarIconSystemImage
-        needsAttention = supervisor.needsAttention
-        needsSignIn = supervisor.needsSignIn
         buildProblemDetails = supervisor.buildProblemDetails
-        if let accountStoreError = supervisor.accountStoreError {
-            lastError = accountStoreError
-        }
+        accountStoreError = supervisor.accountStoreError
+        syncQueue()
     }
 }

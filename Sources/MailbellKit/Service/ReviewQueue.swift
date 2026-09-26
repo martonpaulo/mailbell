@@ -97,12 +97,26 @@ enum HandledDisposition: String, Codable, Equatable {
     case opened
 }
 
+/// The size of the whole retained queue in both units the menu names.
+public struct ReviewReach: Equatable, Sendable {
+    public let messages: Int
+    public let conversations: Int
+
+    public init(messages: Int, conversations: Int) {
+        self.messages = messages
+        self.conversations = conversations
+    }
+}
+
 /// The pending members handed to one server read request, fixed at capture time.
 public struct ReadSubmission: Equatable, Sendable {
     let itemIDs: [String]
     public let identities: [IMAPMessageIdentity]
 
     public var isEmpty: Bool { identities.isEmpty }
+
+    /// Every captured member, including one without a UID that cannot be sent.
+    public var messageCount: Int { itemIDs.count }
 }
 
 /// A message plus where it lived when Mailbell handled it.
@@ -138,6 +152,27 @@ public final class ReviewQueue {
     public func hiddenConversationCount(accountID: UUID) -> Int {
         let total = Set(itemsByID.values.filter { $0.accountID == accountID }.map(\.conversationID)).count
         return max(total - ReviewQueueBudget.shownConversationsPerAccount, 0)
+    }
+
+    /// Every retained message and the conversations they form: what a bulk
+    /// action reaches, which is more than the menu shows.
+    public var reach: ReviewReach {
+        ReviewReach(
+            messages: itemsByID.count,
+            conversations: Set(itemsByID.values.map(\.conversationID)).count
+        )
+    }
+
+    /// Retained messages in each item's conversation, keyed by the item's id,
+    /// computed in one pass over the store.
+    public func conversationSizes(of items: [ReviewItem]) -> [String: Int] {
+        var sizes: [String: Int] = [:]
+        for item in itemsByID.values {
+            sizes[item.conversationID, default: 0] += 1
+        }
+        return items.reduce(into: [:]) { result, item in
+            result[item.id] = sizes[item.conversationID, default: 1]
+        }
     }
 
     public var shownConversationCounts: [UUID: Int] {

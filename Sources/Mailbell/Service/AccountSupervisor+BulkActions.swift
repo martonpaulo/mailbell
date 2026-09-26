@@ -2,7 +2,8 @@ import Foundation
 import MailbellKit
 
 extension AccountSupervisor {
-    /// Outcome of a bulk action over every item awaiting review. Bulk work is
+    /// Outcome of a bulk action over every item awaiting review, counted in
+    /// messages like the scope the menu states before it runs. Bulk work is
     /// best effort: one account failing must not strand the rest.
     enum BulkActionResult: Equatable {
         case nothingPending
@@ -14,15 +15,15 @@ extension AccountSupervisor {
         var message: String {
             switch self {
             case .nothingPending:
-                String(localized: "No messages awaiting review.")
+                MenuCopy.BulkResult.nothingPending
             case .markedAllAsRead(let count):
-                String(localized: "Marked \(MenuCopy.reviewCountText(count).lowercased()) as read in Gmail.")
+                MenuCopy.BulkResult.marked(messages: count)
             case .partiallyMarkedAsRead(let marked, let failed):
-                String(localized: "Marked \(marked) as read. \(failed) could not be updated in Gmail.")
+                MenuCopy.BulkResult.partiallyMarked(marked: marked, failed: failed)
             case .markAsReadFailed:
-                String(localized: "Couldn't mark messages as read in Gmail. Try again.")
+                MenuCopy.BulkResult.markFailed
             case .dismissedAll(let count):
-                String(localized: "Dismissed \(MenuCopy.reviewCountText(count).lowercased()) from Mailbell.")
+                MenuCopy.BulkResult.dismissed(messages: count)
             }
         }
     }
@@ -52,7 +53,7 @@ extension AccountSupervisor {
             var submissions: [ReadSubmission] = []
             for submission in reviewQueue.readSubmissions(containing: accountGroups.map(\.id)) {
                 if submission.isEmpty {
-                    failed += 1
+                    failed += submission.messageCount
                     continue
                 }
                 identities.append(contentsOf: submission.identities)
@@ -64,17 +65,17 @@ extension AccountSupervisor {
                 let config = try configProvider()
                 try await emailReadMarker(account, config, identities)
                 try reviewQueue.markRead(submissions: submissions)
-                marked += submissions.count
+                marked += submissions.reduce(0) { $0 + $1.messageCount }
             } catch {
-                failed += submissions.count
+                failed += submissions.reduce(0) { $0 + $1.messageCount }
                 applyMarkAsReadFailure(error, accountID: account.id)
             }
         }
 
         // Pending items whose account has since been removed cannot be marked.
         let knownAccountIDs = Set(accounts.map(\.id))
-        let orphanCount = groups.filter { !knownAccountIDs.contains($0.accountID) }.count
-        failed += orphanCount
+        let orphans = groups.filter { !knownAccountIDs.contains($0.accountID) }
+        failed += reviewQueue.conversationSizes(of: orphans).values.reduce(0, +)
 
         applyReviewQueueWarning(accountID: nil)
         publish()

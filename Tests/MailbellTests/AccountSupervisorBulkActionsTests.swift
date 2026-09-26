@@ -127,8 +127,10 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
         XCTAssertTrue(readmitted.isEmpty, "dismissed messages must not come back")
     }
 
+    /// The result names messages, the unit the bulk scope stated before the
+    /// action ran, so a thread of two reports two.
     @MainActor
-    func testDismissAllCountsAThreadOnce() async {
+    func testDismissAllReportsEveryMessageInAThread() async {
         let (supervisor, account) = makeSupervisor(emailReadMarker: { _, _, _ in })
         _ = await supervisor.monitor(
             account.id,
@@ -138,7 +140,7 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
             ])
         XCTAssertEqual(supervisor.shownItems.count, 1)
 
-        XCTAssertEqual(supervisor.dismissAll(), .dismissedAll(count: 1))
+        XCTAssertEqual(supervisor.dismissAll(), .dismissedAll(count: 2))
     }
 
     @MainActor
