@@ -135,7 +135,7 @@ struct MenuContent: View {
     @ViewBuilder
     private var noAccountSection: some View {
         Text("Not connected")
-        if let setupMessage = appState.oauthSetupMessage {
+        if let setupMessage = appState.buildProblemDetails {
             Text(SettingsCopy.BuildProblem.headline)
             Text(setupMessage)
         }
@@ -145,7 +145,7 @@ struct MenuContent: View {
         Button(appState.isAuthorizing ? "Authorizing…" : "Add Gmail Account") {
             appState.addGoogleAccount()
         }
-        .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
+        .disabled(appState.buildProblemDetails != nil || appState.isAuthorizing)
     }
 
     private var accountsMenuSection: some View {
@@ -212,14 +212,14 @@ struct MenuContent: View {
                         }
                         Divider()
                         Button(MenuCopy.openActionTitle) {
-                            appState.openEmail(id: email.id)
+                            appState.open(itemID: email.id)
                         }
                         Button(MenuCopy.markAsReadActionTitle) {
-                            appState.markEmailAsRead(id: email.id)
+                            appState.markAsRead(itemID: email.id)
                         }
                         .disabled(!email.canMarkAsRead)
                         Button {
-                            appState.dismissEmail(id: email.id)
+                            appState.dismiss(itemID: email.id)
                         } label: {
                             Text(MenuCopy.dismissActionTitle)
                         }
@@ -240,7 +240,7 @@ struct MenuContent: View {
             Text(MenuCopy.bulkActionScope(retainedMessages: appState.retainedMessageCount))
             Divider()
             Button {
-                appState.markAllEmailsAsRead()
+                appState.markAllAsRead()
             } label: {
                 Text(
                     appState.isMarkingAllAsRead
@@ -251,7 +251,7 @@ struct MenuContent: View {
             .disabled(!appState.canMarkAllAsRead)
 
             Button {
-                appState.dismissAllEmails()
+                appState.dismissAll()
             } label: {
                 Text(MenuCopy.dismissAllActionTitle)
             }

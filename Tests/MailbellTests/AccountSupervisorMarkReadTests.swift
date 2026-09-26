@@ -18,7 +18,7 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
         XCTAssertTrue(didAdmit)
         let item = try XCTUnwrap(supervisor.shownItems.first)
 
-        await supervisor.markEmailAsRead(id: item.id)
+        await supervisor.markAsRead(itemID: item.id)
 
         XCTAssertEqual(markedAccounts, [account.id])
         XCTAssertEqual(markedIdentities, [IMAPMessageIdentity(uid: 42, mailboxName: "INBOX", uidValidity: 1)])
@@ -42,7 +42,7 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
         XCTAssertTrue(didAdmitSecond)
         let item = try XCTUnwrap(supervisor.shownItems.first)
 
-        await supervisor.markEmailAsRead(id: item.id)
+        await supervisor.markAsRead(itemID: item.id)
 
         XCTAssertEqual(
             Set(markedIdentities),
@@ -65,7 +65,7 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
         XCTAssertTrue(didAdmit)
         let item = try XCTUnwrap(supervisor.shownItems.first)
 
-        await supervisor.markEmailAsRead(id: item.id)
+        await supervisor.markAsRead(itemID: item.id)
 
         XCTAssertEqual(supervisor.shownItems.map(\.id), [item.id])
     }
@@ -96,7 +96,7 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
         let item = try XCTUnwrap(supervisor.shownItems.first)
         shouldFail = true
 
-        await supervisor.markEmailAsRead(id: item.id)
+        await supervisor.markAsRead(itemID: item.id)
 
         XCTAssertEqual(supervisor.shownItems.map(\.id), [item.id])
         XCTAssertEqual(
@@ -121,7 +121,7 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
         let item = try XCTUnwrap(supervisor.shownItems.first)
         XCTAssertFalse(item.canMarkAsRead)
 
-        await supervisor.markEmailAsRead(id: item.id)
+        await supervisor.markAsRead(itemID: item.id)
 
         XCTAssertFalse(didCallMarker)
         XCTAssertEqual(supervisor.shownItems.map(\.id), [item.id])

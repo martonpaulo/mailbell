@@ -11,8 +11,8 @@ extension SettingsView {
             // A build with no OAuth client cannot sign in at all, so the
             // explanation belongs here, where the user is blocked, not in a
             // diagnostics pane they would have to go looking for.
-            if let setupMessage = appState.oauthSetupMessage {
-                OAuthSetupPanel(details: setupMessage)
+            if let setupMessage = appState.buildProblemDetails {
+                BuildProblemPanel(details: setupMessage)
             }
 
             SettingsRow(
@@ -37,7 +37,7 @@ extension SettingsView {
                 Button(SettingsCopy.Accounts.addAccount) {
                     appState.addGoogleAccount()
                 }
-                .disabled(appState.oauthSetupMessage != nil || appState.isAuthorizing)
+                .disabled(appState.buildProblemDetails != nil || appState.isAuthorizing)
             }
         } header: {
             Text(SettingsCopy.Accounts.sectionTitle)

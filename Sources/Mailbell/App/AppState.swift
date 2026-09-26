@@ -10,7 +10,7 @@ final class AppState {
     private(set) var status: MonitorStatus = .signedOut
     private(set) var accounts: [AccountRuntimeState] = []
     private(set) var lastError: String?
-    private(set) var oauthSetupMessage: String?
+    private(set) var buildProblemDetails: String?
     private(set) var isAuthorizing = false
     var isSendingTestNotification = false
     var notificationAuthorizationState: NotificationAuthorizationState = .unbundled
@@ -58,14 +58,14 @@ final class AppState {
         menuBarIconSystemImage = supervisor.menuBarIconSystemImage
         needsAttention = supervisor.needsAttention
         needsSignIn = supervisor.needsSignIn
-        oauthSetupMessage = supervisor.oauthSetupMessage
+        buildProblemDetails = supervisor.buildProblemDetails
         lastError = supervisor.accountStoreError
 
         notificationManager.emailOpenHandler = { [weak self] emailID, accountID, url in
-            await self?.supervisor.openEmail(id: emailID, accountID: accountID, url: url)
+            await self?.supervisor.open(itemID: emailID, accountID: accountID, url: url)
         }
         notificationManager.emailDismissHandler = { [weak self] emailID in
-            self?.supervisor.dismissEmail(id: emailID)
+            self?.supervisor.dismiss(itemID: emailID)
         }
         notificationManager.webmailOpenHandler = { [weak self] accountID, url in
             await self?.supervisor.openWebmail(accountID: accountID, url: url)
@@ -109,11 +109,11 @@ final class AppState {
             do {
                 try await supervisor.addGmailAccount()
                 lastError = nil
-                oauthSetupMessage = supervisor.oauthSetupMessage
+                buildProblemDetails = supervisor.buildProblemDetails
             } catch {
                 Log.auth.error("Sign-in failed: \(Log.detail(error), privacy: .private)")
                 lastError = error.localizedDescription
-                oauthSetupMessage = supervisor.oauthSetupMessage
+                buildProblemDetails = supervisor.buildProblemDetails
             }
         }
     }
@@ -126,11 +126,11 @@ final class AppState {
             do {
                 try await supervisor.reauthenticate(accountID: accountID)
                 lastError = nil
-                oauthSetupMessage = supervisor.oauthSetupMessage
+                buildProblemDetails = supervisor.buildProblemDetails
             } catch {
                 Log.auth.error("Sign-in failed: \(Log.detail(error), privacy: .private)")
                 lastError = error.localizedDescription
-                oauthSetupMessage = supervisor.oauthSetupMessage
+                buildProblemDetails = supervisor.buildProblemDetails
             }
         }
     }
@@ -193,23 +193,23 @@ final class AppState {
         supervisor.retainedMessageCount
     }
 
-    func openEmail(id: String) {
+    func open(itemID id: String) {
         clearBulkActionResult()
         Task {
-            await supervisor.openEmail(id: id)
+            await supervisor.open(itemID: id)
         }
     }
 
-    func markEmailAsRead(id: String) {
+    func markAsRead(itemID id: String) {
         clearBulkActionResult()
         Task {
-            await supervisor.markEmailAsRead(id: id)
+            await supervisor.markAsRead(itemID: id)
         }
     }
 
-    func dismissEmail(id: String) {
+    func dismiss(itemID id: String) {
         clearBulkActionResult()
-        supervisor.dismissEmail(id: id)
+        supervisor.dismiss(itemID: id)
     }
 
     /// A per-message action makes a whole-queue result stale. Clearing it is
@@ -227,18 +227,18 @@ final class AppState {
         supervisor.canMarkAllAsRead && !isMarkingAllAsRead
     }
 
-    func markAllEmailsAsRead() {
+    func markAllAsRead() {
         guard !isMarkingAllAsRead else { return }
         Task {
             isMarkingAllAsRead = true
             bulkActionMessage = nil
             defer { isMarkingAllAsRead = false }
-            bulkActionMessage = await supervisor.markAllEmailsAsRead().message
+            bulkActionMessage = await supervisor.markAllAsRead().message
         }
     }
 
-    func dismissAllEmails() {
-        bulkActionMessage = supervisor.dismissAllEmails().message
+    func dismissAll() {
+        bulkActionMessage = supervisor.dismissAll().message
     }
 
     var isUpdaterAvailable: Bool {
@@ -296,7 +296,7 @@ extension AppState: AccountSupervisorDelegate {
         menuBarIconSystemImage = supervisor.menuBarIconSystemImage
         needsAttention = supervisor.needsAttention
         needsSignIn = supervisor.needsSignIn
-        oauthSetupMessage = supervisor.oauthSetupMessage
+        buildProblemDetails = supervisor.buildProblemDetails
         if let accountStoreError = supervisor.accountStoreError {
             lastError = accountStoreError
         }

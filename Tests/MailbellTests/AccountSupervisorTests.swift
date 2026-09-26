@@ -100,13 +100,13 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
-    func testOAuthSetupMessageUsesConfigProviderError() {
+    func testBuildProblemDetailsUsesConfigProviderError() {
         let (supervisor, _) = SupervisorFixture.makeSupervisor(
             configProvider: { throw OAuthConfigIssue.missingCredentials }
         )
 
         XCTAssertEqual(
-            supervisor.oauthSetupMessage,
+            supervisor.buildProblemDetails,
             OAuthConfigIssue.missingCredentials.localizedDescription
         )
     }
@@ -206,7 +206,7 @@ final class AccountSupervisorTests: XCTestCase {
         XCTAssertEqual(supervisor.menuBarIconSystemImage, "bell.fill")
 
         let item = try XCTUnwrap(supervisor.shownItems.first)
-        supervisor.dismissEmail(id: item.id)
+        supervisor.dismiss(itemID: item.id)
 
         XCTAssertEqual(supervisor.menuBarIconSystemImage, "bell")
     }

@@ -19,7 +19,7 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
         ])
         XCTAssertEqual(supervisor.shownItems.count, 3)
 
-        let result = await supervisor.markAllEmailsAsRead()
+        let result = await supervisor.markAllAsRead()
 
         XCTAssertEqual(result, .markedAllAsRead(count: 3))
         XCTAssertEqual(callCount, 1, "one authenticated IMAP session per account")
@@ -44,7 +44,7 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
             makeHeader(uid: 21, gmMessageId: "two")
         ])
 
-        let result = await supervisor.markAllEmailsAsRead()
+        let result = await supervisor.markAllAsRead()
 
         XCTAssertEqual(result, .markAsReadFailed)
         XCTAssertEqual(supervisor.shownItems.count, 2)
@@ -59,7 +59,7 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
         ])
         XCTAssertEqual(supervisor.shownItems.count, 2)
 
-        let result = await supervisor.markAllEmailsAsRead()
+        let result = await supervisor.markAllAsRead()
 
         XCTAssertEqual(result, .partiallyMarkedAsRead(marked: 1, failed: 1))
         XCTAssertEqual(supervisor.shownItems.count, 1)
@@ -70,7 +70,7 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
     func testMarkAllAsReadOnAnEmptyStoreReportsNothingPending() async {
         let (supervisor, _) = makeSupervisor(emailReadMarker: { _, _, _ in })
 
-        let result = await supervisor.markAllEmailsAsRead()
+        let result = await supervisor.markAllAsRead()
 
         XCTAssertEqual(result, .nothingPending)
     }
@@ -87,7 +87,7 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
         ]
         _ = await supervisor.monitor(account.id, shouldNotify: headers)
 
-        let result = supervisor.dismissAllEmails()
+        let result = supervisor.dismissAll()
 
         XCTAssertEqual(result, .dismissedAll(count: 2))
         XCTAssertFalse(didCallMarker)
@@ -106,14 +106,14 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
         ])
         XCTAssertEqual(supervisor.shownItems.count, 1)
 
-        XCTAssertEqual(supervisor.dismissAllEmails(), .dismissedAll(count: 1))
+        XCTAssertEqual(supervisor.dismissAll(), .dismissedAll(count: 1))
     }
 
     @MainActor
     func testDismissAllOnAnEmptyStoreReportsNothingPending() {
         let (supervisor, _) = makeSupervisor(emailReadMarker: { _, _, _ in })
 
-        XCTAssertEqual(supervisor.dismissAllEmails(), .nothingPending)
+        XCTAssertEqual(supervisor.dismissAll(), .nothingPending)
     }
 
     @MainActor

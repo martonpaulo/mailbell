@@ -36,7 +36,7 @@ extension AccountSupervisor {
     /// Marks every pending group as read on the server, one authenticated IMAP
     /// session per account, then removes the groups locally. Publishes once.
     @discardableResult
-    func markAllEmailsAsRead() async -> BulkActionResult {
+    func markAllAsRead() async -> BulkActionResult {
         let groups = shownItems
         guard !groups.isEmpty else { return .nothingPending }
 
@@ -89,7 +89,7 @@ extension AccountSupervisor {
     /// Clears every pending item locally. Gmail is not touched: dismissed items
     /// stay unread in the mailbox and are suppressed from unread reconciliation.
     @discardableResult
-    func dismissAllEmails() -> BulkActionResult {
+    func dismissAll() -> BulkActionResult {
         do {
             let count = try reviewQueue.dismissAll()
             guard count > 0 else { return .nothingPending }

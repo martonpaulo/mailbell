@@ -83,7 +83,7 @@ final class AccountSupervisor {
         wakeObserver.remove()
     }
 
-    var oauthSetupMessage: String? {
+    var buildProblemDetails: String? {
         do {
             _ = try configProvider()
             return nil

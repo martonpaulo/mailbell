@@ -57,7 +57,7 @@ final class AccountSupervisorQueueTests: XCTestCase {
         XCTAssertTrue(didAdmit)
 
         let item = try XCTUnwrap(supervisor.shownItems.first)
-        await supervisor.openEmail(id: item.id, accountID: account.id, url: item.webmailURL)
+        await supervisor.open(itemID: item.id, accountID: account.id, url: item.webmailURL)
 
         XCTAssertEqual(openedURLs, [item.webmailURL])
         XCTAssertEqual(openedAccountIDs, [account.id])
@@ -93,8 +93,8 @@ final class AccountSupervisorQueueTests: XCTestCase {
         XCTAssertTrue(didAdmit)
         let item = try XCTUnwrap(supervisor.shownItems.first)
 
-        supervisor.dismissEmail(id: item.id)
-        supervisor.dismissEmail(id: item.id)
+        supervisor.dismiss(itemID: item.id)
+        supervisor.dismiss(itemID: item.id)
 
         XCTAssertTrue(supervisor.shownItems.isEmpty)
         let didReadmit = await SupervisorFixture.admit(header, into: supervisor, account: account)
@@ -125,7 +125,7 @@ final class AccountSupervisorQueueTests: XCTestCase {
         let item = try XCTUnwrap(supervisor.shownItems.first)
         shouldFail = true
 
-        supervisor.dismissEmail(id: item.id)
+        supervisor.dismiss(itemID: item.id)
 
         XCTAssertEqual(supervisor.shownItems.map(\.id), [item.id])
         XCTAssertEqual(
@@ -158,7 +158,7 @@ final class AccountSupervisorQueueTests: XCTestCase {
         let item = try XCTUnwrap(supervisor.shownItems.first)
         shouldFail = true
 
-        await supervisor.openEmail(id: item.id, accountID: account.id, url: item.webmailURL)
+        await supervisor.open(itemID: item.id, accountID: account.id, url: item.webmailURL)
 
         XCTAssertEqual(supervisor.shownItems.map(\.id), [item.id])
         XCTAssertEqual(

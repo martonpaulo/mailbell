@@ -5,7 +5,7 @@ import SwiftUI
 /// release this is a packaging defect, not something an end user can fix, so the
 /// copy names it as a build problem and points at the issue tracker instead of
 /// asking the user to create their own Google Cloud client.
-struct OAuthSetupPanel: View {
+struct BuildProblemPanel: View {
     let details: String
     @State private var showsDetails = false
 

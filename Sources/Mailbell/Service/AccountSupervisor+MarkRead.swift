@@ -2,7 +2,7 @@ import Foundation
 import MailbellKit
 
 extension AccountSupervisor {
-    func markEmailAsRead(id: String) async {
+    func markAsRead(itemID id: String) async {
         guard let item = reviewQueue.item(id: id) else { return }
         let submission = reviewQueue.readSubmission(containing: id)
         guard !submission.isEmpty else {
