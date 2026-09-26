@@ -249,7 +249,9 @@ final class BundleConfigScriptTests: XCTestCase {
         processEnvironment.removeValue(forKey: "DEVELOPER_ID_IDENTITY")
         processEnvironment.removeValue(forKey: "NOTARY_PROFILE")
         processEnvironment["MAILBELL_DOTENV_PATH"] = root.appendingPathComponent(".env.test-missing").path
-        environment.forEach { processEnvironment[$0.key] = $0.value }
+        for (key, value) in environment {
+            processEnvironment[key] = value
+        }
         process.environment = processEnvironment
 
         let stdout = Pipe()
