@@ -11,6 +11,9 @@ note() { echo "FAIL: $1"; fail=1; }
 if [ ! -L CLAUDE.md ] || [ "$(readlink CLAUDE.md)" != "AGENTS.md" ]; then
     note "CLAUDE.md must be a symlink to AGENTS.md"
 fi
+# Antigravity CLI loads at most 24,000 bytes of a rule file and drops the rest.
+agents_bytes=$(wc -c < AGENTS.md | tr -d ' ')
+[ "$agents_bytes" -le 24000 ] || note "AGENTS.md is $agents_bytes bytes; the limit is 24000"
 
 # The bundle identifier is fixed: Keychain and UserDefaults ownership derive
 # from it, so a change silently orphans every user's accounts and tokens.
