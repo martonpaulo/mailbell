@@ -272,6 +272,11 @@ if [ -f appcast.xml ]; then
         || note "appcast.xml must be Mailbell's feed"
     grep -q 'releases/download/v' appcast.xml \
         || note "appcast enclosures must point at GitHub release assets"
+    # Sparkle's update window shows the site's notes page, never GitHub's full
+    # release page with its menu and sign-in.
+    if grep -q 'releaseNotesLink>https://github.com/' appcast.xml; then
+        note "appcast release-notes links must point at the site's release-notes pages, not GitHub"
+    fi
 fi
 
 if [ "$fail" -eq 0 ]; then

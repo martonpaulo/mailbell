@@ -14,6 +14,8 @@ on:
 
 permissions:
   contents: write
+  # gh workflow run deploy.yml, after the appcast push.
+  actions: write
 
 jobs:
   release:
@@ -202,14 +204,28 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           git checkout main
-          scripts/make-appcast.sh "$VERSION" "${{ steps.version.outputs.build }}" \
-            "artifacts/Mailbell-$VERSION.zip" "$SPARKLE_SIG_ATTRS"
+          # Sparkle's update window shows the site's own notes page for this version,
+          # and "Version History" opens the page listing every version.
+          host=$(tr -d '[:space:]' < site/CNAME)
+          scripts/make-appcast.sh --version "$VERSION" \
+            --build-number "${{ steps.version.outputs.build }}" \
+            --archive "artifacts/Mailbell-$VERSION.zip" --signature "$SPARKLE_SIG_ATTRS" \
+            --release-notes-url "https://$host/release-notes/{version}/update/" \
+            --full-release-notes-url "https://$host/release-notes/"
           if ! git diff --quiet appcast.xml; then
             git add appcast.xml
             git commit -m "chore(release): appcast entry for $VERSION"
             git pull --rebase origin main
             git push origin main
           fi
+
+      # A push made with GITHUB_TOKEN starts no workflow run, so the appcast commit
+      # alone never deploys the site. Publish it now, so the notes page the new
+      # appcast entry links exists.
+      - name: Publish the site
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --ref main -R "$GITHUB_REPOSITORY"
 
       - name: Remove notary API key
         if: always()

@@ -158,7 +158,11 @@ release: icons ## Build, sign, notarize, and staple a tagged release DMG
 		spctl -a -t open --context context:primary-signature -vv "$${final_dmg}"; \
 		printf "$(BOLD)[10/11]$(RESET) Signing the update archive for Sparkle\n"; \
 		sig="$$(scripts/sign-sparkle-update.sh "$${update_zip}")"; \
-		scripts/make-appcast.sh "$${VERSION}" "$${BUILD_NUMBER}" "$${update_zip}" "$${sig}"; \
+		host="$$(tr -d "[:space:]" < site/CNAME)"; \
+		scripts/make-appcast.sh --version "$${VERSION}" --build-number "$${BUILD_NUMBER}" \
+			--archive "$${update_zip}" --signature "$${sig}" \
+			--release-notes-url "https://$${host}/release-notes/{version}/update/" \
+			--full-release-notes-url "https://$${host}/release-notes/"; \
 		printf "$(BOLD)[11/11]$(RESET) Release artifacts ready\n"; \
 		cp -f "$${final_dmg}" "artifacts/$$(basename "$${final_dmg}")"; \
 		printf "$(GREEN)[ok]$(RESET) DMG: artifacts/%s\n" "$$(basename "$${final_dmg}")"; \

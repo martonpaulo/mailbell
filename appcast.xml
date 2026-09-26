@@ -8,7 +8,8 @@
     <item>
       <title>0.3.1</title>
       <pubDate>Wed, 09 Sep 2026 18:06:19 +0000</pubDate>
-      <sparkle:releaseNotesLink>https://github.com/martonpaulo/mailbell/releases/tag/v0.3.1</sparkle:releaseNotesLink>
+      <sparkle:releaseNotesLink>https://mailbell.martonpaulo.com/release-notes/0.3.1/update/</sparkle:releaseNotesLink>
+      <sparkle:fullReleaseNotesLink>https://mailbell.martonpaulo.com/release-notes/</sparkle:fullReleaseNotesLink>
       <sparkle:version>301</sparkle:version>
       <sparkle:shortVersionString>0.3.1</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
@@ -17,7 +18,8 @@
     <item>
       <title>0.3.0</title>
       <pubDate>Wed, 09 Sep 2026 09:11:51 +0000</pubDate>
-      <sparkle:releaseNotesLink>https://github.com/martonpaulo/mailbell/releases/tag/v0.3.0</sparkle:releaseNotesLink>
+      <sparkle:releaseNotesLink>https://mailbell.martonpaulo.com/release-notes/0.3.0/update/</sparkle:releaseNotesLink>
+      <sparkle:fullReleaseNotesLink>https://mailbell.martonpaulo.com/release-notes/</sparkle:fullReleaseNotesLink>
       <sparkle:version>300</sparkle:version>
       <sparkle:shortVersionString>0.3.0</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
@@ -26,7 +28,8 @@
     <item>
       <title>0.2.0</title>
       <pubDate>Tue, 18 Aug 2026 15:39:04 +0000</pubDate>
-      <sparkle:releaseNotesLink>https://github.com/martonpaulo/mailbell/releases/tag/v0.2.0</sparkle:releaseNotesLink>
+      <sparkle:releaseNotesLink>https://mailbell.martonpaulo.com/release-notes/0.2.0/update/</sparkle:releaseNotesLink>
+      <sparkle:fullReleaseNotesLink>https://mailbell.martonpaulo.com/release-notes/</sparkle:fullReleaseNotesLink>
       <sparkle:version>200</sparkle:version>
       <sparkle:shortVersionString>0.2.0</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
@@ -35,7 +38,8 @@
     <item>
       <title>0.1.2</title>
       <pubDate>Sun, 26 Jul 2026 11:24:35 +0000</pubDate>
-      <sparkle:releaseNotesLink>https://github.com/martonpaulo/mailbell/releases/tag/v0.1.2</sparkle:releaseNotesLink>
+      <sparkle:releaseNotesLink>https://mailbell.martonpaulo.com/release-notes/0.1.2/update/</sparkle:releaseNotesLink>
+      <sparkle:fullReleaseNotesLink>https://mailbell.martonpaulo.com/release-notes/</sparkle:fullReleaseNotesLink>
       <sparkle:version>102</sparkle:version>
       <sparkle:shortVersionString>0.1.2</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
@@ -44,7 +48,8 @@
     <item>
       <title>0.1.1</title>
       <pubDate>Sat, 25 Jul 2026 19:38:23 +0000</pubDate>
-      <sparkle:releaseNotesLink>https://github.com/martonpaulo/mailbell/releases/tag/v0.1.1</sparkle:releaseNotesLink>
+      <sparkle:releaseNotesLink>https://mailbell.martonpaulo.com/release-notes/0.1.1/update/</sparkle:releaseNotesLink>
+      <sparkle:fullReleaseNotesLink>https://mailbell.martonpaulo.com/release-notes/</sparkle:fullReleaseNotesLink>
       <sparkle:version>101</sparkle:version>
       <sparkle:shortVersionString>0.1.1</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
@@ -53,7 +58,8 @@
     <item>
       <title>0.1.0</title>
       <pubDate>Sat, 25 Jul 2026 19:05:44 +0000</pubDate>
-      <sparkle:releaseNotesLink>https://github.com/martonpaulo/mailbell/releases/tag/v0.1.0</sparkle:releaseNotesLink>
+      <sparkle:releaseNotesLink>https://mailbell.martonpaulo.com/release-notes/0.1.0/update/</sparkle:releaseNotesLink>
+      <sparkle:fullReleaseNotesLink>https://mailbell.martonpaulo.com/release-notes/</sparkle:fullReleaseNotesLink>
       <sparkle:version>100</sparkle:version>
       <sparkle:shortVersionString>0.1.0</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
