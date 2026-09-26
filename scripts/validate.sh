@@ -306,15 +306,15 @@ else
     done
 fi
 
-# Every link that leaves the site carries the external-link arrow. validate-site.sh
-# owns its target and rel.
-while IFS= read -r line; do
-    case "$line" in
-        *'class="external-icon"'*) ;;
-        *) note "external link without the external-link icon: $(printf '%s' "$line" | cut -c1-80)" ;;
-    esac
-done < <(grep -hoE '<a [^>]*href="https?://[^"]+"[^>]*>[^<]*(<svg[^>]*>.*</svg>)?</a>' \
-    site/index.html site/privacy.html site/terms.html site/404.html 2>/dev/null || true)
+# Every link that leaves the site carries the external-link arrow, drawn once by one CSS
+# rule rather than copied into each link. validate-site.sh owns its target and rel.
+grep -Fq 'a[href^="http"]::after' site/styles/main.css \
+    || note "site/styles/main.css must draw the external-link arrow with a[href^=\"http\"]::after"
+grep -q -- '--external-arrow:' site/styles/main.css \
+    || note "site/styles/main.css must define the --external-arrow token"
+if grep -rlq 'external-icon' site; then
+    note "the external-link arrow comes from CSS; remove the inline external-icon markup from site/"
+fi
 
 # The published appcast must describe the shipped app.
 if [ -f appcast.xml ]; then

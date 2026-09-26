@@ -28,9 +28,32 @@
   --measure-title: 16ch;
 }
 
-/* --- Mailbell palette and page metrics ------------------------------------- */
+/* ==========================================================================
+   Mailbell site styles
+
+   1. Tokens       palette, spacing scale, radii, sizes, motion, stacking
+   2. Base         element defaults, focus, interaction, links, skip link
+   3. Layout       page width, section rhythm, grids, showcase
+   4. Components   button, card, glyph tile, figure
+   5. Site chrome  header, footer
+   6. Sections     hero, download, open source, inner pages, release notes
+   7. Mailbell     the unverified-app notice, install steps, screenshot
+   8. Motion       reduced motion
+   9. Responsive   one block per breakpoint: 1024px, 820px, 640px, 520px
+
+   Every length comes from a token; only hairline borders and the focus ring
+   keep their pixel widths. The spacing scale is a 0.25rem (4px) grid: 0.25,
+   0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8 rem. Breakpoints cannot be custom
+   properties in a media query, so their values are named in section 9 and
+   nowhere else.
+   ========================================================================== */
+
+/* --- 1. Tokens --------------------------------------------------------------- */
+
 :root {
   color-scheme: light dark;
+
+  /* Palette */
   --bg: #fbf9f4;
   --surface: #ffffff;
   --surface-strong: #ffffff;
@@ -42,20 +65,91 @@
   --button-primary-fg: #ffffff;
   --button-primary-bg: #a35c00;
   --button-primary-bg-hover: #8a4e00;
-  --button-glow: 0 8px 22px color-mix(in srgb, var(--accent) 28%, transparent);
-  --button-glow-hover: 0 12px 28px color-mix(in srgb, var(--accent) 34%, transparent);
-  --shadow: 0 24px 80px rgba(26, 23, 16, 0.12);
-  --icon-shadow: drop-shadow(0 18px 28px rgba(163, 92, 0, 0.22));
-  --radius: 28px;
-  --radius-card: 24px;
-  --page-width: min(1180px, calc(100% - 40px));
-  /* The sticky header's own height: what anything else that sticks has to
-     clear so it does not park underneath it. */
-  --header-height: 65px;
+  --focus-ring: color-mix(in srgb, var(--accent) 70%, white);
+  --accent-tint: color-mix(in srgb, var(--accent) 12%, transparent);
   /* Mailbell's own: the unverified-app disclosure. */
   --warning-bg: #fff8e6;
   --warning-line: #e0a72a;
   --warning-text: #6b4a00;
+
+  /* Elevation */
+  --shadow: 0 24px 80px rgba(26, 23, 16, 0.12);
+  --shadow-s: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-button: 0 8px 22px color-mix(in srgb, var(--accent) 28%, transparent);
+  --shadow-button-hover: 0 12px 28px color-mix(in srgb, var(--accent) 34%, transparent);
+  --icon-shadow: drop-shadow(0 18px 28px rgba(163, 92, 0, 0.22));
+
+  /* Spacing: a 0.25rem grid */
+  --space-3xs: 0.25rem;  /*   4px */
+  --space-2xs: 0.5rem;   /*   8px */
+  --space-xs: 0.75rem;   /*  12px */
+  --space-s: 1rem;       /*  16px */
+  --space-m: 1.5rem;     /*  24px */
+  --space-l: 2rem;       /*  32px */
+  --space-xl: 3rem;      /*  48px */
+  --space-2xl: 4rem;     /*  64px */
+  --space-3xl: 6rem;     /*  96px */
+  --space-4xl: 8rem;     /* 128px */
+
+  /* Radii */
+  --radius-xs: 0.25rem;
+  --radius-s: 0.5rem;
+  --radius-m: 0.75rem;
+  --radius-l: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-pill: 999px;
+
+  /* Sizes */
+  --page-width: min(73.75rem, 100% - 2.5rem);   /* 1180px, 20px gutters */
+  --width-hero-copy: 51.25rem;                  /* 820px */
+  --width-shot: 49.25rem;                       /* 788px: the capture at half its pixel width */
+  --width-showcase-figure: 27.5rem;             /* 440px */
+  --width-showcase-figure-min: 17.5rem;         /* 280px */
+  --height-showcase-figure: 35rem;              /* 560px */
+  /* Running text stops at 80 characters, the upper end of a comfortable line;
+     the full 1180px page would carry about 140. Headings have no cap: they are
+     short, and balanced wrapping already evens their lines. */
+  --measure-prose: 80ch;
+  --control-height: 3rem;
+  --control-height-s: 2.25rem;
+  --glyph-tile: 3rem;
+  --step-marker: 2rem;
+  --brand-icon: 2.25rem;
+  --chevron: 0.4em;
+  --chevron-stroke: 1.5px;
+  /* The sticky header's own height (brand icon + padding + hairline): what an
+     in-page link has to clear so its target does not park underneath it. */
+  --header-height: 3.8125rem;
+
+  /* Motion. Only something clickable moves under the pointer: it lifts by
+     --lift. */
+  --duration-instant: 0.08s;
+  --duration-fast: 0.15s;
+  --duration-medium: 0.3s;
+  --duration-slow: 0.7s;
+  --duration-entrance: 0.8s;
+  --stagger: 0.06s;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --lift: -2px;
+  --press: 3px;
+  --transition-interactive:
+    transform var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease,
+    background-color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease,
+    color var(--duration-fast) ease;
+
+  /* Stacking */
+  --z-header: 100;
+  --z-skip-link: 200;
+
+  /* Glass: the blur behind the header */
+  --blur-s: 16px;
+  --blur-m: 22px;
+  --blur-l: 28px;
+
+  /* Every link that leaves the site ends with this arrow (section 2). */
+  --external-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.6 8.4 8.4 3.6M4.8 3.6h3.6v3.6'/%3E%3C/svg%3E");
 }
 
 @media (prefers-color-scheme: dark) {
@@ -79,338 +173,964 @@
   }
 }
 
-/* --- Shared structure ------------------------------------------------------
-   The section rhythm, hero, feature blocks, buttons and footer below are the
-   fleet's one landing-page design. Keep them in step across the three sites. */
+/* --- 2. Base ------------------------------------------------------------------ */
 
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-/* The footer sits at the bottom of the viewport on a short page (the 404
-   above all) instead of floating in the middle of it. svh keeps mobile browser
-   chrome from pushing it off; vh is the fallback for anything older. */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--header-height);
+}
+
+/* The footer sits at the bottom of the viewport on a short page (the 404 above
+   all). svh keeps mobile browser chrome from pushing it off; vh is the fallback. */
 body {
-  min-height: 100vh;
-  min-height: 100svh;
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
   margin: 0;
+  background: var(--bg);
+  color: var(--text);
   font-family: var(--font-sans);
   font-weight: var(--weight-body);
   line-height: var(--leading-body);
   letter-spacing: var(--tracking-body);
-  background: var(--bg);
+}
+
+a {
+  color: inherit;
+}
+
+/* A link inside running copy shows itself; navigation, buttons and link rows
+   carry their own treatment. */
+p a,
+li a,
+td a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  transition: var(--transition-interactive);
+}
+
+:where(p, li, td) a:hover {
+  color: var(--accent-hover);
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+strong {
+  font-weight: var(--weight-strong);
+}
+
+/* Headings balance their lines; running text only avoids a short last line,
+   because evening out every line of a long paragraph reads worse. Short text
+   in narrow boxes balances like a heading. */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p,
+figcaption {
+  text-wrap: pretty;
+}
+
+li,
+td,
+th,
+summary {
+  text-wrap: balance;
+}
+
+:where(a, button, summary, input, select, [tabindex]):focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: var(--space-3xs);
+  border-radius: var(--radius-s);
+}
+
+/* Interaction: what the pointer and selection do, in one place.
+   - Anything clickable shows the pointer; nothing else does.
+   - Controls and decorative drawings are not selectable, so a click or a drag
+     never highlights their labels; running text always is. */
+:where(a[href], button, summary, [role="option"], label[for]) {
+  cursor: pointer;
+}
+
+:where(button, .button, .site-header, .glyph-tile, summary) {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Every link that leaves the site ends with the same small arrow, drawn here
+   once instead of in the markup of every link. A link to another page of this
+   site never carries it. It is an empty inline box whose padding holds the
+   arrow, not an inline-block: an inline-block is a line-break opportunity, so
+   punctuation after the link (", ") could wrap onto the next line on its own. */
+a[href^="http"]::after {
+  content: "";
+  flex: none;
+  padding-left: 1.05em;  /* 0.35em gap + 0.7em arrow */
+  min-height: 1em;       /* gives it a height inside a flex button; inline text ignores it */
+  background: currentColor;
+  opacity: 0.8;
+  -webkit-mask: var(--external-arrow) right center / 0.7em no-repeat;
+  mask: var(--external-arrow) right center / 0.7em no-repeat;
+}
+
+.skip-link {
+  position: fixed;
+  top: calc(var(--space-2xl) * -1);
+  left: var(--space-s);
+  z-index: var(--z-skip-link);
+  padding: var(--space-xs) var(--space-s);
+  border-radius: var(--radius-m);
+  background: var(--text);
+  color: var(--bg);
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: var(--space-s);
+}
+
+/* --- 3. Layout ---------------------------------------------------------------- */
+
+main {
+  flex: 1 0 auto;
+  width: var(--page-width);
+  margin-inline: auto;
+}
+
+.eyebrow {
+  margin: 0 0 var(--space-xs);
+  color: var(--accent);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-display);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+}
+
+/* The rhythm inside a section: eyebrow, heading, an optional lead paragraph,
+   then whatever the section shows. */
+.section {
+  padding: var(--space-4xl) 0;
+  border-top: 1px solid var(--line);
+}
+
+.section h2 {
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-display);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-display);
+}
+
+.section > :where(:not(.eyebrow, h2)) {
+  margin-top: var(--space-xl);
+}
+
+.section > p:not(.eyebrow),
+.showcase-copy > p:not(.eyebrow) {
+  max-width: var(--measure-prose);
+  margin: var(--space-m) 0 0;
+  color: var(--secondary);
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
+}
+
+/* A grid never sets its own top margin: the section rhythm above owns the
+   space between a heading and what follows it. */
+.grid {
+  display: grid;
+  gap: var(--space-s);
+  margin-bottom: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stack {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+/* Prose paired with a single figure: two columns from the tablet breakpoint
+   up, stacked below it with the copy first. Alternate `.showcase` and
+   `.showcase.figure-first` so consecutive pairs never put the figure on the
+   same side. minmax(0, 1fr), not 1fr: a column whose automatic minimum is
+   min-content pushes the grid wider than the page container. */
+.showcase {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(var(--width-showcase-figure-min), var(--width-showcase-figure));
+  align-items: center;
+  gap: var(--space-3xl);
+}
+
+.showcase > * {
+  min-width: 0;
+  margin-top: 0;
+}
+
+.showcase > :not(.showcase-copy) {
+  justify-self: end;
+  max-height: var(--height-showcase-figure);
+}
+
+.showcase-copy h2 {
+  font-size: var(--text-xl);
+}
+
+.showcase.figure-first {
+  grid-template-columns: minmax(var(--width-showcase-figure-min), var(--width-showcase-figure)) minmax(0, 1fr);
+}
+
+.showcase.figure-first > .showcase-copy {
+  order: 2;
+}
+
+.showcase.figure-first > :not(.showcase-copy) {
+  justify-self: start;
+}
+
+/* --- 4. Components -------------------------------------------------------------- */
+
+/* Button: a short rise on hover with the shadow following on the same curve
+   (section 8 limits the rise to a fine pointer), and the press putting it
+   back down. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height);
+  padding: 0 var(--space-m);
+  border-radius: var(--radius-pill);
+  font-size: 1rem;
+  font-weight: var(--weight-strong);
+  text-decoration: none;
+  transition: var(--transition-interactive);
+}
+
+.button.primary {
+  background: var(--button-primary-bg);
+  color: var(--button-primary-fg);
+  box-shadow: var(--shadow-button);
+}
+
+.button.primary:hover {
+  background: var(--button-primary-bg-hover);
+  box-shadow: var(--shadow-button-hover);
+}
+
+.button.secondary {
+  background: var(--surface-strong);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.text-link,
+.link-row a {
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
+  text-decoration: none;
+}
+
+.text-link:hover,
+.link-row a:hover {
+  color: var(--accent-hover);
+}
+
+.link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-m);
+}
+
+/* Card: the one surface for feature tiles. */
+.card {
+  padding: var(--space-l);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+}
+
+.card h3 {
+  margin: 0 0 var(--space-2xs);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-display);
+}
+
+.card p {
+  margin: 0;
+  color: var(--secondary);
+}
+
+.card strong {
   color: var(--text);
 }
-a { color: inherit; }
-/* A link inside running copy shows itself. Navigation, buttons and link rows
-   carry their own treatment instead. */
-p a, li a, td a { color: var(--accent); text-decoration: underline; text-underline-offset: 0.18em; }
-.actions a, .link-row a, .site-footer a, .site-header a { text-decoration: none; }
-img { display: block; max-width: 100%; height: auto; }
-strong { font-weight: var(--weight-strong); }
 
-.skip-link { position: fixed; left: 16px; top: -80px; z-index: 100; padding: 10px 14px; border-radius: 10px; background: var(--text); color: var(--bg); text-decoration: none; }
-.skip-link:focus { top: 16px; }
-
-:where(a, button, input, select):focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--accent) 70%, white);
-  outline-offset: 4px;
-  border-radius: 8px;
+/* The square accent tile above a feature card's heading. */
+.glyph-tile {
+  display: grid;
+  place-items: center;
+  width: var(--glyph-tile);
+  height: var(--glyph-tile);
+  margin-bottom: var(--space-l);
+  border-radius: var(--radius-m);
+  background: var(--accent-tint);
+  color: var(--accent);
+  font-size: var(--text-md);
+  font-weight: var(--weight-display);
 }
 
-/* One icon for every link that leaves the site: the GitHub button, another site
-   of the fleet, any external documentation. A link to another page of this site
-   never carries it. */
-.external-icon {
-  flex: none;
-  width: 0.7em;
-  height: 0.7em;
-  margin-left: 0.35em;
-  vertical-align: baseline;
-  opacity: 0.8;
+figure {
+  margin: 0;
+  padding: var(--space-m);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
 }
 
-/* The header's background, blur and hairline span the viewport; only its
-   contents sit in the container, so the brand keeps the same left edge as every
-   section below it. The footer's rule is drawn the same way. */
+figcaption {
+  padding: var(--space-s) var(--space-3xs) 0;
+  color: var(--secondary);
+  font-size: var(--text-sm);
+}
+
+/* --- 5. Site chrome --------------------------------------------------------------- */
+
+/* The header's background, blur and hairline span the viewport; only its content
+   sits in the page container, so the brand keeps the left edge of every section. */
 .site-header {
-  position: sticky; top: 0; z-index: 20;
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
-  backdrop-filter: blur(22px) saturate(1.4);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
   border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(var(--blur-m)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--blur-m)) saturate(1.4);
 }
+
 .site-header-inner {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px 24px;
-  width: var(--page-width); margin-inline: auto; padding: 14px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs) var(--space-m);
+  width: var(--page-width);
+  margin-inline: auto;
+  padding: var(--space-xs) 0;
 }
-/* The wordmark is the site's name, not a navigation state: it stays --text on
-   every page, so the lockup never changes colour as the visitor moves around. */
-.brand { display: inline-flex; align-items: center; gap: 10px; color: var(--text); font-weight: var(--weight-strong); text-decoration: none; letter-spacing: var(--tracking-display); }
-/* The icon artwork is a squircle on full transparency and carries its own
-   corners: a CSS radius would clip it a second time at a different curve. */
-.brand img { border-radius: 0; }
-.site-header nav { display: flex; gap: 24px; }
-.site-header nav a, .text-link, .link-row a, .site-footer a {
-  display: inline-flex; align-items: center;
-  color: var(--secondary); text-decoration: none;
-  font-size: var(--text-sm); font-weight: var(--weight-strong);
+
+/* The wordmark is the site's name, not a navigation state: it keeps --text on
+   every page. The icon artwork is a squircle on full transparency and carries
+   its own corners, so it gets no radius. */
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--text);
+  font-weight: var(--weight-strong);
+  letter-spacing: var(--tracking-display);
+  text-decoration: none;
 }
-.site-header nav a:hover, .text-link:hover, .link-row a:hover, .site-footer a:hover { color: var(--accent); }
+
+.brand img {
+  width: var(--brand-icon);
+  height: var(--brand-icon);
+}
+
+.site-header nav,
+.site-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-m);
+}
+
+.site-header nav a,
+.site-footer a {
+  display: inline-flex;
+  align-items: center;
+  color: var(--secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
+  text-decoration: none;
+}
+
 /* Navigation only. The brand also marks the current page, but it is the site's
    name rather than a nav state, so it must not change colour with the route. */
-.site-header nav [aria-current="page"] { color: var(--accent); }
-
-main { width: var(--page-width); margin-inline: auto; }
-main { flex: 1 0 auto; }
-.site-footer { margin-top: auto; }
-
-.hero { padding: 96px 0 72px; text-align: center; overflow: hidden; }
-.hero-copy { max-width: 820px; margin: 0 auto; }
-.eyebrow {
-  margin: 0 0 12px; color: var(--accent);
-  font-size: var(--text-xs); font-weight: var(--weight-display);
-  text-transform: uppercase; letter-spacing: var(--tracking-eyebrow);
+.site-header nav a:hover,
+.site-footer a:hover,
+.site-header nav [aria-current="page"] {
+  color: var(--accent);
 }
-/* Balanced wrapping is for headings. Body copy reads worse when the browser
-   evens out the last lines of a long paragraph. */
-h1, h2, h3 { text-wrap: balance; }
+
+.site-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--line);
+  color: var(--secondary);
+  font-size: var(--text-sm);
+}
+
+.site-footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-xs) var(--space-l);
+  width: var(--page-width);
+  margin-inline: auto;
+  padding: var(--space-l) 0 var(--space-2xl);
+}
+
+.site-footer p {
+  margin: 0;
+}
+
+/* --- 6. Sections -------------------------------------------------------------------- */
+
+.hero {
+  padding: var(--space-3xl) 0 var(--space-2xl);
+  overflow: hidden;
+  text-align: center;
+}
+
+.hero-copy {
+  max-width: var(--width-hero-copy);
+  margin: 0 auto;
+}
+
+/* Only the centred display title keeps a measure. */
 h1 {
-  max-width: var(--measure-title); margin: 0 auto;
-  font-size: var(--text-3xl); line-height: var(--leading-tight);
-  letter-spacing: var(--tracking-display); font-weight: var(--weight-display);
+  max-width: var(--measure-title);
+  margin: 0 auto;
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-display);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
 }
+
 /* drop-shadow follows the artwork's alpha, so the shadow takes the squircle's
-   shape instead of being cast by a square border box. */
-.hero-icon { margin: 0 auto 26px; filter: var(--icon-shadow); }
+   shape instead of a square box. */
+.hero-icon {
+  margin: 0 auto var(--space-m);
+  filter: var(--icon-shadow);
+}
+
 .hero-summary {
-  max-width: var(--measure-narrow); margin: 26px auto 28px;
-  color: var(--secondary); font-size: var(--text-lg); line-height: var(--leading-relaxed);
+  max-width: var(--measure-narrow);
+  margin: var(--space-m) auto var(--space-l);
+  color: var(--secondary);
+  font-size: var(--text-lg);
+  line-height: var(--leading-relaxed);
 }
 
-.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
-/* Buttons take Mailbell's motion: a short rise on hover with the shadow
-   following it on the same curve, and the press putting the button back down. */
-.button {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-height: 48px; padding: 0 22px; border-radius: 999px;
-  text-decoration: none; font-size: 1rem; font-weight: var(--weight-strong);
-  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease, color 0.12s ease;
-}
-.button:hover { transform: translateY(-1px); text-decoration: none; }
-.button:active { transform: translateY(0); }
-/* The soft halo under the download button. Mailbell's was a fixed rgba of its
-   own accent; here it is mixed from whichever accent the site carries. */
-.button.primary {
-  background: var(--button-primary-bg); color: var(--button-primary-fg);
-  box-shadow: var(--button-glow);
-}
-.button.primary:hover { background: var(--button-primary-bg-hover); box-shadow: var(--button-glow-hover); }
-.button.secondary { background: var(--surface-strong); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
-.compatibility { margin: 18px 0 0; color: var(--secondary); font-size: var(--text-sm); }
-
-.section { padding: 120px 0; border-top: 1px solid var(--line); }
-.section h2 {
-  max-width: var(--measure-title); margin: 0;
-  font-size: var(--text-2xl); line-height: var(--leading-snug);
-  letter-spacing: var(--tracking-display); font-weight: var(--weight-display);
-}
-/* The rhythm inside a section: eyebrow, heading, an optional lead paragraph at
-   22px, then whatever the section shows at 48px. */
-.section > :not(.eyebrow):not(h2) { margin-top: 48px; }
-.section > p:not(.eyebrow) {
-  max-width: var(--measure); margin: 22px 0 0;
-  color: var(--secondary); font-size: var(--text-md); line-height: var(--leading-relaxed);
+.compatibility {
+  margin: var(--space-s) 0 0;
+  color: var(--secondary);
+  font-size: var(--text-sm);
 }
 
-/* Prose paired with a SINGLE figure: two columns from the tablet breakpoint up,
-   stacked below it with the copy first. Alternate `.showcase` and
-   `.showcase.figure-first` down a page so consecutive pairs never put the
-   figure on the same side. A figure that is itself the point, such as the hero
-   visual or a wide screenshot, stays full width instead. */
-/* minmax(0, 1fr), not 1fr: a column whose automatic minimum is min-content
-   pushes the grid wider than the shared container and the copy then starts hard
-   against the window edge instead of on the container's gutter. */
-.showcase { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 440px); align-items: center; gap: 72px; }
-.showcase > * { min-width: 0; margin-top: 0; }
-/* A heading that shares its row with a figure takes the step below the
-   full-width one, so it stays inside its column. */
-.showcase-copy h2 { font-size: var(--text-xl); }
-.showcase > :not(.showcase-copy) { justify-self: end; max-height: 560px; }
-.showcase-copy > p:not(.eyebrow) {
-  max-width: var(--measure); margin: 22px 0 0;
-  color: var(--secondary); font-size: var(--text-md); line-height: var(--leading-relaxed);
+.download {
+  text-align: center;
 }
-.showcase.figure-first { grid-template-columns: minmax(280px, 440px) minmax(0, 1fr); }
-.showcase.figure-first > .showcase-copy { order: 2; }
-.showcase.figure-first > :not(.showcase-copy) { justify-self: start; }
 
-figure { margin: 0; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
-figcaption { padding: 16px 4px 2px; color: var(--secondary); font-size: var(--text-sm); }
-
-.feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.feature-grid article { min-height: 240px; padding: 30px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); }
-.feature-grid article > span {
-  display: grid; place-items: center; width: 46px; height: 46px; margin-bottom: 36px;
-  border-radius: 13px; background: color-mix(in srgb, var(--accent) 13%, transparent);
-  color: var(--accent); font-size: var(--text-md); font-weight: var(--weight-display);
+.download > img {
+  margin: 0 auto var(--space-m);
 }
-.feature-grid h3 { margin: 0 0 8px; font-size: var(--text-lg); line-height: var(--leading-snug); letter-spacing: var(--tracking-display); font-weight: var(--weight-strong); }
-.feature-grid p { margin: 0; color: var(--secondary); }
 
-.download { text-align: center; }
-.download > img { margin: 0 auto 20px; }
-.download h2, .download > p:not(.eyebrow) { margin-inline: auto; }
-.download > p:not(.eyebrow) { margin-block: 18px 30px; }
-/* The section rhythm puts 48px under the buttons; the closing note and the
-   secondary link belong to them, so they sit closer. */
-.section.download > .compatibility { margin-top: 22px; }
-.section.download > .text-link { display: inline-flex; margin-top: 22px; color: var(--accent); }
+.download > p:not(.eyebrow) {
+  margin-inline: auto;
+  margin-block: var(--space-s) var(--space-l);
+}
+
+/* The section rhythm puts --space-xl under the buttons; the closing note and
+   the secondary link belong to them, so they sit closer. */
+.section.download > .compatibility,
+.section.download > .text-link {
+  margin-top: var(--space-m);
+}
 
 /* The closing open-source section: eyebrow, heading, what the project is and
    who made it, then the row of outward links. */
-.open-source > p:not(.eyebrow):last-of-type { margin-bottom: 30px; }
-.link-row { display: flex; flex-wrap: wrap; gap: 12px 24px; }
-.link-row a { color: var(--accent); }
-
-.site-footer {
-  border-top: 1px solid var(--line);
-  color: var(--secondary); font-size: var(--text-sm);
-}
-.site-footer-inner {
-  display: flex; justify-content: space-between; gap: 12px 30px; flex-wrap: wrap;
-  width: var(--page-width); margin-inline: auto; padding: 32px 0 56px;
-}
-.site-footer p { margin: 0; }
-.site-footer nav { display: flex; flex-wrap: wrap; gap: 12px 20px; }
-
-@media (max-width: 820px) {
-  /* The nav wraps onto a second row below this width, so the header is taller. */
-  :root { --page-width: min(100% - 28px, 1180px); --header-height: 99px; }
-  /* The header keeps every destination on narrow screens: it wraps onto a
-     second centred row rather than dropping links the visitor came for. */
-  .site-header-inner { flex-wrap: wrap; justify-content: center; }
-  .site-header nav { width: 100%; justify-content: center; flex-wrap: wrap; gap: 8px 18px; }
-  .hero { padding-top: 68px; }
-  .section { padding: 86px 0; }
-  .feature-grid { grid-template-columns: 1fr; }
-  .showcase, .showcase.figure-first { grid-template-columns: 1fr; gap: 44px; }
-  .showcase > .showcase-copy { order: -1; }
-  .showcase > :not(.showcase-copy) { justify-self: center; max-height: 560px; }
-  .feature-grid article { min-height: 210px; }
-  .site-footer-inner { flex-direction: column; }
+.open-source > p:not(.eyebrow):last-of-type {
+  margin-bottom: var(--space-l);
 }
 
-@media (max-width: 520px) {
-  .actions { align-items: stretch; flex-direction: column; }
-  .button { width: 100%; }
-  .feature-grid article { padding: 24px; }
+/* Inner pages open with a left-aligned title: the generated release notes. */
+.page-hero {
+  padding: var(--space-2xl) 0 var(--space-xl);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
-  .button:hover, .button:active { transform: none; }
+.page-hero h1 {
+  max-width: none;
+  margin: 0;
+  font-size: var(--text-2xl);
+  text-align: left;
 }
 
-/* --- Mailbell's own sections ------------------------------------------------ */
-
-
-/* The unverified-app disclosure. Prominent by design: users meet Google's
-   warning screen during sign-in and must not be surprised by it. */
-.notice {
-  max-width: var(--measure); margin: 48px auto 0; padding: 22px 26px;
-  background: var(--warning-bg); border: 1px solid var(--warning-line);
-  border-radius: var(--radius-card); color: var(--warning-text); text-align: left;
+.page-hero .hero-summary {
+  max-width: var(--measure-prose);
+  margin: var(--space-m) 0 0;
 }
-.notice h2, .notice h3 { max-width: none; margin: 0 0 8px; font-size: var(--text-md); line-height: var(--leading-snug); letter-spacing: var(--tracking-body); color: inherit; }
-.notice p { margin: 10px 0 0; }
-.notice p:first-of-type { margin-top: 0; }
-.notice a { color: inherit; text-decoration: underline; }
-.notice ul { margin: 10px 0 0; padding-left: 20px; }
-
-.steps { counter-reset: step; list-style: none; max-width: var(--measure); margin: 0; padding: 0; }
-.steps li { counter-increment: step; position: relative; padding: 0 0 18px 44px; color: var(--secondary); }
-.steps li::before {
-  content: counter(step); position: absolute; left: 0; top: 0;
-  width: 30px; height: 30px; border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 13%, transparent); color: var(--accent);
-  display: grid; place-items: center; font-weight: var(--weight-display); font-size: var(--text-sm);
-}
-.steps strong { color: var(--text); }
-
-/* The screenshot already carries the window's own corner radius and drop
-   shadow, captured from the real window. Adding either here would cut the
-   corner at a different radius and stack a second shadow on top of the real
-   one. */
-.shot { margin: 62px auto 0; padding: 0; background: none; border: 0; }
-.shot img { width: 100%; max-width: 788px; margin-inline: auto; }
-.shot figcaption { text-align: center; }
-
-/* Legal pages: long-form prose, left aligned and comfortable to read. */
-.legal { max-width: var(--measure); margin: 0 auto; padding: 72px 0 96px; text-align: left; }
-.legal h1 { max-width: none; margin: 0 0 8px; font-size: var(--text-xl); line-height: var(--leading-snug); }
-.legal h2 { max-width: none; margin: 48px 0 8px; font-size: var(--text-lg); line-height: var(--leading-snug); letter-spacing: var(--tracking-display); font-weight: var(--weight-display); }
-.legal h3 { max-width: none; margin: 30px 0 6px; font-size: var(--text-md); line-height: var(--leading-snug); font-weight: var(--weight-strong); }
-/* A heading inside a callout is the box's own title, not a document section, so
-   it must not inherit the section spacing that would gap it off the box top. */
-.legal .notice h2, .legal .notice h3 { margin-top: 0; font-size: var(--text-md); }
-.legal p, .legal li { color: var(--secondary); }
-.legal strong { color: var(--text); }
-.legal ul, .legal ol { padding-left: 22px; }
-.legal li { margin-bottom: 6px; }
-.legal .updated { font-size: var(--text-sm); }
-.legal table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: var(--text-sm); display: block; overflow-x: auto; }
-.legal th, .legal td { border: 1px solid var(--line); padding: 10px 12px; text-align: left; vertical-align: top; }
-.legal th { background: var(--surface); color: var(--text); font-weight: var(--weight-strong); }
-.legal td { color: var(--secondary); }
-.legal .notice a { color: inherit; text-decoration: underline; }
 
 /* Breadcrumb on every inner page: the legal pages and the generated release
    notes. Quiet text at eyebrow size; only a hovered link takes the accent. One
    line that never widens the page: the current crumb truncates instead. */
-.breadcrumb { margin: 0 0 18px; color: var(--secondary); font-size: var(--text-xs); font-weight: var(--weight-strong); }
-.breadcrumb ol { display: flex; align-items: center; min-width: 0; margin: 0; padding: 0; list-style: none; white-space: nowrap; }
-.breadcrumb li { display: flex; align-items: center; flex: none; margin: 0; color: var(--secondary); }
-.breadcrumb li:last-child { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.breadcrumb a { color: var(--secondary); text-decoration: none; }
-.breadcrumb a:hover { color: var(--accent); }
+.breadcrumb {
+  margin: 0 0 var(--space-s);
+  color: var(--secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-strong);
+}
+
+.breadcrumb ol {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  white-space: nowrap;
+}
+
+.breadcrumb li {
+  display: flex;
+  flex: none;
+  align-items: center;
+  margin: 0;
+  color: var(--secondary);
+}
+
+.breadcrumb li:last-child {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.breadcrumb a {
+  color: var(--secondary);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  color: var(--accent);
+}
+
 /* The separator is drawn, never typed, so assistive technology reads none. */
 .breadcrumb li + li::before {
-  content: ""; flex: none; width: 0.4em; height: 0.4em; margin: 0 0.7em 0 0.55em;
-  border-top: 1.5px solid currentColor; border-right: 1.5px solid currentColor;
-  transform: rotate(45deg); opacity: 0.7;
+  content: "";
+  flex: none;
+  width: var(--chevron);
+  height: var(--chevron);
+  margin: 0 0.7em 0 0.55em;
+  border-top: var(--chevron-stroke) solid currentColor;
+  border-right: var(--chevron-stroke) solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.7;
+}
+
+/* Legal pages: long-form prose, left aligned and comfortable to read. */
+.legal {
+  max-width: var(--measure-prose);
+  margin: 0 auto;
+  padding: var(--space-2xl) 0 var(--space-3xl);
+  text-align: left;
+}
+
+.legal h1 {
+  max-width: none;
+  margin: 0 0 var(--space-2xs);
+  font-size: var(--text-xl);
+  line-height: var(--leading-snug);
+}
+
+.legal h2 {
+  margin: var(--space-xl) 0 var(--space-2xs);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-display);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-display);
+}
+
+.legal h3 {
+  margin: var(--space-l) 0 var(--space-3xs);
+  font-size: var(--text-md);
+  font-weight: var(--weight-strong);
+  line-height: var(--leading-snug);
+}
+
+.legal p,
+.legal li {
+  color: var(--secondary);
+}
+
+.legal strong {
+  color: var(--text);
+}
+
+.legal ul,
+.legal ol {
+  padding-left: 1.4em;
+}
+
+.legal li {
+  margin-bottom: var(--space-2xs);
+}
+
+.legal .updated {
+  font-size: var(--text-sm);
+}
+
+.legal table {
+  display: block;
+  width: 100%;
+  margin-top: var(--space-s);
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.legal th,
+.legal td {
+  padding: var(--space-2xs) var(--space-xs);
+  border: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.legal th {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: var(--weight-strong);
+}
+
+.legal td {
+  color: var(--secondary);
 }
 
 /* Release notes: pages written at deploy time by scripts/render-release-notes.sh.
    The web pages are ordinary site pages (page-hero, section). The update page
    (.is-update) is what Sparkle's update window shows: only the version section,
    at the window's width, with no page padding for the window to scroll past. */
-.page-hero { padding: 72px 0 48px; }
-.page-hero h1 { max-width: none; margin: 0; font-size: var(--text-2xl); text-align: left; }
-.page-hero .hero-summary { max-width: var(--measure); margin: 18px 0 0; }
-.notes-page .section { padding: 72px 0; }
-.notes-page .section h2 { max-width: none; font-size: var(--text-xl); }
-.notes-page .section h2 a { color: inherit; text-decoration: none; }
-.notes-page .section h2 a:hover { color: var(--accent); }
-.notes-page .section > p:not(.eyebrow) { font-size: 1rem; line-height: var(--leading-body); }
+.notes-page .section {
+  padding: var(--space-2xl) 0;
+}
+
+.notes-page .section h2 {
+  font-size: var(--text-xl);
+}
+
+.notes-page .section h2 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.notes-page .section h2 a:hover {
+  color: var(--accent);
+}
+
+.notes-page .section > p:not(.eyebrow) {
+  font-size: 1rem;
+  line-height: var(--leading-body);
+}
+
 /* The page is exactly as tall as its notes, so a fitted window has nothing to scroll. */
-body.is-update { min-height: 0; }
-.is-update main { width: auto; padding: 16px; }
-.is-update .section { padding: 0; border-top: 0; }
+body.is-update {
+  min-height: 0;
+}
+
+.is-update main {
+  width: auto;
+  padding: var(--space-s);
+}
+
+.is-update .section {
+  padding: 0;
+  border-top: 0;
+}
+
 /* Full lines: balanced wrapping shortened them, and every line costs window height. */
-.is-update .notes-list li { text-wrap: wrap; }
+.is-update .notes-list li {
+  text-wrap: wrap;
+}
+
 /* On the web pages each change type is a heading and a plain list. */
 .section > .notes-type {
-  margin-top: 30px; font-size: var(--text-md); font-weight: var(--weight-strong);
-  line-height: var(--leading-snug); letter-spacing: var(--tracking-display);
+  margin-top: var(--space-l);
+  font-size: var(--text-md);
+  font-weight: var(--weight-strong);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-display);
 }
-.section > .notes-type + .notes-list { margin-top: 8px; }
-.notes-list { max-width: var(--measure); padding-left: 1.2em; color: var(--secondary); }
-.notes-list li + li { margin-top: 8px; }
-.notes-list strong { color: var(--text); }
+
+.section > .notes-type + .notes-list {
+  margin-top: var(--space-2xs);
+}
+
+.notes-list {
+  max-width: var(--measure-prose);
+  padding-left: 1.2em;
+  color: var(--secondary);
+}
+
+.notes-list li + li {
+  margin-top: var(--space-2xs);
+}
+
+.notes-list strong {
+  color: var(--text);
+}
+
 .notes-list code {
-  padding: 0.1em 0.4em; border: 1px solid var(--line); border-radius: 6px;
-  background: var(--surface); color: var(--text);
-  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.9em;
+  padding: 0.1em 0.4em;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  color: var(--text);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.9em;
   overflow-wrap: anywhere;
+}
+
+/* --- 7. Mailbell --------------------------------------------------------------------- */
+
+/* The unverified-app disclosure. Prominent by design: users meet Google's
+   warning screen during sign-in and must not be surprised by it. */
+.notice {
+  max-width: var(--measure-prose);
+  margin: var(--space-xl) auto 0;
+  padding: var(--space-m) var(--space-l);
+  border: 1px solid var(--warning-line);
+  border-radius: var(--radius-xl);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  text-align: left;
+}
+
+/* A heading inside the callout is the box's own title, not a document section,
+   so it takes neither the section's size nor the legal pages' spacing. */
+.notice h2,
+.notice h3,
+.legal .notice h2,
+.legal .notice h3 {
+  margin: 0 0 var(--space-2xs);
+  color: inherit;
+  font-size: var(--text-md);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-body);
+}
+
+.notice p {
+  margin: var(--space-xs) 0 0;
+}
+
+.notice p:first-of-type {
+  margin-top: 0;
+}
+
+.notice a,
+.legal .notice a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.notice ul {
+  margin: var(--space-xs) 0 0;
+  padding-left: 1.2em;
+}
+
+/* The install steps: a numbered list whose numbers sit in accent tiles. The
+   markers are positioned layers, so the list isolates them. */
+.steps {
+  isolation: isolate;
+  max-width: var(--measure-prose);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.steps li {
+  position: relative;
+  padding: 0 0 var(--space-s) calc(var(--step-marker) + var(--space-xs));
+  color: var(--secondary);
+  counter-increment: step;
+}
+
+.steps li::before {
+  content: counter(step);
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: var(--step-marker);
+  height: var(--step-marker);
+  border-radius: var(--radius-pill);
+  background: var(--accent-tint);
+  color: var(--accent);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-display);
+}
+
+.steps strong {
+  color: var(--text);
+}
+
+/* The screenshot already carries the window's own corner radius and drop
+   shadow, captured from the real window. Adding either here would cut the
+   corner at a different radius and stack a second shadow on top of the real
+   one. */
+.shot {
+  margin: var(--space-2xl) auto 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.shot img {
+  width: 100%;
+  max-width: var(--width-shot);
+  margin-inline: auto;
+}
+
+.shot figcaption {
+  text-align: center;
+}
+
+/* --- 8. Motion ---------------------------------------------------------------------
+   Only a clickable element lifts, and only under a fine pointer, so a tap on a
+   touch screen never leaves it raised. A colour-only hover stays ungated. */
+
+@media (hover: hover) and (pointer: fine) {
+  .button:hover {
+    transform: translateY(var(--lift));
+  }
+
+  .button:active {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .button:hover,
+  .button:active {
+    transform: none;
+  }
+}
+
+/* --- 9. Responsive ------------------------------------------------------------------
+   1024px: a half-width window or small laptop; three-column grids take two.
+   820px: tablet and below, one column, the header nav on its own row.
+   640px: small tablet; no change of its own yet.
+   520px: phone, full-width buttons and tighter cards. */
+
+@media (max-width: 1024px) {
+  .grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  :root {
+    --page-width: min(100% - 1.75rem, 73.75rem);  /* 14px gutters */
+    --header-height: 6rem;                          /* the nav wraps to a second row */
+  }
+
+  /* The header keeps every destination on narrow screens: it wraps onto a
+     second centred row rather than dropping links the visitor came for. */
+  .site-header-inner {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .site-header nav {
+    justify-content: center;
+    width: 100%;
+    gap: var(--space-2xs) var(--space-m);
+  }
+
+  .site-footer-inner {
+    flex-direction: column;
+  }
+
+  .hero {
+    padding-top: var(--space-2xl);
+  }
+
+  .section {
+    padding: var(--space-3xl) 0;
+  }
+
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .showcase,
+  .showcase.figure-first {
+    grid-template-columns: 1fr;
+    gap: var(--space-xl);
+  }
+
+  .showcase > .showcase-copy {
+    order: -1;
+  }
+
+  .showcase > :not(.showcase-copy) {
+    justify-self: center;
+  }
+}
+
+@media (max-width: 520px) {
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .button {
+    width: 100%;
+  }
+
+  .card {
+    padding: var(--space-m);
+  }
 }
