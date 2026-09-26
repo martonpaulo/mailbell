@@ -17,45 +17,49 @@ enum MenuBarIcon {
 }
 
 enum PendingCopy {
-    static let menuSectionTitle = "Awaiting Review"
-    static let emptyMenuTitle = "No messages"
+    static let menuSectionTitle = String(localized: "Awaiting Review")
+    static let emptyMenuTitle = String(localized: "No messages")
     /// A bulk action closes the menu, so its outcome has to survive until the
     /// menu is opened again — otherwise a partial result is never seen.
-    static let lastActionPrefix = "Last action: "
-    static let signInErrorPrefix = "Sign-in failed: "
-    static let webmailErrorPrefix = "Opening Gmail: "
-    static let openActionTitle = "Open"
-    static let markAsReadActionTitle = "Mark as Read"
-    static let dismissActionTitle = "Dismiss"
-    static let bulkActionsMenuTitle = "All Messages"
-    static let markAllAsReadActionTitle = "Mark All as Read"
-    static let markingAllAsReadActionTitle = "Marking All as Read…"
-    static let dismissAllActionTitle = "Dismiss All"
-    static let reviewSectionTitle = "Awaiting Review"
+    static let lastActionPrefix = String(localized: "Last action: ")
+    static let signInErrorPrefix = String(localized: "Sign-in failed: ")
+    static let webmailErrorPrefix = String(localized: "Opening Gmail: ")
+    static let openActionTitle = String(localized: "Open")
+    static let markAsReadActionTitle = String(localized: "Mark as Read")
+    static let dismissActionTitle = String(localized: "Dismiss")
+    static let bulkActionsMenuTitle = String(localized: "All Messages")
+    static let markAllAsReadActionTitle = String(localized: "Mark All as Read")
+    static let markingAllAsReadActionTitle = String(localized: "Marking All as Read…")
+    static let dismissAllActionTitle = String(localized: "Dismiss All")
+    static let reviewSectionTitle = String(localized: "Awaiting Review")
 
     /// Says what the queue holds without inventing a count of the mail still in
     /// Gmail, which Mailbell has no bounded way to know.
     static func overflowNotice(hiddenConversations: Int) -> String? {
         guard hiddenConversations > 0 else { return nil }
-        let conversations = hiddenConversations == 1 ? "conversation" : "conversations"
-        return "\(hiddenConversations) more \(conversations) awaiting review. Open Gmail to see the rest."
+        if hiddenConversations == 1 {
+            return String(localized: "1 more conversation awaiting review. Open Gmail to see the rest.")
+        }
+        return String(localized: "\(hiddenConversations) more conversations awaiting review. Open Gmail to see the rest.")
     }
 
     /// Bulk actions reach every retained message, including the ones the menu
     /// has no room to show, so the count is stated before the action runs.
     static func bulkActionScope(retainedMessages: Int) -> String {
-        let messages = retainedMessages == 1 ? "message" : "messages"
-        return "Applies to \(retainedMessages) retained \(messages)"
+        if retainedMessages == 1 {
+            return String(localized: "Applies to 1 retained message")
+        }
+        return String(localized: "Applies to \(retainedMessages) retained messages")
     }
 
     static func reviewCountText(_ count: Int) -> String {
         switch count {
         case 0:
-            "No messages"
+            String(localized: "No messages")
         case 1:
-            "1 message"
+            String(localized: "1 message")
         default:
-            "\(count) messages"
+            String(localized: "\(count) messages")
         }
     }
 
@@ -69,13 +73,16 @@ enum PendingCopy {
         // error is recovered with Reconnect, and naming the wrong action is
         // worse for someone who cannot see the icon than naming none.
         if needsSignIn {
-            return "Mailbell, sign in needed"
+            return String(localized: "Mailbell, sign in needed")
         }
         if needsAttention {
-            return "Mailbell, account needs attention"
+            return String(localized: "Mailbell, account needs attention")
         }
-        guard showsCount, count > 0 else { return "Mailbell" }
-        return "Mailbell, \(count) \(count == 1 ? "message" : "messages") awaiting review"
+        guard showsCount, count > 0 else { return String(localized: "Mailbell") }
+        if count == 1 {
+            return String(localized: "Mailbell, 1 message awaiting review")
+        }
+        return String(localized: "Mailbell, \(count) messages awaiting review")
     }
 }
 
@@ -87,11 +94,11 @@ enum AccountRecoveryAction: Equatable {
     var title: String {
         switch self {
         case .enable:
-            "Enable Account"
+            String(localized: "Enable Account")
         case .reconnect:
-            "Reconnect"
+            String(localized: "Reconnect")
         case .signInAgain:
-            "Sign in Again"
+            String(localized: "Sign in Again")
         }
     }
 
@@ -114,7 +121,7 @@ enum AccountRecoveryAction: Equatable {
 
 enum AccountPresentation {
     static func menuTitle(for state: AccountRuntimeState) -> String {
-        "\(statusText(for: state)) • \(state.account.email)"
+        String(localized: "\(statusText(for: state)) • \(state.account.email)")
     }
 
     static func menuIconSystemName(for state: AccountRuntimeState) -> String {
@@ -136,38 +143,40 @@ enum AccountPresentation {
     }
 
     static func statusText(for state: AccountRuntimeState) -> String {
-        guard state.account.isEnabled else { return "Disabled" }
+        guard state.account.isEnabled else { return String(localized: "Disabled") }
         switch state.status {
         case .signedOut:
-            return "Not connected"
+            return String(localized: "Not connected")
         case .connecting:
-            return "Connecting"
+            return String(localized: "Connecting")
         case .connected:
-            return "Connected"
+            return String(localized: "Connected")
         case .reconnecting:
-            return "Reconnecting"
+            return String(localized: "Reconnecting")
         case .reauthRequired:
-            return "Sign in needed"
+            return String(localized: "Sign in needed")
         case .error:
-            return "Needs attention"
+            return String(localized: "Needs attention")
         }
     }
 
     static func detailText(for state: AccountRuntimeState, includeSpam: Bool = false) -> String {
-        guard state.account.isEnabled else { return "Gmail monitoring is paused for this account." }
+        guard state.account.isEnabled else { return String(localized: "Gmail monitoring is paused for this account.") }
         switch state.status {
         case .signedOut:
-            return "Not connected."
+            return String(localized: "Not connected.")
         case .connecting:
-            return "Connecting."
+            return String(localized: "Connecting.")
         case .connected:
-            return includeSpam ? "Monitoring Inbox and Spam." : "Monitoring Inbox."
+            return includeSpam
+                ? String(localized: "Monitoring Inbox and Spam.")
+                : String(localized: "Monitoring Inbox.")
         case .reconnecting:
-            return "Reconnecting."
+            return String(localized: "Reconnecting.")
         case .reauthRequired:
-            return "Sign in again to resume monitoring."
+            return String(localized: "Sign in again to resume monitoring.")
         case .error:
-            return "Check the error and reconnect."
+            return String(localized: "Check the error and reconnect.")
         }
     }
 }

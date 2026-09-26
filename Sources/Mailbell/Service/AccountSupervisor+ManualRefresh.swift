@@ -8,13 +8,13 @@ extension AccountSupervisor {
         var message: String {
             switch self {
             case .requested:
-                "Check requested. Mailbell will reconnect and update Gmail state."
+                String(localized: "Checking for new mail…")
             case .noEnabledAccounts:
-                "Enable an account to check Gmail."
+                String(localized: "Resume watching an account to check for new mail.")
             case .signInRequired:
-                "Sign in again to check Gmail."
+                String(localized: "Sign in again to check for new mail.")
             case .unavailable:
-                "Cannot check Gmail. Check account setup."
+                String(localized: "Can't check for new mail. See Accounts in Settings.")
             }
         }
     }

@@ -118,13 +118,13 @@ extension SettingsView {
     ) -> SettingsStatusValue {
         switch setting {
         case .enabled:
-            return SettingsStatusValue("Enabled", tone: .success, context: context)
+            return SettingsStatusValue(String(localized: "Enabled"), tone: .success, context: context)
         case .disabled:
-            return SettingsStatusValue("Disabled", tone: .inactive, context: context)
+            return SettingsStatusValue(String(localized: "Disabled"), tone: .inactive, context: context)
         case .notSupported:
-            return SettingsStatusValue("Not supported", tone: .inactive, context: context)
+            return SettingsStatusValue(String(localized: "Not supported"), tone: .inactive, context: context)
         @unknown default:
-            return SettingsStatusValue("Unavailable", tone: .warning, context: context)
+            return SettingsStatusValue(String(localized: "Unavailable"), tone: .warning, context: context)
         }
     }
 

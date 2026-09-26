@@ -223,7 +223,7 @@ final class OAuthClientTests: XCTestCase {
             )
         ) { error in
             XCTAssertEqual(error as? OAuthClient.OAuthError, .secureRandomUnavailable)
-            XCTAssertEqual(error.localizedDescription, "Could not create secure OAuth state. Try again.")
+            XCTAssertEqual(error.localizedDescription, "Couldn't start sign-in on this Mac. Try again.")
         }
     }
 

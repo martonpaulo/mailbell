@@ -44,8 +44,8 @@ nonisolated final class AccountTokenProvider {
         do {
             try store.save(tokens: refreshed)
         } catch {
-            Log.error("Failed to save refreshed token: \(error.localizedDescription)")
-            throw OAuthClient.OAuthError.refreshUnavailable("Could not save refreshed token.")
+            Log.auth.error("Failed to save refreshed token: \(Log.detail(error), privacy: .private)")
+            throw OAuthClient.OAuthError.refreshUnavailable("could not save the refreshed token")
         }
         return refreshed.accessToken
     }

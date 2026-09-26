@@ -10,13 +10,16 @@ extension AccountSupervisor {
         var errorDescription: String? {
             switch self {
             case .missingAccount:
-                "Account not found."
+                String(localized: "This account no longer exists.")
             case .authenticationInProgress:
-                "Google sign-in is already in progress."
+                String(localized: "Google sign-in is already in progress.")
             case let .accountMismatch(expected, actual):
-                "Signed in as \(actual), but this account expects \(expected)."
+                String(
+                    localized: "Signed in as \(actual), but this account is \(expected). Sign in with \(expected).",
+                    comment: "The first placeholder is the address signed in; the others are the account's address."
+                )
             case .sessionSaveFailed:
-                "Could not save Google sign-in in Keychain. Check Keychain access and try again."
+                String(localized: "Couldn't save the sign-in to the Keychain. Try again.")
             }
         }
     }

@@ -71,7 +71,7 @@ enum AppVersion {
         let build = (info?["CFBundleVersion"] as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let displayVersion = if let version, !version.isEmpty { version } else { "Development" }
+        let displayVersion = if let version, !version.isEmpty { version } else { String(localized: "Development") }
         guard let build, !build.isEmpty, build != displayVersion else {
             return displayVersion
         }

@@ -12,7 +12,7 @@ extension AppState {
             self?.applyNotificationAuthorizationState(state)
             if showStatusMessage {
                 self?.notificationTestMessage = nil
-                self?.notificationStatusMessage = "Notification permission refreshed."
+                self?.notificationStatusMessage = String(localized: "Notification permission refreshed.")
             }
         }
     }
@@ -46,7 +46,7 @@ extension AppState {
             if let message = result.userMessage {
                 notificationTestMessage = message
             } else {
-                notificationTestMessage = "Test notification sent."
+                notificationTestMessage = String(localized: "Test notification sent.")
             }
         }
     }

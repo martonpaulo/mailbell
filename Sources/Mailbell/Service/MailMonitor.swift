@@ -212,18 +212,18 @@ nonisolated final class MailMonitor: AccountMonitoring, @unchecked Sendable {
             switch oauthError {
             case .refreshFailed, .noRefreshToken:
                 // The refresh token is gone; only the user can fix this.
-                Log.error("Token revoked: \(oauthError.localizedDescription)")
+                Log.monitor.error("Token revoked: \(Log.detail(oauthError), privacy: .private)")
                 notifyStatus(.reauthRequired, error: oauthError.localizedDescription)
                 releaseClient()
                 return .stop
             default:
-                Log.error("Token refresh deferred: \(oauthError.localizedDescription)")
+                Log.monitor.error("Token refresh deferred: \(Log.detail(oauthError), privacy: .private)")
                 return await backOff(&backoff, reportingError: oauthError.localizedDescription)
             }
         }
 
         if case .authFailed = error as? IMAPClient.IMAPError {
-            Log.error("IMAP authentication rejected: \(error.localizedDescription)")
+            Log.monitor.error("IMAP authentication rejected: \(Log.detail(error), privacy: .private)")
             notifyStatus(.reauthRequired, error: error.localizedDescription)
             releaseClient()
             return .stop
@@ -232,7 +232,7 @@ nonisolated final class MailMonitor: AccountMonitoring, @unchecked Sendable {
         guard !Task.isCancelled else { return .stop }
 
         if error is IMAPClient.IMAPError {
-            Log.error("Connection dropped: \(error.localizedDescription)")
+            Log.monitor.error("Connection dropped: \(Log.detail(error), privacy: .private)")
             return await backOff(&backoff, reportingError: error.localizedDescription)
         }
 
@@ -240,9 +240,9 @@ nonisolated final class MailMonitor: AccountMonitoring, @unchecked Sendable {
         // information and never surfaced as an error the user should act on.
         let userVisibleError = Self.userVisibleReconnectError(for: error)
         if let userVisibleError {
-            Log.error("Connection dropped: \(userVisibleError)")
+            Log.monitor.error("Connection dropped: \(Log.redact(userVisibleError), privacy: .private)")
         } else {
-            Log.info("Connection closed; reconnecting.")
+            Log.monitor.info("Connection closed; reconnecting.")
         }
         return await backOff(&backoff, reportingError: userVisibleError)
     }
@@ -320,7 +320,7 @@ nonisolated final class MailMonitor: AccountMonitoring, @unchecked Sendable {
             setLastSeenUID(baselineUID, for: role)
         } else if storedUIDValidity(for: role) != mailbox.uidValidity {
             // UIDVALIDITY changed: the old UIDs are meaningless. Rebaseline silently.
-            Log.info("UIDVALIDITY changed; rebaselining without notifying backlog.")
+            Log.monitor.info("UIDVALIDITY changed; rebaselining without notifying backlog.")
             setStoredUIDValidity(mailbox.uidValidity, for: role)
             setLastSeenUID(baselineUID, for: role)
         }
@@ -354,12 +354,12 @@ nonisolated final class MailMonitor: AccountMonitoring, @unchecked Sendable {
         do {
             let spamMailbox = try await client.mailboxName(for: .junk)
             if spamMailbox == nil {
-                Log.error("Gmail Spam mailbox not found; continuing with Inbox only.")
+                Log.monitor.error("Gmail Spam mailbox not found; continuing with Inbox only.")
             }
             return Self.monitoredMailboxes(includeSpam: true, spamMailboxName: spamMailbox)
         } catch {
-            Log.error(
-                "Could not discover Gmail Spam mailbox; continuing with Inbox only: \(error.localizedDescription)"
+            Log.monitor.error(
+                "Could not discover Gmail Spam mailbox; continuing with Inbox only: \(Log.detail(error), privacy: .private)"
             )
             return Self.monitoredMailboxes(includeSpam: true, spamMailboxName: nil)
         }

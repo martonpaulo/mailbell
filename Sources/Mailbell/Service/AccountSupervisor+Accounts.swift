@@ -47,6 +47,7 @@ extension AccountSupervisor {
             accountStoreError = nil
             connectionErrors[accountID] = nil
         } catch {
+            Log.monitor.error("Account store update failed: \(Log.detail(error), privacy: .private)")
             accountStoreError = error.localizedDescription
             connectionErrors[accountID] = error.localizedDescription
             publish()
@@ -105,6 +106,7 @@ extension AccountSupervisor {
             remainingAccounts = try accountStore.remove(accountID: accountID)
             accountStoreError = nil
         } catch {
+            Log.monitor.error("Account store update failed: \(Log.detail(error), privacy: .private)")
             accountStoreError = error.localizedDescription
             connectionErrors[accountID] = error.localizedDescription
             publish()

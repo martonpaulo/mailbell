@@ -33,7 +33,7 @@ extension AccountSupervisor {
         let recovered = satisfied && !lastPathSatisfied
         lastPathSatisfied = satisfied
         if recovered {
-            Log.info("Network recovered; forcing account reconnects.")
+            Log.monitor.info("Network recovered; forcing account reconnects.")
             forceReconnectAll()
         }
     }
@@ -44,7 +44,7 @@ extension AccountSupervisor {
             object: nil,
             queue: .main,
             using: Self.wakeHandler { [weak self] in
-                Log.info("System woke; forcing account reconnects.")
+                Log.monitor.info("System woke; forcing account reconnects.")
                 self?.forceReconnectAll()
             }
         )

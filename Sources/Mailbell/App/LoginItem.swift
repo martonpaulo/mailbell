@@ -10,26 +10,26 @@ enum LoginItemStatus: Equatable {
     var title: String {
         switch self {
         case .disabled:
-            "Disabled"
+            String(localized: "Disabled")
         case .enabled:
-            "Enabled"
+            String(localized: "Enabled")
         case .requiresApproval:
-            "Requires approval"
+            String(localized: "Requires approval")
         case .unavailable:
-            "Unavailable"
+            String(localized: "Unavailable")
         }
     }
 
     var detail: String {
         switch self {
         case .disabled:
-            "Mailbell will not start automatically."
+            String(localized: "Mailbell will not start automatically.")
         case .enabled:
-            "Mailbell can start when you sign in."
+            String(localized: "Mailbell can start when you sign in.")
         case .requiresApproval:
-            "Approve Mailbell in System Settings > General > Login Items."
+            String(localized: "Approve Mailbell in System Settings > General > Login Items.")
         case .unavailable:
-            "Install and run Mailbell.app to manage start at login."
+            String(localized: "Install and run Mailbell.app to manage start at login.")
         }
     }
 
@@ -70,7 +70,7 @@ enum LoginItem {
                 try SMAppService.mainApp.unregister()
             }
         } catch {
-            Log.error("Failed to update login item: \(error.localizedDescription)")
+            Log.app.error("Failed to update login item: \(Log.detail(error), privacy: .public)")
         }
     }
 }

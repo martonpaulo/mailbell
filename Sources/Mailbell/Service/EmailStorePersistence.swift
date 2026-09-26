@@ -21,18 +21,18 @@ final class EmailStorePersistence {
 
         var errorDescription: String? {
             switch self {
-            case let .decodingFailed(detail):
-                "Could not read handled-message history: \(detail)"
-            case let .encodingFailed(detail):
-                "Could not encode handled-message history: \(detail)"
-            case let .saveFailed(detail):
-                "Could not save handled-message history: \(detail)"
+            // The technical detail stays in the case for the log (Log.detail).
+            case .decodingFailed:
+                String(localized: "Couldn't read Mailbell's review history.")
+            case .encodingFailed, .saveFailed:
+                String(localized: "Couldn't save Mailbell's review history. Try again.")
             }
         }
     }
 
-    static let recoveryWarning =
-        "Handled-message history was reset because saved state was unreadable. Some items may reappear."
+    static let recoveryWarning = String(
+        localized: "Mailbell's review history couldn't be read and was reset. Some dismissed messages may appear again."
+    )
 
     private let userDefaults: UserDefaults
     static let recordsKey = "mailbell.emailStore.handledRecords.v1"

@@ -12,8 +12,9 @@ nonisolated enum Keychain {
 
         var errorDescription: String? {
             switch self {
-            case let .unexpectedStatus(status):
-                "Keychain returned status \(status)."
+            case .unexpectedStatus:
+                // The OSStatus stays in the case for the log.
+                String(localized: "Couldn't use the Keychain. Try again.")
             }
         }
     }

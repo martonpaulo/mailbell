@@ -44,9 +44,9 @@ nonisolated final class TokenStore {
         var errorDescription: String? {
             switch self {
             case .decodingFailed:
-                "Could not decode OAuth tokens from Keychain storage."
+                String(localized: "Couldn't read the saved sign-in from the Keychain. Sign in again.")
             case .encodingFailed:
-                "Could not encode OAuth tokens for Keychain storage."
+                String(localized: "Couldn't save the sign-in to the Keychain. Try again.")
             }
         }
     }
@@ -113,7 +113,9 @@ nonisolated final class TokenStore {
                 keychain.delete(account)
             }
         } catch {
-            Log.error("Failed to restore \(label) token after save failure: \(error.localizedDescription)")
+            Log.auth.error(
+                "Failed to restore \(label, privacy: .public) token after save failure: \(Log.detail(error), privacy: .private)"
+            )
         }
     }
 }

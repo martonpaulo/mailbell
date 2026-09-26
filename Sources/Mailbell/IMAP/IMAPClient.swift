@@ -24,13 +24,13 @@ nonisolated final class IMAPClient {
 
         var errorDescription: String? {
             switch self {
-            case let .authFailed(detail): "IMAP authentication failed: \(detail)"
-            case let .selectFailed(detail): "IMAP SELECT failed: \(detail)"
-            case let .unexpected(detail): "Unexpected IMAP response: \(detail)"
-            case let .invalidUID(uid): "Invalid IMAP UID: \(uid)"
-            case let .staleMailboxGeneration(expected, actual):
-                "The mailbox was rebuilt (UIDVALIDITY \(expected) is now \(actual)), "
-                    + "so this message can no longer be acted on. Reconnect and try again."
+            // The technical detail stays in the case for the log (Log.detail).
+            case .authFailed: String(localized: "Gmail didn't accept the sign-in. Sign in again.")
+            case .selectFailed: String(localized: "Couldn't open the mailbox in Gmail. Mailbell will try again.")
+            case .unexpected: String(localized: "Gmail sent an unexpected response. Mailbell will try again.")
+            case .invalidUID: String(localized: "This message can't be updated in Gmail.")
+            case .staleMailboxGeneration:
+                String(localized: "This message changed in Gmail and can't be updated. Check for New Mail and try again.")
             }
         }
     }

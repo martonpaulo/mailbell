@@ -24,7 +24,7 @@ final class LoopbackServerTests: XCTestCase {
         let callback = try await waitTask.value
 
         XCTAssertEqual(response.statusCode, 200)
-        XCTAssertTrue(response.body.contains("Handing off to Mailbell"))
+        XCTAssertTrue(response.body.contains("Mailbell is finishing the setup."))
         // The page is written before token exchange runs, so it must not claim
         // the account is connected or that monitoring has started.
         XCTAssertFalse(response.body.contains("Mailbell connected"))
@@ -100,7 +100,7 @@ final class LoopbackServerTests: XCTestCase {
         let response = try await request(server, query: "error=access_denied&state=state-value")
 
         XCTAssertEqual(response.statusCode, 400)
-        XCTAssertTrue(response.body.contains("Mailbell could not connect"))
+        XCTAssertTrue(response.body.contains("Sign-in didn't finish"))
         XCTAssertTrue(response.body.contains("data-state=\"error\""))
         XCTAssertTrue(response.body.contains("--state-accent: #d70015"))
         XCTAssertTrue(response.body.contains("Permission was not granted"))

@@ -21,17 +21,18 @@ actor LoopbackServer {
         var errorDescription: String? {
             switch self {
             case .failedToStart:
-                "Could not start the local OAuth callback server."
+                String(localized: "Couldn't start sign-in on this Mac. Try again.")
             case .timedOut:
-                "Google sign-in timed out. Try again from Mailbell."
+                String(localized: "Google sign-in timed out. Try again from Mailbell.")
             case .cancelled:
-                "Google sign-in was cancelled."
+                String(localized: "Google sign-in was cancelled.")
             case .missingState, .stateMismatch:
-                "OAuth callback state did not match. Try signing in again."
+                String(localized: "The sign-in response didn't match this request. Try again.")
             case .missingCode:
-                "No authorization code was returned."
-            case let .providerError(error):
-                "Authorization denied: \(error)"
+                String(localized: "Google sign-in couldn't be completed. Try again.")
+            case .providerError:
+                // The provider's error code stays in the case for the log.
+                String(localized: "Access wasn't allowed in Google. Try again and allow access.")
             }
         }
     }
@@ -94,10 +95,10 @@ actor LoopbackServer {
                 throw LoopbackError.failedToStart
             }
             port = assignedPort
-            Log.info("OAuth loopback listening on 127.0.0.1:\(port)")
+            Log.auth.info("OAuth loopback listening on 127.0.0.1:\(assignedPort, privacy: .public)")
         } catch {
             await stop()
-            Log.error("OAuth loopback failed to bind: \(error.localizedDescription)")
+            Log.auth.error("OAuth loopback failed to bind: \(Log.detail(error), privacy: .public)")
             throw LoopbackError.failedToStart
         }
     }

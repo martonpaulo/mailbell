@@ -12,7 +12,7 @@ nonisolated enum EmailHeaderFormatter {
 
     static func title(for header: MessageHeader) -> String {
         let title = sanitizedTitle(from: header.subject)
-        let resolvedTitle = title.isEmpty ? "(no subject)" : title
+        let resolvedTitle = title.isEmpty ? String(localized: "(no subject)") : title
         guard header.mailbox == .spam else { return resolvedTitle }
         return titleWithSpamPrefix(resolvedTitle)
     }
@@ -24,7 +24,7 @@ nonisolated enum EmailHeaderFormatter {
     static func senderIdentity(from rawSender: String) -> SenderIdentity {
         let sender = rawSender.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !sender.isEmpty else {
-            return SenderIdentity(name: "Unknown sender", address: nil)
+            return SenderIdentity(name: String(localized: "Unknown sender"), address: nil)
         }
 
         guard let angleStart = sender.firstIndex(of: "<"),
@@ -44,12 +44,12 @@ nonisolated enum EmailHeaderFormatter {
             return SenderIdentity(name: displayName, address: email.nilIfEmpty)
         }
 
-        return SenderIdentity(name: email.isEmpty ? "Unknown sender" : email, address: email.nilIfEmpty)
+        return SenderIdentity(name: email.isEmpty ? String(localized: "Unknown sender") : email, address: email.nilIfEmpty)
     }
 
     static func senderDetail(from rawSender: String) -> String {
         let sender = rawSender.trimmingCharacters(in: .whitespacesAndNewlines)
-        return sender.isEmpty ? "Unknown sender" : sender
+        return sender.isEmpty ? String(localized: "Unknown sender") : sender
     }
 
     private static func titleWithSpamPrefix(_ title: String) -> String {
@@ -80,7 +80,7 @@ nonisolated enum EmailHeaderFormatter {
         timeZone: TimeZone = .autoupdatingCurrent
     ) -> String {
         let rawDate = header.date.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !rawDate.isEmpty else { return "Time unknown" }
+        guard !rawDate.isEmpty else { return String(localized: "Time unknown") }
         guard let date = parseMailDate(rawDate) else { return rawDate }
         return sentDateText(
             for: date,

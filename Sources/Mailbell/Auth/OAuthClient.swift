@@ -20,15 +20,16 @@ nonisolated final class OAuthClient {
 
         var errorDescription: String? {
             switch self {
-            case .browserOpenFailed: "Could not open the browser for sign-in."
-            case let .authorizationDenied(detail): "Authorization denied: \(detail)"
-            case .missingCode: "No authorization code was returned."
-            case let .tokenExchangeFailed(detail): "Token exchange failed: \(detail)"
-            case let .refreshFailed(detail): "Token refresh failed: \(detail)"
-            case let .refreshUnavailable(detail): "Token refresh unavailable: \(detail)"
-            case .noRefreshToken: "No refresh token is stored; sign in again."
-            case let .missingEmail(detail): "Could not read the account email: \(detail)"
-            case .secureRandomUnavailable: "Could not create secure OAuth state. Try again."
+            // The technical detail stays in the case for the log (Log.detail).
+            case .browserOpenFailed: String(localized: "Couldn't open your browser to sign in.")
+            case .authorizationDenied: String(localized: "Access wasn't allowed in Google. Try again and allow access.")
+            case .missingCode, .tokenExchangeFailed:
+                String(localized: "Google sign-in couldn't be completed. Try again.")
+            case .refreshFailed: String(localized: "Google ended this sign-in. Sign in again.")
+            case .refreshUnavailable: String(localized: "Couldn't reach Google to renew the sign-in. Mailbell will try again.")
+            case .noRefreshToken: String(localized: "No saved sign-in. Sign in again.")
+            case .missingEmail: String(localized: "Google didn't share the account's email address. Try again.")
+            case .secureRandomUnavailable: String(localized: "Couldn't start sign-in on this Mac. Try again.")
             }
         }
     }
@@ -74,7 +75,7 @@ nonisolated final class OAuthClient {
         do {
             try await server.start(expectedState: state)
             let redirectURI = await server.redirectURI
-            Log.info("OAuth redirect URI: \(redirectURI)")
+            Log.auth.info("OAuth redirect URI: \(Log.redact(redirectURI), privacy: .public)")
 
             guard var comps = URLComponents(url: config.authEndpoint, resolvingAgainstBaseURL: false) else {
                 await server.stop()

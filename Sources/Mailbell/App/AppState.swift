@@ -90,6 +90,7 @@ final class AppState: ObservableObject {
                 lastError = nil
                 oauthSetupMessage = supervisor.oauthSetupMessage
             } catch {
+                Log.auth.error("Sign-in failed: \(Log.detail(error), privacy: .private)")
                 lastError = error.localizedDescription
                 oauthSetupMessage = supervisor.oauthSetupMessage
             }
@@ -106,6 +107,7 @@ final class AppState: ObservableObject {
                 lastError = nil
                 oauthSetupMessage = supervisor.oauthSetupMessage
             } catch {
+                Log.auth.error("Sign-in failed: \(Log.detail(error), privacy: .private)")
                 lastError = error.localizedDescription
                 oauthSetupMessage = supervisor.oauthSetupMessage
             }

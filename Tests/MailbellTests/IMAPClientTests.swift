@@ -56,7 +56,7 @@ final class IMAPClientTests: XCTestCase {
             try await client.markAsRead(uid: 0, requiringUIDValidity: 1)
             XCTFail("Expected invalid UID to throw.")
         } catch let error as IMAPClient.IMAPError {
-            XCTAssertEqual(error.localizedDescription, "Invalid IMAP UID: 0")
+            XCTAssertEqual(error.localizedDescription, "This message can't be updated in Gmail.")
         } catch {
             XCTFail("Unexpected error: \(error)")
         }

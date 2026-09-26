@@ -135,7 +135,7 @@ struct MenuContent: View {
     private var noAccountSection: some View {
         Text("Not connected")
         if let setupMessage = appState.oauthSetupMessage {
-            Text("This build is missing its Google OAuth configuration")
+            Text(SettingsCopy.BuildProblem.headline)
             Text(setupMessage)
         }
         if let error = appState.lastError {

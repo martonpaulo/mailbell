@@ -69,7 +69,7 @@ final class EmailStorePersistenceTests: XCTestCase {
         )
 
         XCTAssertThrowsError(try persistence.isHandled("anything")) { error in
-            XCTAssertEqual(error.localizedDescription, "Could not save handled-message history: disk full")
+            XCTAssertEqual(error.localizedDescription, "Couldn't save Mailbell's review history. Try again.")
         }
         XCTAssertEqual(defaults.data(forKey: EmailStorePersistence.recordsKey), corrupt)
         XCTAssertNil(defaults.data(forKey: EmailStorePersistence.corruptBackupKey))
@@ -98,7 +98,7 @@ final class EmailStorePersistenceTests: XCTestCase {
         shouldFail = true
 
         XCTAssertThrowsError(try store.dismiss(id: id)) { error in
-            XCTAssertEqual(error.localizedDescription, "Could not save handled-message history: disk full")
+            XCTAssertEqual(error.localizedDescription, "Couldn't save Mailbell's review history. Try again.")
         }
         XCTAssertEqual(store.items.map(\.id), [id])
         let relaunchedStore = EmailStoreFixture.makeStore(defaults: defaults)
@@ -131,7 +131,7 @@ final class EmailStorePersistenceTests: XCTestCase {
         shouldFail = true
 
         XCTAssertThrowsError(try store.removeAccountRecords(accountID: account.id)) { error in
-            XCTAssertEqual(error.localizedDescription, "Could not save handled-message history: disk full")
+            XCTAssertEqual(error.localizedDescription, "Couldn't save Mailbell's review history. Try again.")
         }
         XCTAssertEqual(store.items.map(\.id), [visibleID])
         let relaunchedStore = EmailStoreFixture.makeStore(defaults: defaults)

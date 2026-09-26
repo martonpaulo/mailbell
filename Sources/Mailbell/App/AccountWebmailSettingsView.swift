@@ -101,10 +101,10 @@ struct AccountWebmailSettingsView: View {
     private var missingSelectionWarning: String? {
         if let browserID = missingSelectedBrowserID,
            let browser = browserOptions.first(where: { $0.id == browserID }) {
-            return "Selected browser is unavailable: \(browser.displayName)."
+            return String(localized: "Selected browser is unavailable: \(browser.displayName).")
         }
         if selectedBrowserSupportsChromeProfiles, let missingChromeProfileDirectory {
-            return "Selected Chrome profile is unavailable: \(missingChromeProfileDirectory)."
+            return String(localized: "Selected Chrome profile is unavailable: \(missingChromeProfileDirectory).")
         }
         return nil
     }
@@ -160,7 +160,7 @@ struct AccountWebmailSettingsView: View {
         profiles: [ChromeProfileCandidate]
     ) -> [ChromeProfilePickerOption] {
         var options = [
-            ChromeProfilePickerOption(directory: "", label: "Default (no explicit profile)")
+            ChromeProfilePickerOption(directory: "", label: String(localized: "Default (no explicit profile)"))
         ]
         options += profiles.map { profile in
             ChromeProfilePickerOption(directory: profile.directory, label: profile.pickerLabel)

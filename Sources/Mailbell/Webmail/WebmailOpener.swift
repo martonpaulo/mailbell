@@ -24,7 +24,7 @@ enum WebmailOpener {
                 let outcome = openWithSystemDefault(url, workspace: workspace)
                 return mergeFallback(
                     outcome,
-                    message: "Selected browser is no longer available."
+                    message: String(localized: "The chosen browser is no longer available.")
                 )
             }
 
@@ -61,7 +61,7 @@ enum WebmailOpener {
         else {
             return await mergeFallback(
                 openWithApplication(url: url, appURL: appURL, workspace: context.workspace),
-                message: "Selected Chrome profile is no longer available."
+                message: String(localized: "The chosen Chrome profile is no longer available.")
             )
         }
 
@@ -69,7 +69,7 @@ enum WebmailOpener {
         guard context.fileManager.fileExists(atPath: executable.path) else {
             return await mergeFallback(
                 openWithApplication(url: url, appURL: appURL, workspace: context.workspace),
-                message: "Could not open Gmail with the selected Chrome profile."
+                message: String(localized: "Couldn't open Gmail in the chosen Chrome profile.")
             )
         }
 
@@ -82,7 +82,7 @@ enum WebmailOpener {
         } catch {
             return await mergeFallback(
                 openWithApplication(url: url, appURL: appURL, workspace: context.workspace),
-                message: "Could not open Gmail with the selected Chrome profile."
+                message: String(localized: "Couldn't open Gmail in the chosen Chrome profile.")
             )
         }
     }
@@ -106,7 +106,7 @@ enum WebmailOpener {
                         openWithSystemDefault(
                             url,
                             workspace: .shared,
-                            fallbackMessage: "Could not open Gmail with the selected browser."
+                            fallbackMessage: String(localized: "Couldn't open Gmail in the chosen browser.")
                         )
                     }
                     continuation.resume(returning: outcome)
@@ -129,7 +129,7 @@ enum WebmailOpener {
         if let fallbackMessage {
             return .failed(message: fallbackMessage)
         }
-        return .failed(message: "Could not open Gmail.")
+        return .failed(message: String(localized: "Couldn't open Gmail."))
     }
 
     private static func mergeFallback(_ outcome: WebmailOpenOutcome, message: String) -> WebmailOpenOutcome {

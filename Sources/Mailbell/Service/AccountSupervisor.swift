@@ -68,7 +68,7 @@ final class AccountSupervisor {
         } catch {
             accounts = []
             accountStoreError = error.localizedDescription
-            Log.error("Failed to load accounts: \(error.localizedDescription)")
+            Log.monitor.error("Failed to load accounts: \(Log.detail(error), privacy: .private)")
         }
         setupNetworkMonitoring()
         setupSleepWakeObservers()
@@ -161,7 +161,7 @@ final class AccountSupervisor {
         do {
             try TokenStore(accountID: account.id, providerID: account.providerID).save(tokens: tokens)
         } catch {
-            Log.error("Failed to save account session: \(error.localizedDescription)")
+            Log.monitor.error("Failed to save account session: \(Log.detail(error), privacy: .private)")
             throw SupervisorError.sessionSaveFailed
         }
     }
@@ -241,7 +241,7 @@ final class AccountSupervisor {
     /// batch a single update after every account has been processed.
     func applyEmailStorePersistenceFailure(_ error: Error, accountID: UUID?) {
         let message = error.localizedDescription
-        Log.error("Email store persistence failed: \(message)")
+        Log.monitor.error("Email store persistence failed: \(Log.detail(error), privacy: .private)")
         if let accountID {
             statuses[accountID] = .error
             connectionErrors[accountID] = message
@@ -253,7 +253,7 @@ final class AccountSupervisor {
     @discardableResult
     func applyEmailStoreWarning(accountID: UUID?) -> Bool {
         guard let warning = emailStore.takePersistenceWarning() else { return false }
-        Log.error(warning)
+        Log.monitor.error("Email store warning: \(warning, privacy: .public)")
         if let accountID {
             connectionErrors[accountID] = warning
         } else {

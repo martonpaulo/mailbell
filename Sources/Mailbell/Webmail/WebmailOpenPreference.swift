@@ -59,7 +59,7 @@ struct BrowserCandidate: Identifiable, Equatable {
 
     static let systemDefault = BrowserCandidate(
         id: systemDefaultID,
-        displayName: "System Default",
+        displayName: String(localized: "System Default"),
         bundleIdentifier: nil,
         appURL: nil,
         supportsChromeProfiles: false

@@ -37,24 +37,24 @@ struct NotificationAuthorizationState: Equatable {
     }
 
     var summary: String {
-        guard isBundled else { return "Unavailable outside app bundle" }
+        guard isBundled else { return String(localized: "Unavailable outside app bundle") }
         return status.mailbellDescription
     }
 
     var detail: String {
         guard isBundled else {
-            return "Install and run Mailbell.app to use macOS notifications."
+            return String(localized: "Install and run Mailbell.app to use macOS notifications.")
         }
         if status == .denied {
-            return "Enable Mailbell in System Settings > Notifications."
+            return String(localized: "Enable Mailbell in System Settings > Notifications.")
         }
         if status == .notDetermined {
-            return "Notification permission has not been requested yet."
+            return String(localized: "Notification permission has not been requested yet.")
         }
         if !canPostAlert {
-            return "Notification alerts are disabled for Mailbell."
+            return String(localized: "Notification alerts are disabled for Mailbell.")
         }
-        return "Alerts: \(alertSetting.mailbellDescription), Sound: \(soundSetting.mailbellDescription)"
+        return String(localized: "Alerts: \(alertSetting.mailbellDescription), Sound: \(soundSetting.mailbellDescription)")
     }
 
     var canRequestPermission: Bool {
@@ -126,25 +126,27 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         )
     }
 
+    nonisolated static let testNotificationTitle = String(localized: "Mailbell")
+    nonisolated static let testNotificationBody = String(localized: "Test notification. New mail looks like this.")
+
+    /// Says plainly that it is a test: a fake message from a made-up sender
+    /// can be mistaken for real mail.
     nonisolated static func testNotificationContent(
         account: MailAccount?,
         playNotificationSounds: Bool
     ) -> UNMutableNotificationContent {
-        let header = MessageHeader(
-            uid: 0,
-            from: "Taylor Reed <taylor@example.com>",
-            subject: "Contract review today",
-            date: "",
-            gmThreadId: nil,
-            bodyPreview: "Please review the updated contract notes before the afternoon sync."
-        )
-        let url = account.map { webmailURL(for: header, account: $0) } ?? GmailProvider().webmailURL
-        return EmailNotificationContentBuilder.build(
-            header: header,
-            webmailURL: url,
-            accountID: account?.id,
-            playNotificationSounds: playNotificationSounds
-        )
+        let url = account.map { MailProviderRegistry.provider(for: $0.providerID).webmailURL(for: $0) }
+            ?? GmailProvider().webmailURL
+        let content = UNMutableNotificationContent()
+        content.title = testNotificationTitle
+        content.body = testNotificationBody
+        content.sound = NotificationSoundPolicy.sound(playNotificationSounds: playNotificationSounds)
+        var userInfo: [String: String] = [notificationWebmailURLKey: url.absoluteString]
+        if let account {
+            userInfo[notificationAccountIDKey] = account.id.uuidString
+        }
+        content.userInfo = userInfo
+        return content
     }
 
     override private init() {
@@ -169,14 +171,14 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
     func requestAuthorization() async -> NotificationAuthorizationState {
         guard isBundled else {
-            Log.info("Notifications unavailable (no app bundle); run the packaged .app for native notifications.")
+            Log.notify.info("Notifications unavailable (no app bundle); run the packaged .app for native notifications.")
             return .unbundled
         }
         do {
             let granted = try await notificationCenter.requestAuthorization(options: [.alert, .sound, .badge])
-            Log.info("Notification authorization granted: \(granted)")
+            Log.notify.info("Notification authorization granted: \(granted, privacy: .public)")
         } catch {
-            Log.error("Notification authorization error: \(error.localizedDescription)")
+            Log.notify.error("Notification authorization error: \(Log.detail(error), privacy: .private)")
         }
         return await authorizationState()
     }
@@ -226,13 +228,13 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     /// then posted.
     private func post(_ content: UNNotificationContent, identifier: String) async -> NotificationPostResult {
         guard isBundled else {
-            Log.info("Notifications unavailable outside app bundle; install Mailbell.app to post native notifications.")
-            return .unavailable("Notifications unavailable outside app bundle.")
+            Log.notify.info("Notifications unavailable outside app bundle; install Mailbell.app to post native notifications.")
+            return .unavailable(String(localized: "Notifications unavailable outside app bundle."))
         }
 
         let state = await requestAuthorizationIfNeeded()
         guard state.canPostAlert else {
-            Log.error("Notification skipped: \(state.detail)")
+            Log.notify.error("Notification skipped: \(state.detail, privacy: .public)")
             return .notAuthorized(state)
         }
 
@@ -245,7 +247,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             return .posted
         } catch {
             let message = error.localizedDescription
-            Log.error("Failed to post notification: \(message)")
+            Log.notify.error("Failed to post notification: \(Log.detail(error), privacy: .private)")
             return .failed(message)
         }
     }
@@ -253,7 +255,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     private func registerEmailCategory() {
         let dismissAction = UNNotificationAction(
             identifier: notificationDismissActionIdentifier,
-            title: "Dismiss",
+            title: String(localized: "Dismiss"),
             options: []
         )
         let category = UNNotificationCategory(
@@ -342,17 +344,17 @@ private extension UNAuthorizationStatus {
     var mailbellDescription: String {
         switch self {
         case .notDetermined:
-            return "Not requested"
+            return String(localized: "Not requested")
         case .denied:
-            return "Denied"
+            return String(localized: "Denied")
         case .authorized:
-            return "Allowed"
+            return String(localized: "Allowed")
         case .provisional:
-            return "Allowed quietly"
+            return String(localized: "Allowed quietly")
         case .ephemeral:
-            return "Allowed temporarily"
+            return String(localized: "Allowed temporarily")
         @unknown default:
-            return "Unknown"
+            return String(localized: "Unknown")
         }
     }
 }
@@ -361,13 +363,13 @@ private extension UNNotificationSetting {
     var mailbellDescription: String {
         switch self {
         case .notSupported:
-            return "Not supported"
+            return String(localized: "Not supported")
         case .disabled:
-            return "Disabled"
+            return String(localized: "Disabled")
         case .enabled:
-            return "Enabled"
+            return String(localized: "Enabled")
         @unknown default:
-            return "Unknown"
+            return String(localized: "Unknown")
         }
     }
 }

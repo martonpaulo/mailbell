@@ -8,12 +8,11 @@ final class AccountStore {
 
         var errorDescription: String? {
             switch self {
-            case let .decodingFailed(detail):
-                "Could not read saved accounts: \(detail)"
-            case let .encodingFailed(detail):
-                "Could not encode accounts for storage: \(detail)"
-            case let .saveFailed(detail):
-                "Could not save accounts: \(detail)"
+            // The technical detail stays in the case for the log (Log.detail).
+            case .decodingFailed:
+                String(localized: "Couldn't read saved accounts.")
+            case .encodingFailed, .saveFailed:
+                String(localized: "Couldn't save accounts. Try again.")
             }
         }
     }

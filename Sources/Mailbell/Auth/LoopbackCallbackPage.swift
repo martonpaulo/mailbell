@@ -58,9 +58,9 @@ private nonisolated struct CallbackPageContent {
             // This page is written when the browser hands the code back, before
             // token exchange, identity lookup and account persistence have run.
             // It can only honestly confirm the handoff.
-            eyebrow = "Google sent Mailbell back"
-            title = "Handing off to Mailbell"
-            message = "You can close this tab. Mailbell is finishing the sign-in now."
+            eyebrow = "Signed in"
+            title = "Return to Mailbell"
+            message = "You can close this tab. Mailbell is finishing the setup."
             detailsHTML = ""
             footnote = "Open Mailbell from the menu bar to confirm the account connected. "
                 + "No email content is shown on this page."
@@ -72,8 +72,8 @@ private nonisolated struct CallbackPageContent {
         case let .error(reason):
             stateClass = state.dataState
             eyebrow = "Google sign-in stopped"
-            title = "Mailbell could not connect"
-            message = "Return to Mailbell and try signing in again."
+            title = "Sign-in didn't finish"
+            message = "Return to Mailbell and sign in again."
             detailsHTML = reason.detailsHTML
             footnote = "Mailbell does not show email content on this local page."
             badgeSVG = """

@@ -19,13 +19,13 @@ enum SettingsTab: CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .general:
-            "General"
+            String(localized: "General")
         case .notifications:
-            "Notifications"
+            String(localized: "Notifications")
         case .accounts:
-            "Accounts"
+            String(localized: "Accounts")
         case .about:
-            "About"
+            String(localized: "About")
         }
     }
 
@@ -163,11 +163,11 @@ struct SettingsView: View {
     var loginItemStatusValue: SettingsStatusValue {
         switch loginItemStatus {
         case .enabled:
-            SettingsStatusValue(loginItemStatus.title, tone: .success, context: "Login item")
+            SettingsStatusValue(loginItemStatus.title, tone: .success, context: SettingsCopy.Startup.loginItemTitle)
         case .disabled:
-            SettingsStatusValue(loginItemStatus.title, tone: .inactive, context: "Login item")
+            SettingsStatusValue(loginItemStatus.title, tone: .inactive, context: SettingsCopy.Startup.loginItemTitle)
         case .requiresApproval, .unavailable:
-            SettingsStatusValue(loginItemStatus.title, tone: .warning, context: "Login item")
+            SettingsStatusValue(loginItemStatus.title, tone: .warning, context: SettingsCopy.Startup.loginItemTitle)
         }
     }
 

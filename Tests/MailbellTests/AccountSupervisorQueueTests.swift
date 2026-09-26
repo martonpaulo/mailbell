@@ -129,7 +129,7 @@ final class AccountSupervisorQueueTests: XCTestCase {
         XCTAssertEqual(supervisor.emailStoreItems.map(\.id), [item.id])
         XCTAssertEqual(
             supervisor.accountStates.first?.lastError,
-            "Could not save handled-message history: disk full"
+            "Couldn't save Mailbell's review history. Try again."
         )
     }
 
@@ -162,7 +162,7 @@ final class AccountSupervisorQueueTests: XCTestCase {
         XCTAssertEqual(supervisor.emailStoreItems.map(\.id), [item.id])
         XCTAssertEqual(
             supervisor.accountStates.first?.lastError,
-            "Could not save handled-message history: disk full"
+            "Couldn't save Mailbell's review history. Try again."
         )
     }
 

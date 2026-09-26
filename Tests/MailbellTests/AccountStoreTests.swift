@@ -35,7 +35,7 @@ final class AccountStoreTests: XCTestCase {
         let account = MailAccount(providerID: .gmail, email: "first@example.com")
 
         XCTAssertThrowsError(try store.saveAccounts([account])) { error in
-            XCTAssertEqual(error.localizedDescription, "Could not save accounts: disk full")
+            XCTAssertEqual(error.localizedDescription, "Couldn't save accounts. Try again.")
         }
     }
 

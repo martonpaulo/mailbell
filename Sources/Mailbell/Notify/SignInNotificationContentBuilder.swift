@@ -8,16 +8,18 @@ import UserNotifications
 ///
 /// Nonisolated: a pure helper, like EmailNotificationContentBuilder.
 nonisolated enum SignInNotificationContentBuilder {
-    static let title = "Sign in needed"
-
-    static func body(email: String) -> String {
-        "Mailbell stopped watching \(email). Open Mailbell settings to sign in again."
+    static func title(email: String) -> String {
+        String(localized: "\(email) needs sign-in", comment: "Notification title; the placeholder is a Gmail address.")
     }
+
+    static let body = String(
+        localized: "Mailbell stopped watching this account. Choose Sign In Again in the Mailbell menu."
+    )
 
     static func build(account: MailAccount, playNotificationSounds: Bool) -> UNMutableNotificationContent {
         let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body(email: account.email)
+        content.title = title(email: account.email)
+        content.body = body
         content.sound = NotificationSoundPolicy.sound(playNotificationSounds: playNotificationSounds)
         return content
     }

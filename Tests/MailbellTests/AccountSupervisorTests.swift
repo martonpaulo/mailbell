@@ -185,7 +185,7 @@ final class AccountSupervisorTests: XCTestCase {
 
         let state = try XCTUnwrap(supervisor.accountStates.first)
         XCTAssertTrue(state.account.isEnabled)
-        XCTAssertEqual(state.lastError, "Could not save accounts: disk full")
+        XCTAssertEqual(state.lastError, "Couldn't save accounts. Try again.")
     }
 
     @MainActor

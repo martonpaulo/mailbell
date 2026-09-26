@@ -12,17 +12,11 @@ struct OAuthSetupPanel: View {
     var body: some View {
         Label(SettingsCopy.BuildProblem.headline, systemImage: SettingsStatusTone.warning.systemImage)
 
-        Text(
-            "Mailbell releases ship with the Google Desktop OAuth client already configured. "
-                + "Seeing this means the build was packaged without it, which no setting can fix."
-        )
+        Text(SettingsCopy.BuildProblem.explanation)
         .foregroundStyle(.secondary)
         .textSelection(.enabled)
 
-        Text(
-            "If you downloaded this build from GitHub Releases, please report it. "
-                + "If you built Mailbell yourself, set MAILBELL_GOOGLE_CLIENT_ID in .env and reinstall."
-        )
+        Text(SettingsCopy.BuildProblem.nextStep)
         .foregroundStyle(.secondary)
         .textSelection(.enabled)
 

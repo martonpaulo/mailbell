@@ -219,17 +219,18 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
         )
     }
 
-    func testTestNotificationUsesSharedEmailFormatterShape() {
+    func testTestNotificationSaysItIsATestInsteadOfImitatingMail() {
         let account = MailAccount(providerID: .gmail, email: "account@example.com")
         let content = NotificationManager.testNotificationContent(
             account: account,
             playNotificationSounds: true
         )
 
-        XCTAssertEqual(content.title, "Taylor Reed")
-        XCTAssertEqual(content.subtitle, "Contract review today")
-        XCTAssertEqual(content.body, "Please review the updated contract notes before the afternoon sync.")
+        XCTAssertEqual(content.title, "Mailbell")
+        XCTAssertEqual(content.subtitle, "")
+        XCTAssertEqual(content.body, "Test notification. New mail looks like this.")
         XCTAssertEqual(content.userInfo[notificationAccountIDKey] as? String, account.id.uuidString)
+        XCTAssertEqual(content.userInfo[notificationWebmailURLKey] as? String, "https://mail.google.com/")
     }
 
     func testTestNotificationWithoutAccountDoesNotInventAccountIdentifier() {
@@ -249,8 +250,11 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
             playNotificationSounds: true
         )
 
-        XCTAssertEqual(content.title, "Sign in needed")
-        XCTAssertTrue(content.body.contains(account.email))
+        XCTAssertEqual(content.title, "account@example.com needs sign-in")
+        XCTAssertEqual(
+            content.body,
+            "Mailbell stopped watching this account. Choose Sign In Again in the Mailbell menu."
+        )
         XCTAssertEqual(
             SignInNotificationContentBuilder.requestIdentifier(accountID: account.id),
             "mailbell.signin.\(account.id.uuidString)"
