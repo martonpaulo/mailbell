@@ -10,7 +10,7 @@ Root rules for Mailbell; a subtree `AGENTS.md` overrides them for that subtree.
 - Identifier name: `mailbell`
 - Benefit-first description: Gmail notifications in your macOS menu bar — instant IMAP IDLE alerts, a review queue you can clear in one click, no server in between.
 - Repository: `martonpaulo/mailbell` (public); `origin` is the owner's fork, `upstream` the original project.
-- Public identifiers: bundle identifier `com.perso.mailbell`, becoming `com.martonpaulo.mailbell` in v0.4.0 with preferences copied once and Keychain tokens not migrated (Decided on #47); executable `mailbell`; app `Mailbell.app`.
+- Public identifiers: bundle identifier `com.martonpaulo.mailbell` from v0.4.0; `LegacyDomainMigration` copies the previous identifier's preferences once and Keychain tokens are not migrated, so each account signs in again (Decided on #47); executable `mailbell`; app `Mailbell.app`.
 - Landing page: `https://mailbell.martonpaulo.com/`, owned by Marton Paulo, published from `site/` (`site/CNAME` names the host) by `deploy.yml`. A further domain or DNS change needs a separate explicit request.
 - License: `MIT`
 - Copyright: 2026 samzong and 2026 Marton Paulo; `LICENSE` and `NOTICE.md` keep both lines and every third-party notice. The app credit, `NSHumanReadableCopyright`, is two lines: `© 2026 Marton Paulo. Licensed under the MIT License.` and `Originally based on software by samzong.` (Decided on #73).
@@ -31,7 +31,7 @@ Root rules for Mailbell; a subtree `AGENTS.md` overrides them for that subtree.
   - Channel and artifacts: GitHub Releases: `Mailbell-<version>.dmg` (canonical) and `Mailbell-<version>.zip` (Sparkle update).
   - Signing identity: `Developer ID Application: Marton Paulo (TBN79KU9ML)`.
   - Team ID: `TBN79KU9ML`.
-  - Bundle identifier: `com.perso.mailbell` until v0.4.0.
+  - Bundle identifier: `com.martonpaulo.mailbell`.
   - Build and package command: `scripts/package-with-oauth.sh` (the OAuth client around the canonical `scripts/package-app.sh`), then `scripts/make-dmg.sh`.
   - Entitlements and hardened runtime: no entitlements file; hardened runtime on.
   - Keychain profile: `skd-notary`, for local rehearsals; CI uses the `NOTARY_API_KEY*` secrets.

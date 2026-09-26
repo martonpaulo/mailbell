@@ -21,7 +21,10 @@ A missing decision is a review failure.
 - Reset never touches accounts, Keychain tokens, notification permission, the
   login item, IMAP checkpoints, or handled-message history.
 - Preserve existing user choices on upgrade; migrate a stored value only when the
-  old representation is invalid.
+  old representation is invalid. `LegacyDomainMigration` is the only copy
+  across defaults domains: on the first launch under the 0.4.0 bundle
+  identifier it copies Mailbell's own names once and never overwrites a stored
+  value (Decided on #47).
 
 ## Queue limits
 

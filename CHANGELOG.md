@@ -6,6 +6,16 @@ All notable changes to Mailbell are documented here. This project follows
 
 ## [Unreleased]
 
+### Changed
+
+- **Mailbell now identifies itself to macOS as `com.martonpaulo.mailbell`.**
+  Your settings, watched accounts, and the mail you already handled carry
+  over. macOS treats the new identifier as a new app, so after you update:
+  - **each Gmail account must sign in again once** (Settings › Accounts ›
+    Sign in Again);
+  - **notification permission must be granted again**;
+  - **"Open Mailbell at login" must be turned on again** if you used it.
+
 ## [0.3.1] - 2026-09-09
 
 The website moved to its own subdomain. The links the app opens follow it.

@@ -18,8 +18,14 @@ agents_bytes=$(wc -c < AGENTS.md | tr -d ' ')
 # The bundle identifier is fixed: Keychain and UserDefaults ownership derive
 # from it, so a change silently orphans every user's accounts and tokens.
 BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" Support/Info.plist)
-[ "$BUNDLE_ID" = "com.perso.mailbell" ] \
-    || note "bundle id must be com.perso.mailbell (got $BUNDLE_ID)"
+[ "$BUNDLE_ID" = "com.martonpaulo.mailbell" ] \
+    || note "bundle id must be com.martonpaulo.mailbell (got $BUNDLE_ID)"
+# The previous identifier may appear only where the one-time preference copy reads
+# its domain (#47). The bracket keeps this line from matching itself.
+stale_identifier=$(git grep -lE 'com[.]perso[.]' -- . 2>/dev/null \
+    | grep -v '^Sources/Mailbell/App/LegacyDomainMigration.swift$' || true)
+[ -z "$stale_identifier" ] \
+    || note "the previous bundle identifier appears outside LegacyDomainMigration.swift: $(echo $stale_identifier)"
 
 # The menu bar app must stay accessory-style.
 [ "$(/usr/libexec/PlistBuddy -c "Print :LSUIElement" Support/Info.plist)" = "true" ] \

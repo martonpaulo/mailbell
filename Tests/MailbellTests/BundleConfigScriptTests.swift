@@ -17,7 +17,7 @@ final class BundleConfigScriptTests: XCTestCase {
     // and version; it must never mint a second Mailbell.
 
     func testAbsentBundleIDPreservesTheIdentifierAlreadyInThePlist() throws {
-        let plistURL = try makePlist(["CFBundleIdentifier": "com.perso.mailbell"])
+        let plistURL = try makePlist(["CFBundleIdentifier": "com.martonpaulo.mailbell"])
         defer { try? FileManager.default.removeItem(at: plistURL) }
 
         let result = runInjector(
@@ -26,11 +26,11 @@ final class BundleConfigScriptTests: XCTestCase {
         )
 
         XCTAssertEqual(result.status, 0, result.stderr)
-        XCTAssertEqual(try readStringPlist(plistURL)["CFBundleIdentifier"], "com.perso.mailbell")
+        XCTAssertEqual(try readStringPlist(plistURL)["CFBundleIdentifier"], "com.martonpaulo.mailbell")
     }
 
     func testBlankBundleIDPreservesTheIdentifierAlreadyInThePlist() throws {
-        let plistURL = try makePlist(["CFBundleIdentifier": "com.perso.mailbell"])
+        let plistURL = try makePlist(["CFBundleIdentifier": "com.martonpaulo.mailbell"])
         defer { try? FileManager.default.removeItem(at: plistURL) }
 
         let result = runInjector(
@@ -39,24 +39,24 @@ final class BundleConfigScriptTests: XCTestCase {
         )
 
         XCTAssertEqual(result.status, 0, result.stderr)
-        XCTAssertEqual(try readStringPlist(plistURL)["CFBundleIdentifier"], "com.perso.mailbell")
+        XCTAssertEqual(try readStringPlist(plistURL)["CFBundleIdentifier"], "com.martonpaulo.mailbell")
     }
 
     func testMatchingBundleIDIsAccepted() throws {
-        let plistURL = try makePlist(["CFBundleIdentifier": "com.perso.mailbell"])
+        let plistURL = try makePlist(["CFBundleIdentifier": "com.martonpaulo.mailbell"])
         defer { try? FileManager.default.removeItem(at: plistURL) }
 
         let result = runInjector(
             arguments: [plistURL.path],
-            environment: [OAuthConfig.clientIDKey: clientID, "MAILBELL_BUNDLE_ID": "com.perso.mailbell"]
+            environment: [OAuthConfig.clientIDKey: clientID, "MAILBELL_BUNDLE_ID": "com.martonpaulo.mailbell"]
         )
 
         XCTAssertEqual(result.status, 0, result.stderr)
-        XCTAssertEqual(try readStringPlist(plistURL)["CFBundleIdentifier"], "com.perso.mailbell")
+        XCTAssertEqual(try readStringPlist(plistURL)["CFBundleIdentifier"], "com.martonpaulo.mailbell")
     }
 
     func testConflictingBundleIDIsRejectedAndLeavesThePlistUntouched() throws {
-        let plistURL = try makePlist(["CFBundleIdentifier": "com.perso.mailbell"])
+        let plistURL = try makePlist(["CFBundleIdentifier": "com.martonpaulo.mailbell"])
         defer { try? FileManager.default.removeItem(at: plistURL) }
 
         let result = runInjector(
@@ -66,14 +66,14 @@ final class BundleConfigScriptTests: XCTestCase {
 
         XCTAssertNotEqual(result.status, 0)
         XCTAssertTrue(
-            result.stderr.contains("com.perso.mailbell"),
+            result.stderr.contains("com.martonpaulo.mailbell"),
             "the error must name the identity it is protecting: \(result.stderr)"
         )
-        XCTAssertEqual(try readStringPlist(plistURL)["CFBundleIdentifier"], "com.perso.mailbell")
+        XCTAssertEqual(try readStringPlist(plistURL)["CFBundleIdentifier"], "com.martonpaulo.mailbell")
     }
 
     func testPreflightReportsTheCanonicalIdentifierWithoutConfiguration() throws {
-        let plistURL = try makePlist(["CFBundleIdentifier": "com.perso.mailbell"])
+        let plistURL = try makePlist(["CFBundleIdentifier": "com.martonpaulo.mailbell"])
         defer { try? FileManager.default.removeItem(at: plistURL) }
 
         let result = runInjector(
@@ -82,13 +82,13 @@ final class BundleConfigScriptTests: XCTestCase {
         )
 
         XCTAssertEqual(result.status, 0, result.stderr)
-        XCTAssertTrue(result.stdout.contains("com.perso.mailbell"), result.stdout)
+        XCTAssertTrue(result.stdout.contains("com.martonpaulo.mailbell"), result.stdout)
         XCTAssertFalse(result.stdout.contains("dev.mailbell.local"), result.stdout)
     }
 
     func testWritesExpectedBundleKeysWithDummyCredentials() throws {
         let plistURL = try makePlist([
-            "CFBundleIdentifier": "com.perso.mailbell",
+            "CFBundleIdentifier": "com.martonpaulo.mailbell",
             "CFBundleName": "Old",
             "CFBundleDisplayName": "Old"
         ])
@@ -99,7 +99,7 @@ final class BundleConfigScriptTests: XCTestCase {
             environment: [
                 OAuthConfig.clientIDKey: clientID,
                 OAuthConfig.clientSecretKey: clientSecret,
-                "MAILBELL_BUNDLE_ID": "com.perso.mailbell"
+                "MAILBELL_BUNDLE_ID": "com.martonpaulo.mailbell"
             ]
         )
 
@@ -107,14 +107,14 @@ final class BundleConfigScriptTests: XCTestCase {
         let plist = try readStringPlist(plistURL)
         XCTAssertEqual(plist["MailbellGoogleClientID"], clientID)
         XCTAssertEqual(plist["MailbellGoogleClientSecret"], clientSecret)
-        XCTAssertEqual(plist["CFBundleIdentifier"], "com.perso.mailbell")
+        XCTAssertEqual(plist["CFBundleIdentifier"], "com.martonpaulo.mailbell")
         XCTAssertEqual(plist["CFBundleName"], "Mailbell")
         XCTAssertEqual(plist["CFBundleDisplayName"], "Mailbell")
     }
 
     func testWritesReleaseVersionAndBuildNumber() throws {
         let plistURL = try makePlist([
-            "CFBundleIdentifier": "com.perso.mailbell",
+            "CFBundleIdentifier": "com.martonpaulo.mailbell",
             "CFBundleName": "Old",
             "CFBundleDisplayName": "Old",
             "CFBundleShortVersionString": "0.0.0",
@@ -126,7 +126,7 @@ final class BundleConfigScriptTests: XCTestCase {
             arguments: ["--version", "1.2.3", "--build-number", "456", plistURL.path],
             environment: [
                 OAuthConfig.clientIDKey: clientID,
-                "MAILBELL_BUNDLE_ID": "com.perso.mailbell"
+                "MAILBELL_BUNDLE_ID": "com.martonpaulo.mailbell"
             ]
         )
 
@@ -140,7 +140,7 @@ final class BundleConfigScriptTests: XCTestCase {
 
     func testOmitsBundleSecretKeyWhenSecretIsAbsent() throws {
         let plistURL = try makePlist([
-            "CFBundleIdentifier": "com.perso.mailbell",
+            "CFBundleIdentifier": "com.martonpaulo.mailbell",
             "CFBundleName": "Old",
             "CFBundleDisplayName": "Old",
             "MailbellGoogleClientSecret": "old-secret"
@@ -174,7 +174,7 @@ final class BundleConfigScriptTests: XCTestCase {
 
     func testReadsCredentialsFromDotEnvAndKeepsTheIdentity() throws {
         let plistURL = try makePlist([
-            "CFBundleIdentifier": "com.perso.mailbell",
+            "CFBundleIdentifier": "com.martonpaulo.mailbell",
             "CFBundleName": "Old",
             "CFBundleDisplayName": "Old"
         ])
@@ -183,7 +183,7 @@ final class BundleConfigScriptTests: XCTestCase {
         let dotenv = """
         \(OAuthConfig.clientIDKey)=\(clientID)
         \(OAuthConfig.clientSecretKey)=\(clientSecret)
-        MAILBELL_BUNDLE_ID=com.perso.mailbell
+        MAILBELL_BUNDLE_ID=com.martonpaulo.mailbell
         """
         try dotenv.write(to: dotenvURL, atomically: true, encoding: .utf8)
         defer {
@@ -200,7 +200,7 @@ final class BundleConfigScriptTests: XCTestCase {
 
         XCTAssertEqual(result.status, 0, result.stderr)
         let plist = try readStringPlist(plistURL)
-        XCTAssertEqual(plist["CFBundleIdentifier"], "com.perso.mailbell")
+        XCTAssertEqual(plist["CFBundleIdentifier"], "com.martonpaulo.mailbell")
         XCTAssertEqual(plist["CFBundleName"], "Mailbell")
         XCTAssertEqual(plist["CFBundleDisplayName"], "Mailbell")
     }

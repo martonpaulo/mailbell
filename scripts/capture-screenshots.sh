@@ -12,7 +12,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 OUT_DIR="${1:-site/screenshots}"
-CAPTURE_BUNDLE_ID="com.perso.mailbell.capture"
+CAPTURE_BUNDLE_ID="com.martonpaulo.mailbell.capture"
 LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 # Pane index matches the tab order: General, Notifications, Accounts, About.
 #

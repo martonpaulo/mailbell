@@ -7,6 +7,10 @@ struct MailbellApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var appState = AppState()
 
+    init() {
+        LegacyDomainMigration.runOnLaunch()
+    }
+
     @SceneBuilder
     var body: some Scene {
         MenuBarExtra {

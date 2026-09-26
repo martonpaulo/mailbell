@@ -32,7 +32,7 @@ final class UpdateManagerTests: XCTestCase {
         let feed = try XCTUnwrap(plist[UpdateManager.feedURLKey] as? String)
         let key = try XCTUnwrap(plist[UpdateManager.publicKeyKey] as? String)
         XCTAssertTrue(UpdateManager.isUpdatable(feedURL: feed, publicKey: key))
-        XCTAssertEqual(plist["CFBundleIdentifier"] as? String, "com.perso.mailbell")
+        XCTAssertEqual(plist["CFBundleIdentifier"] as? String, "com.martonpaulo.mailbell")
         XCTAssertEqual(plist["LSUIElement"] as? Bool, true)
     }
 

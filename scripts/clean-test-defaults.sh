@@ -3,7 +3,7 @@
 # in ~/Library/Preferences. Maintainers run it by hand; no other target calls it.
 #
 # Only test-suite names are matched, each anchored on its 36-character UUID suffix so no
-# app domain (com.perso.mailbell, dev.mailbell.local, ...) can match:
+# app domain (com.martonpaulo.mailbell, dev.mailbell.local, ...) can match:
 #   mailbell.<Name>Tests.<UUID>.plist
 #   mailbell.tests.<area>.<UUID>.plist
 #

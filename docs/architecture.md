@@ -29,7 +29,9 @@ token persistence.
   time from local configuration. Nothing is fetched remotely, and nothing is
   committed.
 - Refresh tokens and the access-token cache live in the macOS Keychain, keyed by
-  the bundle identifier. UserDefaults never sees a token.
+  the bundle identifier. UserDefaults never sees a token. A new identifier
+  orphans the tokens by design: after the 0.4.0 move every account signs in
+  again once (Decided on #47).
 - A refresh failure or a revoked grant becomes `reauthRequired` and is surfaced,
   never swallowed by a retry loop.
 

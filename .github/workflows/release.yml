@@ -114,7 +114,7 @@ jobs:
         env:
           MAILBELL_GOOGLE_CLIENT_ID: ${{ secrets.MAILBELL_GOOGLE_CLIENT_ID }}
           MAILBELL_GOOGLE_CLIENT_SECRET: ${{ secrets.MAILBELL_GOOGLE_CLIENT_SECRET }}
-          MAILBELL_BUNDLE_ID: com.perso.mailbell
+          MAILBELL_BUNDLE_ID: com.martonpaulo.mailbell
         run: |
           # Packages build/Mailbell.app and artifacts/Mailbell-$VERSION.zip, stamped with the
           # tag commit's date as AppReleaseDate.
