@@ -163,7 +163,6 @@ final class AccountPresentationTests: XCTestCase {
         )
     }
 
-
     func testAccountMenuIconReflectsStatus() {
         XCTAssertEqual(
             AccountPresentation.menuIconSystemName(for: state(status: .connected)),
