@@ -15,7 +15,7 @@ Root rules for Mailbell; a subtree `AGENTS.md` overrides them for that subtree.
 - License: `MIT`
 - Copyright: 2026 samzong and 2026 Marton Paulo; `LICENSE` and `NOTICE.md` keep both lines and every third-party notice. The app credit, `NSHumanReadableCopyright`, is two lines: `© 2026 Marton Paulo. Licensed under the MIT License.` and `Originally based on software by samzong.` (Decided on #73).
 - Development language: English.
-- Product copy: English only, read from one English-only String Catalog, `Support/Localizable.xcstrings`; no locale is added (Decided on #44; #61 adds it). The OAuth callback page stays an HTML template.
+- Product copy: English only, read through `String(localized:)` from one English-only String Catalog, `Support/Localizable.xcstrings`; no locale is added (Decided on #44). The OAuth callback page stays an HTML template.
 - Browser acceptance targets: Chromium and WebKit/Safari for the site and the OAuth callback page; check native Safari by hand when tooling cannot.
 - Branch policy: work on `main` unless the owner explicitly requests a branch.
 - Commit policy: a focused Conventional Commit when the authorized change is complete and validated; commit only task files.

@@ -144,6 +144,13 @@ by Google**.
   secrets, or generated release artifacts.
 - Never log tokens, OAuth codes, client secrets, IMAP auth payloads, raw message
   bodies, attachments, or full provider responses.
+- Log through `Log.<area>` (`os.Logger`, subsystem = bundle identifier). Addresses,
+  senders, subjects, message identifiers and error details are interpolated
+  `.private` after `Log.redact`; user-facing error text carries no technical
+  detail, which goes to the log through `Log.detail` (#61).
+- State lives in `@Observable` models passed by initializer; there is no
+  `ObservableObject` and no `.shared` singleton. `NotificationManager` is created
+  once at launch and reaches monitors through `MailNotifying` (#62).
 - Fetch only the smallest useful data: sender, subject, sent date, server
   receipt time (`INTERNALDATE`), account, UID, RFC message ID, Gmail
   thread/message identifiers when available, and a bounded sanitized text
