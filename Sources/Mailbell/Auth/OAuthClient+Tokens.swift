@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 
 /// Exchanging an authorization code, refreshing, and reading back the signed-in
 /// address. Separate from the interactive sign-in that produces the code, and

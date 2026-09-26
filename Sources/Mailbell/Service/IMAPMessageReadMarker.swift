@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 
 // Nonisolated: its IMAP session runs on the task that awaits it, off the main actor.
 nonisolated enum IMAPMessageReadMarker {

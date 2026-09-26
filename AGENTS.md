@@ -63,7 +63,7 @@ Each line is the non-negotiable; the linked document holds the rule.
 
 ## Architecture
 
-See [docs/architecture.md](docs/architecture.md). Standard SwiftPM layout: `Sources/Mailbell`, `Tests/MailbellTests`, and pure logic in a `MailbellKit` library target (Decided on #44; #62 adds it). The app target is main-actor by default; warnings are errors. Add no other package, target, or top-level folder.
+See [docs/architecture.md](docs/architecture.md). Standard SwiftPM layout with three source targets (Decided on #44; added by #80): the `MailbellKit` library (`Sources/MailbellKit`, pure logic, nonisolated by default), the `Mailbell` executable (`Sources/Mailbell`, main-actor by default: UI, system integration, network, Keychain, notifications, SwiftSoup and Sparkle) and the test-only `MailbellTestSupport` (`Tests/MailbellTestSupport`, `TestDefaults`). Tests live in `Tests/MailbellKitTests` (Kit and test support only) and `Tests/MailbellTests`. Kit import contract: `Foundation`, `Observation`, `Synchronization` and `CoreGraphics` only; `scripts/validate.sh` enforces it. Warnings are errors. Add no other package, target, or top-level folder.
 
 ## Instruction hierarchy and sources of truth
 

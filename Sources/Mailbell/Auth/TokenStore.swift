@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 
 // Nonisolated: its closures run inside MailMonitor run tasks.
 nonisolated struct KeychainClient {

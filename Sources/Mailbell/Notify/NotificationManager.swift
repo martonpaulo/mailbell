@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import MailbellKit
 import UserNotifications
 
 // Nonisolated: read by the notification-center delegate callbacks off the main actor.

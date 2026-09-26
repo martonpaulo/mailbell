@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 
 // Nonisolated: IMAPClient drives it from MailMonitor run tasks.
 nonisolated protocol IMAPClientTransport: Sendable {
@@ -277,7 +278,11 @@ nonisolated final class IMAPClient {
         }
         let block = try await connection.readBytes(literalSize)
         let trailingLine = try await connection.readLine()
-        return IMAPParser.parseFetch(firstLine: firstLine, trailingLine: trailingLine, headerBlock: block)
+        guard let header = IMAPParser.parseFetch(firstLine: firstLine, trailingLine: trailingLine, headerBlock: block)
+        else {
+            return nil
+        }
+        return header.assigningSubject(MessageSubjectSanitizer.displayText(from: header.subject))
     }
 
     func parseBodyPreviewFetch(_ firstLine: String) async throws -> (uid: Int, preview: String?)? {
@@ -288,6 +293,12 @@ nonisolated final class IMAPClient {
         }
         let block = try await connection.readBytes(literalSize)
         _ = try await connection.readLine()
-        return (uid, EmailBodyPreviewSanitizer.preview(from: block))
+        return (
+            uid,
+            EmailBodyPreviewSanitizer.preview(
+                from: block,
+                htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText
+            )
+        )
     }
 }

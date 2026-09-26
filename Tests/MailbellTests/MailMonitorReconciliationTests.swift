@@ -1,5 +1,7 @@
 import Foundation
 @testable import Mailbell
+@testable import MailbellKit
+import MailbellTestSupport
 import XCTest
 
 final class MailMonitorReconciliationTests: XCTestCase {

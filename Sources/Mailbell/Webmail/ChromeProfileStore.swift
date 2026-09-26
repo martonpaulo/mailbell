@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 
 // Nonisolated: `loadProfilesAsync` reads the profiles in a detached task.
 nonisolated enum ChromeProfileStore {

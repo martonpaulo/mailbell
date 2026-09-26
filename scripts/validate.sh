@@ -65,9 +65,19 @@ if [ -f .env ]; then
 fi
 # Tests make UserDefaults suites only through TestDefaults, whose absolute-path names keep
 # cfprefsd from writing them into ~/Library/Preferences (#50).
-if grep -rln 'UserDefaults(suiteName' Tests | grep -v '^Tests/MailbellTests/TestDefaults.swift$' | grep -q .; then
-    note "a test makes a UserDefaults suite outside Tests/MailbellTests/TestDefaults.swift"
+if grep -rln 'UserDefaults(suiteName' Tests | grep -v '^Tests/MailbellTestSupport/TestDefaults.swift$' | grep -q .; then
+    note "a test makes a UserDefaults suite outside Tests/MailbellTestSupport/TestDefaults.swift"
 fi
+# MailbellKit holds the pure logic and imports only Foundation, Observation,
+# Synchronization and CoreGraphics (AGENTS.md, "Architecture"; #80). SwiftSoup,
+# AppKit, SwiftUI, UserNotifications, Sparkle and the network stay in the app.
+KIT_IMPORTS='^(Foundation|Observation|Synchronization|CoreGraphics)$'
+kit_imports=$(grep -rhE '^[[:space:]]*(@[A-Za-z_]+[[:space:]]+)*import[[:space:]]' Sources/MailbellKit 2>/dev/null \
+    | sed -E 's/^.*import[[:space:]]+(class |struct |enum |protocol |func |var |let |typealias )?//; s/[.[:space:]].*$//' \
+    | sort -u | grep -vE "$KIT_IMPORTS" || true)
+[ -z "$kit_imports" ] \
+    || note "Sources/MailbellKit may import only Foundation, Observation, Synchronization and CoreGraphics (found: $(echo $kit_imports))"
+
 # Every UserDefaults key has one owner, StorageKeys (#79): a key string literal passed to a
 # UserDefaults accessor anywhere else in Sources/ fails. LegacyDomainMigration's list of
 # system and Sparkle names is only compared against, never passed to an accessor.

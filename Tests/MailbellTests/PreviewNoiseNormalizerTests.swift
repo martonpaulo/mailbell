@@ -1,4 +1,5 @@
 @testable import Mailbell
+@testable import MailbellKit
 import XCTest
 
 /// Preheader stuffing is invisible, so it is not whitespace and survives space
@@ -9,7 +10,7 @@ final class PreviewNoiseNormalizerTests: XCTestCase {
         let raw = "Avoid extra baggage fees at the gate" + stuffing + "Book your bag now."
 
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: raw),
+            EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             "Avoid extra baggage fees at the gate Book your bag now."
         )
     }
@@ -20,7 +21,7 @@ final class PreviewNoiseNormalizerTests: XCTestCase {
             + "</div><div>Book your bag now.</div>"
 
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: raw),
+            EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             "Avoid extra baggage fees at the gate Book your bag now."
         )
     }
@@ -28,7 +29,7 @@ final class PreviewNoiseNormalizerTests: XCTestCase {
     func testKeepsASingleJoinerThatBuildsAnEmoji() {
         // One ZWJ between pictographs is the emoji, not padding.
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: "Team update \u{1f469}\u{200d}\u{1f4bb} shipped"),
+            EmailBodyPreviewSanitizer.preview(from: "Team update \u{1f469}\u{200d}\u{1f4bb} shipped", htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             "Team update \u{1f469}\u{200d}\u{1f4bb} shipped"
         )
     }
@@ -37,19 +38,19 @@ final class PreviewNoiseNormalizerTests: XCTestCase {
         // Each joiner sits alone between pictographs, so no run forms.
         let family = "\u{1f468}\u{200d}\u{1f469}\u{200d}\u{1f467}"
 
-        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: "Welcome \(family) home"), "Welcome \(family) home")
+        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: "Welcome \(family) home", htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText), "Welcome \(family) home")
     }
 
     func testKeepsASingleNonJoinerThatIsLanguage() {
         // ZWNJ between letters is meaningful in Persian and the Indic scripts.
         let word = "\u{0645}\u{06cc}\u{200c}\u{0631}\u{0648}\u{0645}"
 
-        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: word), word)
+        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: word, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText), word)
     }
 
     func testKeepsAccentedText() {
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: "Réunion confirmée pour demain"),
+            EmailBodyPreviewSanitizer.preview(from: "Réunion confirmée pour demain", htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             "Réunion confirmée pour demain"
         )
     }
@@ -66,7 +67,7 @@ final class PreviewNoiseNormalizerTests: XCTestCase {
             + "Hey Alex, see you Friday at 8."
 
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: raw),
+            EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             "Your Dinner Spot is Confirmed Hey Alex, see you Friday at 8."
         )
     }
@@ -76,7 +77,7 @@ final class PreviewNoiseNormalizerTests: XCTestCase {
         let raw = "Wait... really?! The rate -- our best yet -- ends Friday."
 
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: raw),
+            EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             "Wait... really?! The rate -- our best yet -- ends Friday."
         )
     }
@@ -84,18 +85,18 @@ final class PreviewNoiseNormalizerTests: XCTestCase {
     func testDropsLeadingViewOnlineMarkerWhenTextFollows() {
         let raw = "<p>https://x.example/view</p><p>Your order shipped today.</p>"
 
-        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: raw), "Your order shipped today.")
+        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText), "Your order shipped today.")
     }
 
     func testKeepsInlineLinkMarkers() {
         let raw = "<p>Track it at https://x.example/t any time.</p>"
 
-        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: raw), "Track it at [URL] any time.")
+        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText), "Track it at [URL] any time.")
     }
 
     func testKeepsALinkMarkerThatIsTheWholePreview() {
         let raw = "<p>https://x.example/view</p>"
 
-        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: raw), "[URL]")
+        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText), "[URL]")
     }
 }

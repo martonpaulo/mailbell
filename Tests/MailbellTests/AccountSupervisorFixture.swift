@@ -1,4 +1,6 @@
 @testable import Mailbell
+@testable import MailbellKit
+import MailbellTestSupport
 import XCTest
 
 /// Shared fixtures for the supervisor suites. One home, so the two files that

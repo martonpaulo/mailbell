@@ -4,6 +4,29 @@ Mailbell is a SwiftPM executable: a macOS 26+ accessory app with no backend of
 any kind. Its package layout is in [AGENTS.md](../AGENTS.md), "Architecture". This document describes responsibilities, not a file
 listing — names drift, contracts do not.
 
+## Targets
+
+- **`MailbellKit`** holds the pure logic, with no system framework and no
+  network: IMAP response parsing, the IMAP value models and UID sequences, MIME
+  header decoding, the body-preview pipeline, header and date formatting,
+  `StorageKeys` and the stores over an injected `UserDefaults` (accounts,
+  checkpoints, settings, handled history), the review store and its ordering,
+  retention and actions, monitor status, the webmail URL rules, OAuth
+  configuration and token values, the loopback callback page, and the menu bar
+  and account presentation rules. It imports only `Foundation`, `Observation`,
+  `Synchronization` and `CoreGraphics`, keeps the nonisolated default, and
+  exposes `public` only what the app uses.
+- **`Mailbell`**, the app target, holds what wraps a system framework or the
+  network: `AppState`, the views, `UpdateManager` (Sparkle), `NotificationManager`
+  (UserNotifications), the IMAP client and connection, `MailMonitor`,
+  `AccountSupervisor`, the OAuth client and loopback server, the Keychain
+  wrappers, the webmail opener, logging, and the SwiftSoup HTML extractor.
+- The preview sanitizer takes its HTML extractor as a required parameter, and
+  `IMAPClient` passes the app's SwiftSoup one. The same client turns the raw
+  Subject into display text when it parses a header, so a header reaching the
+  review store already carries its title text and the Kit never sees SwiftSoup
+  (Decided on #80).
+
 ## Layers
 
 By responsibility:
@@ -47,7 +70,8 @@ with XOAUTH2.
   are batched, so marking twenty messages is a few commands, not twenty
   connections.
 - Previews pass through SwiftSoup for generic HTML handling, then Mailbell's own
-  MIME-artifact, boilerplate, URL, whitespace, and line-shape rules.
+  MIME-artifact, boilerplate, URL, whitespace, and line-shape rules. Subjects
+  go through the same pipeline once, when the header is parsed.
 
 ### Service
 
@@ -91,7 +115,9 @@ The menu bar extra, Settings, login item, Sparkle, and presentation helpers.
 
 ## Threading
 
-The supervisor, review store, and all UI state are `@MainActor`. IMAP work runs
+The supervisor, review store, and all UI state are `@MainActor`: the app target
+is main-actor by default, and the review store in MailbellKit says so explicitly
+because the Kit keeps the nonisolated default. IMAP work runs
 on its own connection tasks and crosses back through explicit `MainActor.run`
 boundaries. Nothing blocks the main actor. Keep `@MainActor` and actor
 boundaries explicit and minimal; do not regress Swift 6 concurrency safety.

@@ -1,4 +1,5 @@
 import AppKit
+import MailbellKit
 import SwiftUI
 
 /// Everything about connected Gmail accounts: which mailboxes are watched,

@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 
 extension AccountSupervisor {
     func markEmailAsRead(id: String) async {

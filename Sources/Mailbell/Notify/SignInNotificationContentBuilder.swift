@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 import UserNotifications
 
 /// Expired sign-in is the one account failure Mailbell cannot recover from on

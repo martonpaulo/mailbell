@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 
 /// The one place Mailbell mutates a mailbox, and the generation guard that
 /// keeps it from mutating the wrong one.

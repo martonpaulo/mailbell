@@ -1,6 +1,7 @@
 import FlyingFox
 import FlyingSocks
 import Foundation
+import MailbellKit
 
 /// A one-shot loopback HTTP server used to capture the OAuth redirect for the
 /// installed-app flow (redirect URI `http://127.0.0.1:<port>/oauth/callback`).

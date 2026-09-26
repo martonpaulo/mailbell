@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 import UserNotifications
 
 // Nonisolated: a pure helper of NotificationManager's nonisolated builders.

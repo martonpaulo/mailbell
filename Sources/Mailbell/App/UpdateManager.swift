@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 import Sparkle
 import Observation
 

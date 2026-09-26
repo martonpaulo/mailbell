@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 import Network
 
 /// A line-oriented IMAP transport over implicit TLS (port 993).

@@ -1,4 +1,5 @@
 @testable import Mailbell
+@testable import MailbellKit
 import XCTest
 
 /// Mail that declares iso-8859-1 is usually Windows-1252 on the wire. Latin-1
@@ -14,7 +15,7 @@ final class EmailBodyPreviewCharsetTests: XCTestCase {
             0x94                                                        // right curly quote
         ])
 
-        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: bytes), "Precio: 25€ “confirmado”")
+        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: bytes, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText), "Precio: 25€ “confirmado”")
     }
 
     func testStillDecodesTrueLatin1Text() {
@@ -22,12 +23,12 @@ final class EmailBodyPreviewCharsetTests: XCTestCase {
         // Windows-1252, so the wider decoder must not change this result.
         let bytes = Data([0x41, 0x76, 0x69, 0xF3, 0x6E, 0x20, 0x6D, 0x61, 0xF1, 0x61, 0x6E, 0x61])
 
-        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: bytes), "Avión mañana")
+        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: bytes, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText), "Avión mañana")
     }
 
     func testPrefersUTF8WhenTheBytesAreValidUTF8() {
         let bytes = Data("Réunion confirmée".utf8)
 
-        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: bytes), "Réunion confirmée")
+        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: bytes, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText), "Réunion confirmée")
     }
 }

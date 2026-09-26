@@ -1,4 +1,6 @@
 @testable import Mailbell
+@testable import MailbellKit
+import MailbellTestSupport
 import XCTest
 
 final class AccountSupervisorBulkActionsTests: XCTestCase {

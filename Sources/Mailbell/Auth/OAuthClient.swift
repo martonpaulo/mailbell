@@ -1,6 +1,7 @@
 import AppKit
 import CryptoKit
 import Foundation
+import MailbellKit
 
 /// Implements Google's installed-app OAuth flow with PKCE over a loopback redirect.
 /// Also handles access-token refresh and fetching the account email.

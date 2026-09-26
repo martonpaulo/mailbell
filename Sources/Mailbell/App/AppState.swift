@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import MailbellKit
 import SwiftUI
 
 /// Observable UI state. Owns account supervision and exposes user actions.

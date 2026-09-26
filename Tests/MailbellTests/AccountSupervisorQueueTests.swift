@@ -1,4 +1,5 @@
 @testable import Mailbell
+@testable import MailbellKit
 import XCTest
 
 /// How the supervisor moves mail through the review queue: admission,

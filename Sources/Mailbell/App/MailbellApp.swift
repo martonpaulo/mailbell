@@ -1,4 +1,5 @@
 import AppKit
+import MailbellKit
 import SwiftUI
 import UserNotifications
 

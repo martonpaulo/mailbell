@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 
 /// The bounded reads: unread UID search, minimal headers, and a capped
 /// non-mutating body preview. Every fetch here is deliberately small — this is

@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 
 typealias SignInNeededNotifier = @MainActor (MailAccount) -> Void
 

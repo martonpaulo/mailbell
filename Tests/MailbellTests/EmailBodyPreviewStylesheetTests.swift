@@ -1,4 +1,5 @@
 @testable import Mailbell
+@testable import MailbellKit
 import XCTest
 
 /// A bounded BODY.PEEK slice can arrive without the <style> element that
@@ -14,6 +15,6 @@ final class EmailBodyPreviewStylesheetTests: XCTestCase {
         </style></head><body><p>Real teaser text here</p></body></html>
         """
 
-        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: raw), "Real teaser text here")
+        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText), "Real teaser text here")
     }
 }

@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 
 /// What a monitor reports back: status, admissions, notification results, the
 /// UIDs reconciliation should look past, and unread reconciliation. Kept apart

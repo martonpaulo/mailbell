@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 import ServiceManagement
 
 /// The launch-at-login state Settings shows: what macOS holds for the login

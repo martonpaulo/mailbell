@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 
 /// The two halves of a reconciliation pass: admitting and notifying about fresh
 /// mail above the checkpoint, then syncing unread state so mail read in Gmail

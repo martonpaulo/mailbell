@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 import os
 
 /// The one logging owner: a logger per area, all under the bundle identifier.

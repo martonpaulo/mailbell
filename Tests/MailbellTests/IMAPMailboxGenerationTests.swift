@@ -1,4 +1,6 @@
 @testable import Mailbell
+@testable import MailbellKit
+import MailbellTestSupport
 import XCTest
 
 /// RFC 3501 identifies a message by mailbox name, UIDVALIDITY and UID together.
@@ -145,8 +147,12 @@ final class IMAPMailboxGenerationTests: XCTestCase {
         )
     }
 
+    // EmailStoreFixture lives in MailbellKitTests; this is its makeAccount.
     private func makeAccount() -> MailAccount {
-        EmailStoreFixture.makeAccount(id: "22222222-2222-2222-2222-222222222222")
+        guard let id = UUID(uuidString: "22222222-2222-2222-2222-222222222222") else {
+            preconditionFailure("fixture account id is not a UUID")
+        }
+        return MailAccount(id: id, providerID: .gmail, email: "account@example.com")
     }
 
     private func makeHeader(uid: Int, gmMessageId: String, uidValidity: Int) -> MessageHeader {

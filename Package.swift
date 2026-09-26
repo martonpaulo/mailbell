@@ -19,9 +19,18 @@ let package = Package(
         .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.6.0")
     ],
     targets: [
+        // Pure logic: it imports only Foundation, Observation, Synchronization and
+        // CoreGraphics (AGENTS.md, "Architecture"; scripts/validate.sh checks it).
+        // It keeps the nonisolated default, so its callers decide isolation.
+        .target(
+            name: "MailbellKit",
+            path: "Sources/MailbellKit",
+            swiftSettings: swiftSettings
+        ),
         .executableTarget(
             name: "Mailbell",
             dependencies: [
+                "MailbellKit",
                 "FlyingFox",
                 .product(name: "FlyingSocks", package: "FlyingFox"),
                 "SwiftSoup",
@@ -34,9 +43,21 @@ let package = Package(
                 .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])
             ]
         ),
+        // Test-only: the one place a test makes a UserDefaults suite (#50).
+        .target(
+            name: "MailbellTestSupport",
+            path: "Tests/MailbellTestSupport",
+            swiftSettings: swiftSettings
+        ),
+        .testTarget(
+            name: "MailbellKitTests",
+            dependencies: ["MailbellKit", "MailbellTestSupport"],
+            path: "Tests/MailbellKitTests",
+            swiftSettings: swiftSettings
+        ),
         .testTarget(
             name: "MailbellTests",
-            dependencies: ["Mailbell"],
+            dependencies: ["Mailbell", "MailbellKit", "MailbellTestSupport"],
             path: "Tests/MailbellTests",
             swiftSettings: swiftSettings
         )

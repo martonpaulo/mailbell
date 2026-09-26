@@ -1,4 +1,5 @@
 import AppKit
+import MailbellKit
 
 /// Makes Settings capturable without guessing.
 ///

@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 
 /// Adding, re-authorizing, enabling, reconnecting and removing an account.
 /// These are the commands the interface issues; the supervisor itself holds the

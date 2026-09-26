@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 
 /// Turning a burst of fresh UIDs into bounded admission batches and a capped
 /// notification set, plus the session work that surrounds it: tokens, mailbox

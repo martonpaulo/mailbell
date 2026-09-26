@@ -1,0 +1,289 @@
+import Foundation
+
+public enum EmailBodyPreviewSanitizer {
+    public static let maximumPreviewLength = 240
+    private static let maximumLineLength = 80
+    private static let maximumLineCount = 3
+    private static let urlMarker = "[URL]"
+    private static let imageMarker = "[IMG]"
+    private static let attachmentMarker = "[ATT]"
+
+    /// `htmlTextExtractor` turns an HTML slice into text. It has no default:
+    /// the app passes `SwiftSoupPreviewTextExtractor.extractText`, because
+    /// MailbellKit never imports SwiftSoup (#80).
+    public static func preview(
+        from data: Data,
+        limit: Int = maximumPreviewLength,
+        htmlTextExtractor: (String) throws -> String
+    ) -> String? {
+        // Mail that declares iso-8859-1 is usually Windows-1252 in practice, and
+        // Latin-1 drops its 0x80-0x9F range: the euro sign and curly quotes
+        // vanish from the preview rather than round-tripping.
+        let text = String(data: data, encoding: .utf8)
+            ?? String(data: data, encoding: .windowsCP1252)
+            ?? String(data: data, encoding: .isoLatin1)
+            ?? ""
+        return preview(from: text, limit: limit, htmlTextExtractor: htmlTextExtractor)
+    }
+
+    public static func preview(
+        from rawText: String,
+        limit: Int = maximumPreviewLength,
+        htmlTextExtractor: (String) throws -> String
+    ) -> String? {
+        let withoutNonTextMIMEParts = MIMEBodyPreviewNormalizer.replaceNonTextParts(
+            from: rawText,
+            imageMarker: imageMarker,
+            attachmentMarker: attachmentMarker
+        )
+        let withoutMIMEHeaders = removeMIMEPartHeaders(from: withoutNonTextMIMEParts)
+        let quotedPrintableDecoded = decodeQuotedPrintable(withoutMIMEHeaders)
+        let transferDecoded = Base64PreviewDecoder.decodePayloadsIfUseful(
+            quotedPrintableDecoded,
+            imageMarker: imageMarker
+        )
+        // Runs before HTML extraction: a slice that lost its <style> element
+        // gives SwiftSoup nothing to remove, so the rules would become text.
+        let withoutStylesheets = StylesheetPreviewArtifactRemover.removeStylesheetArtifacts(
+            from: transferDecoded
+        )
+        let htmlDecoded = HTMLPreviewTextExtractor.decodeIfNeeded(
+            withoutStylesheets,
+            htmlTextExtractor: htmlTextExtractor
+        )
+        let withoutMIMEArtifacts = removeMIMEArtifacts(from: htmlDecoded)
+        // Before markers are inserted, so bracket cleanup cannot eat [IMG]/[URL].
+        let withoutMarkdown = removeMarkdownArtifacts(from: withoutMIMEArtifacts)
+        let withPreviewTokens = PreviewTokenReplacer.replaceTokens(
+            in: withoutMarkdown,
+            urlMarker: urlMarker,
+            imageMarker: imageMarker,
+            attachmentMarker: attachmentMarker
+        )
+        // Before truncation, so stuffing cannot consume the teaser budget.
+        let withoutPadding = PreviewNoiseNormalizer.removePaddingRuns(from: withPreviewTokens)
+        let punctuationTightened = replacing(pattern: "\\s+([\\.,;:!?])", in: withoutPadding, with: "$1")
+        let collapsed = punctuationTightened
+            .replacingOccurrences(of: "\u{00a0}", with: " ")
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let withoutLeadingLink = PreviewNoiseNormalizer.removeLeadingLinkBoilerplate(
+            from: collapsed,
+            urlMarker: urlMarker
+        )
+
+        guard !withoutLeadingLink.isEmpty else { return nil }
+        return wrappedPreview(truncated(withoutLeadingLink, limit: limit))
+    }
+
+    private static func removeMIMEPartHeaders(from rawText: String) -> String {
+        let normalized = rawText.replacingOccurrences(of: "\r\n", with: "\n")
+        var retained: [String] = []
+        var isSkippingPartHeaders = false
+        var isSkippingFoldedHeader = false
+
+        for line in normalized.split(separator: "\n", omittingEmptySubsequences: false).map(String.init) {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.hasPrefix("--") {
+                isSkippingPartHeaders = true
+                isSkippingFoldedHeader = false
+                continue
+            }
+            if isSkippingPartHeaders {
+                if trimmed.isEmpty {
+                    isSkippingPartHeaders = false
+                }
+                continue
+            }
+            if isSkippingFoldedHeader, line.first == " " || line.first == "\t" {
+                continue
+            }
+            isSkippingFoldedHeader = false
+            if isMIMEPartHeader(line) {
+                isSkippingFoldedHeader = true
+                continue
+            }
+            retained.append(line)
+        }
+
+        return retained.joined(separator: "\n")
+    }
+
+    private static func isMIMEPartHeader(_ line: String) -> Bool {
+        let lowercased = line.trimmingCharacters(in: .whitespaces).lowercased()
+        return lowercased.hasPrefix("content-type:")
+            || lowercased.hasPrefix("content-transfer-encoding:")
+            || lowercased.hasPrefix("content-disposition:")
+            || lowercased.hasPrefix("content-id:")
+            || lowercased.hasPrefix("mime-version:")
+    }
+
+    private static func decodeQuotedPrintable(_ text: String) -> String {
+        let bytes = Array(text.utf8)
+        var decoded: [UInt8] = []
+        var index = 0
+        let equals = UInt8(ascii: "=")
+        let carriageReturn = UInt8(ascii: "\r")
+        let lineFeed = UInt8(ascii: "\n")
+
+        while index < bytes.count {
+            let byte = bytes[index]
+            if byte == equals {
+                if index + 1 < bytes.count, bytes[index + 1] == lineFeed {
+                    index += 2
+                    continue
+                }
+                if index + 2 < bytes.count,
+                   bytes[index + 1] == carriageReturn,
+                   bytes[index + 2] == lineFeed {
+                    index += 3
+                    continue
+                }
+                if index + 2 < bytes.count,
+                   let high = hexValue(bytes[index + 1]),
+                   let low = hexValue(bytes[index + 2]) {
+                    decoded.append(high * 16 + low)
+                    index += 3
+                    continue
+                }
+            }
+            decoded.append(byte)
+            index += 1
+        }
+
+        let decodedData = Data(decoded)
+        return String(data: decodedData, encoding: .utf8)
+            ?? String(data: decodedData, encoding: .isoLatin1)
+            ?? text
+    }
+
+    private static func hexValue(_ byte: UInt8) -> UInt8? {
+        let zero = UInt8(ascii: "0")
+        let nine = UInt8(ascii: "9")
+        let uppercaseA = UInt8(ascii: "A")
+        let uppercaseF = UInt8(ascii: "F")
+        let lowercaseA = UInt8(ascii: "a")
+        let lowercaseF = UInt8(ascii: "f")
+
+        switch byte {
+        case zero ... nine:
+            return byte - zero
+        case uppercaseA ... uppercaseF:
+            return byte - uppercaseA + 10
+        case lowercaseA ... lowercaseF:
+            return byte - lowercaseA + 10
+        default:
+            return nil
+        }
+    }
+
+    private static func removeMIMEArtifacts(from text: String) -> String {
+        var result = text
+        result = replacing(pattern: #"(?im)^--[A-Za-z0-9'()+_,./:=?-]+--?$"#, in: result, with: " ")
+        result = replacing(pattern: #"(?im)^Content-[A-Za-z-]+:.*$"#, in: result, with: " ")
+        result = replacing(pattern: #"(?im)^MIME-Version:.*$"#, in: result, with: " ")
+        result = replacing(
+            pattern: #"(?i)\bThis is a multi[-\s]?part message in MIME format\.?\s*"#,
+            in: result,
+            with: " "
+        )
+        result = replacing(pattern: #"(?i)\bThis message is in MIME format\.?\s*"#, in: result, with: " ")
+        result = replacing(pattern: #"(?im)^.*MIME part.*$"#, in: result, with: " ")
+        result = replacing(pattern: #"(?im)^charset="?[-A-Za-z0-9_]+"?.*$"#, in: result, with: " ")
+        result = replacing(pattern: #"(?im)^boundary="?[-A-Za-z0-9'()+_,./:=?]+"?.*$"#, in: result, with: " ")
+        result = replacing(pattern: #"(?im)^multipart/[-A-Za-z0-9.+]+.*$"#, in: result, with: " ")
+        return result
+    }
+
+    /// Senders that ship a Markdown plain-text alternative leak raw syntax into
+    /// previews: escaped punctuation (`broadcast\_body\_warning`) and image or
+    /// link scaffolding (`[![](logo.png)](site)`). Unescape first so the
+    /// structural passes see well-formed Markdown, then unwrap links and images
+    /// innermost-first, then sweep up any scaffolding left behind.
+    private static func removeMarkdownArtifacts(from text: String) -> String {
+        var result = replacing(
+            pattern: #"\\([\\`*_{}\[\]()#+\-.!>~|])"#,
+            in: text,
+            with: "$1"
+        )
+
+        // Unwrap repeatedly: `[![](image)](link)` needs the inner image gone
+        // before the outer link can match.
+        for _ in 0 ..< 3 {
+            let unwrapped = replacing(
+                pattern: #"!?\[([^\[\]]*)\]\([^()\s]*\)"#,
+                in: result,
+                with: "$1"
+            )
+            if unwrapped == result {
+                break
+            }
+            result = unwrapped
+        }
+
+        result = replacing(pattern: #"!\[[^\[\]]*\]"#, in: result, with: " ")
+        result = replacing(pattern: #"\]\("#, in: result, with: " ")
+        result = replacing(pattern: #"(?m)^\s{0,3}#{1,6}\s+"#, in: result, with: "")
+        result = replacing(pattern: #"(?m)^\s{0,3}>\s?"#, in: result, with: "")
+        result = replacing(pattern: #"(?m)^\s{0,3}([-*_])(?:\s*\1){2,}\s*$"#, in: result, with: " ")
+        return result
+    }
+
+    private static func replacing(pattern: String, in text: String, with replacement: String) -> String {
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return text }
+        let range = NSRange(text.startIndex ..< text.endIndex, in: text)
+        return regex.stringByReplacingMatches(in: text, range: range, withTemplate: replacement)
+    }
+
+    private static func truncated(_ text: String, limit: Int) -> String {
+        guard limit > 0, text.count > limit else { return text }
+        let limitIndex = text.index(text.startIndex, offsetBy: limit)
+        let prefix = text[..<limitIndex]
+        if let wordBoundary = prefix.lastIndex(where: { $0.isWhitespace }),
+           text.distance(from: prefix.startIndex, to: wordBoundary) > limit / 2 {
+            return String(prefix[..<wordBoundary]) + "..."
+        }
+        return String(prefix) + "..."
+    }
+
+    private static func wrappedPreview(_ text: String) -> String {
+        let words = text.split(separator: " ").map(String.init)
+        guard !words.isEmpty else { return text }
+
+        var lines: [String] = []
+        var current = ""
+
+        for word in words {
+            if lines.count == maximumLineCount - 1 {
+                current = current.isEmpty ? word : "\(current) \(word)"
+                continue
+            }
+
+            let candidate = current.isEmpty ? word : "\(current) \(word)"
+            if candidate.count <= maximumLineLength || current.isEmpty {
+                current = candidate
+                continue
+            }
+
+            lines.append(current)
+            current = word
+        }
+
+        if !current.isEmpty {
+            lines.append(current)
+        }
+
+        if lines.count <= maximumLineCount {
+            return lines.joined(separator: "\n")
+        }
+
+        let retained = lines.prefix(maximumLineCount - 1)
+        let remainder = lines.dropFirst(maximumLineCount - 1).joined(separator: " ")
+        return (Array(retained) + [truncated(remainder, limit: maximumLineLength)])
+            .joined(separator: "\n")
+    }
+
+}

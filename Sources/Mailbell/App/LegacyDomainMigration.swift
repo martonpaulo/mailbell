@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 
 /// The one-time copy of Mailbell's preferences from the defaults domain of its
 /// previous bundle identifier to the current one (#47).

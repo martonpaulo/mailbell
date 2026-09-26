@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import MailbellKit
 
 enum BrowserRegistry {
     static let chromeBundleID = "com.google.Chrome"

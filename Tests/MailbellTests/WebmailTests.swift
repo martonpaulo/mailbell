@@ -1,5 +1,6 @@
 import Foundation
 @testable import Mailbell
+@testable import MailbellKit
 import XCTest
 
 @MainActor

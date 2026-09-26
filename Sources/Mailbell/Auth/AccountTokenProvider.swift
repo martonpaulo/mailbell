@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 
 // Nonisolated: refreshes tokens inside MailMonitor run tasks and the read-marker task.
 nonisolated final class AccountTokenProvider {

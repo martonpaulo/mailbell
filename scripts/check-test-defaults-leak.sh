@@ -6,7 +6,7 @@
 # cannot remove it. removePersistentDomain(forName:) only empties the domain, and cfprefsd
 # writes the empty domain back to <suite>.plist after the test process exits, even when
 # the file was deleted. Tests make their suites through TestDefaults
-# (Tests/MailbellTests/TestDefaults.swift), which puts them under $TMPDIR instead; this
+# (Tests/MailbellTestSupport/TestDefaults.swift), which puts them under $TMPDIR instead; this
 # check catches a test that bypasses it at run time, next to the static rule in
 # scripts/validate.sh.
 #
@@ -43,7 +43,7 @@ if [[ -n "$leaked" ]]; then
   echo "" >&2
   echo "check-test-defaults-leak: '$*' left $count new file(s) in $prefs:" >&2
   printf '%s\n' "$leaked" | head -5 >&2
-  echo "Make every test suite with TestDefaults (Tests/MailbellTests/TestDefaults.swift)." >&2
+  echo "Make every test suite with TestDefaults (Tests/MailbellTestSupport/TestDefaults.swift)." >&2
   [[ $status -ne 0 ]] || status=1
 fi
 exit "$status"

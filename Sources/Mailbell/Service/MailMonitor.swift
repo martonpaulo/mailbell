@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 
 // Nonisolated: MailMonitor calls it from its run tasks; conformers hop to the main actor.
 nonisolated protocol MailMonitorDelegate: AnyObject {
@@ -377,20 +378,4 @@ nonisolated final class MailMonitor: AccountMonitoring, @unchecked Sendable {
             .spam: CheckpointStore(accountID: accountID, mailbox: "SPAM")
         ]
     }
-}
-
-// Nonisolated: built inside MailMonitor run tasks.
-nonisolated struct MonitoredMailbox: Equatable {
-    let role: MessageMailbox
-    let name: String
-}
-
-// Nonisolated: crosses from MailMonitor run tasks to the main actor.
-nonisolated struct MailboxUnreadSnapshot: Equatable {
-    let mailbox: MessageMailbox
-    let mailboxName: String
-    /// The generation the snapshot was taken under. Pending items captured
-    /// under a different one are meaningless, not merely absent.
-    let uidValidity: Int
-    let unreadUIDs: Set<Int>
 }

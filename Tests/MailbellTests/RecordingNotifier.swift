@@ -1,4 +1,5 @@
 @testable import Mailbell
+@testable import MailbellKit
 import Foundation
 
 /// Records what a monitor or supervisor posts, in place of NotificationManager.

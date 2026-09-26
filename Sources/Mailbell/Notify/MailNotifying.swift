@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 
 /// What the monitor and the supervisor post. `NotificationManager` is the one
 /// production conformer, created once at launch and passed down by initializer,

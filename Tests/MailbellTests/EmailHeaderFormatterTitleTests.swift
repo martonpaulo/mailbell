@@ -1,6 +1,10 @@
 @testable import Mailbell
+@testable import MailbellKit
 import XCTest
 
+/// The title of a fetched message: `MessageSubjectSanitizer` turns the raw
+/// Subject into display text when IMAPClient parses the header, then
+/// `EmailHeaderFormatter` adds the fallback and the spam marker (#80).
 final class EmailHeaderFormatterTitleTests: XCTestCase {
     func testTitlePrefixesSpamMailbox() {
         let title = EmailHeaderFormatter.title(
@@ -37,7 +41,7 @@ final class EmailHeaderFormatterTitleTests: XCTestCase {
             for: MessageHeader(
                 uid: 1,
                 from: "Sender <sender@example.com>",
-                subject: "=?UTF-8?Q?=F0=9F=93=AC_Chegou_a_renova=C3=A7=C3=A3o_do_seu_seguro?= Vida",
+                subject: MessageSubjectSanitizer.displayText(from: "=?UTF-8?Q?=F0=9F=93=AC_Chegou_a_renova=C3=A7=C3=A3o_do_seu_seguro?= Vida"),
                 date: "",
                 gmThreadId: nil
             )
@@ -51,7 +55,7 @@ final class EmailHeaderFormatterTitleTests: XCTestCase {
             for: MessageHeader(
                 uid: 1,
                 from: "Sender <sender@example.com>",
-                subject: #"Open https://example.com/renew?token=secret <img src="cid:promo">"#,
+                subject: MessageSubjectSanitizer.displayText(from: #"Open https://example.com/renew?token=secret <img src="cid:promo">"#),
                 date: "",
                 gmThreadId: nil
             )
@@ -65,7 +69,7 @@ final class EmailHeaderFormatterTitleTests: XCTestCase {
             for: MessageHeader(
                 uid: 1,
                 from: "Sender <sender@example.com>",
-                subject: "<html><head><script>ignored()</script></head><body hidden>ignored</body></html>",
+                subject: MessageSubjectSanitizer.displayText(from: "<html><head><script>ignored()</script></head><body hidden>ignored</body></html>"),
                 date: "",
                 gmThreadId: nil
             )

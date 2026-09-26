@@ -263,7 +263,10 @@ Mailbell intentionally uses the standard SwiftPM project shape:
 
 ```text
 Package.swift
+Sources/MailbellKit/
 Sources/Mailbell/
+Tests/MailbellKitTests/
+Tests/MailbellTestSupport/
 Tests/MailbellTests/
 Support/
 scripts/
@@ -271,9 +274,9 @@ docs/
 site/
 ```
 
-This matches SwiftPM defaults: the package manifest lives at the root, the executable target has its sources under `Sources/Mailbell`, and the test target has its tests under `Tests/MailbellTests`. `Package.swift` uses explicit `path` values because the executable target is named `mailbell` while the source folder is capitalized as `Mailbell`.
+This matches SwiftPM defaults: the package manifest lives at the root, the pure-logic library has its sources under `Sources/MailbellKit`, the executable target under `Sources/Mailbell`, and each test target under `Tests/`. `Package.swift` uses explicit `path` values because the executable target is named `mailbell` while the source folder is capitalized as `Mailbell`.
 
-Source subfolders are ownership boundaries:
+Source subfolders, in both source targets, are ownership boundaries:
 
 - `Account`: durable account model and persistence.
 - `App`: SwiftUI app shell, menu, Settings, and prepared UI state.

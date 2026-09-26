@@ -1,4 +1,5 @@
 @testable import Mailbell
+@testable import MailbellKit
 import XCTest
 
 final class EmailBodyPreviewSanitizerTests: XCTestCase {
@@ -8,7 +9,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         .btn { color: #fff; padding: 10px; }
         """
 
-        XCTAssertNil(EmailBodyPreviewSanitizer.preview(from: raw))
+        XCTAssertNil(EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText))
     }
 
     func testPreviewRemovesMediaQueryWrapperButKeepsTheMessage() {
@@ -17,7 +18,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         <p>Your statement is ready</p>
         """
 
-        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: raw), "Your statement is ready")
+        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText), "Your statement is ready")
     }
 
     func testPreviewKeepsProseThatMerelyMentionsStyleVocabulary() {
@@ -25,7 +26,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         let raw = "<p>We changed the body font-family and the style of every table in the app.</p>"
 
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: raw),
+            EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             "We changed the body font-family and the style of every table in the app."
         )
     }
@@ -37,7 +38,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         """
 
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: raw),
+            EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             "Hello Ana. [IMG]"
         )
     }
@@ -48,7 +49,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         """
 
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: raw),
+            EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             "Hello Ana Second line with link"
         )
     }
@@ -66,7 +67,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         """
 
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: raw),
+            EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             "Visible text"
         )
     }
@@ -75,7 +76,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         let raw = "<p>Tom&amp;Jerry &mdash; caf&eacute; &#169; &#x1F514;</p>"
 
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: raw),
+            EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             "Tom&Jerry — café © 🔔"
         )
     }
@@ -84,7 +85,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         let raw = "Use 2 < 3 and 5 > 4 in the filter."
 
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: raw),
+            EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             "Use 2 < 3 and 5 > 4 in the filter."
         )
     }
@@ -95,7 +96,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         <body><span hidden>hidden</span></body></html>
         """
 
-        XCTAssertNil(EmailBodyPreviewSanitizer.preview(from: raw))
+        XCTAssertNil(EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText))
     }
 
     func testParserFailureFallsBackWithoutRegexHTMLParser() {
@@ -112,7 +113,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         let raw = "Status=20da=20revis=C3=A3o=20do=20contrato=20com=20detalhes=20extras"
 
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: raw, limit: 32),
+            EmailBodyPreviewSanitizer.preview(from: raw, limit: 32, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             "Status da revisão do contrato..."
         )
     }
@@ -124,7 +125,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         """
 
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: raw),
+            EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             """
             A defesa do seu dinheiro começa aqui Chegamos à metade do ano, um período com
             muitas festividades.
@@ -142,7 +143,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         --boundary--
         """
 
-        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: raw), "Body only")
+        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText), "Body only")
     }
 
     func testPreviewRemovesURLsAndLooseMIMEArtifacts() {
@@ -155,7 +156,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         """
 
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: raw),
+            EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             "Open [URL] for details."
         )
     }
@@ -164,7 +165,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         let raw = "Open (https://example.com/really/long/link?token=secret) or <www.example.com>."
 
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: raw),
+            EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             "Open [URL] or [URL]."
         )
     }
@@ -176,7 +177,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         """
 
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: raw),
+            EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             "This is a copy of a security alert sent to user@example.com. Review [URL]"
         )
     }
@@ -197,7 +198,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         """
 
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: raw),
+            EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             "Here is the receipt. [IMG]"
         )
     }
@@ -218,7 +219,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         """
 
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: raw),
+            EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             "See the attached file. [ATT]"
         )
     }
@@ -229,7 +230,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         lJvcf8wAAAABJRU5ErkJggg==
         """
 
-        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: raw), "[IMG]")
+        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText), "[IMG]")
     }
 
     func testPreviewCollapsesRepeatedURLAndImageTokens() {
@@ -241,7 +242,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         """
 
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: raw),
+            EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             "[IMG] Open [URL]"
         )
     }
@@ -253,7 +254,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
         """
 
         XCTAssertEqual(
-            EmailBodyPreviewSanitizer.preview(from: raw),
+            EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText),
             "Saluton, kara Marton! Kiel vi fartas? Kiel iras viaj aferoj?"
         )
     }
@@ -265,7 +266,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
             "lambda mu nu xi omicron."
         ].joined(separator: " ")
 
-        let preview = try XCTUnwrap(EmailBodyPreviewSanitizer.preview(from: raw))
+        let preview = try XCTUnwrap(EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText))
         let lines = preview.split(separator: "\n", omittingEmptySubsequences: true)
 
         XCTAssertGreaterThan(lines.count, 1)
@@ -279,7 +280,7 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
     func testMarkdownImageLinkScaffoldingDoesNotReachThePreview() {
         let raw = "[![](https://www.bewelcome.org/logo.png)](https://www.bewelcome.org) "
             + "broadcast\\_body\\_phishing\\_warning Esta a receber esta mensagem."
-        let preview = EmailBodyPreviewSanitizer.preview(from: raw)
+        let preview = EmailBodyPreviewSanitizer.preview(from: raw, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText)
 
         let text = preview ?? ""
         XCTAssertFalse(text.contains("]("), "markdown link scaffolding must not survive")
@@ -291,7 +292,8 @@ final class EmailBodyPreviewSanitizerTests: XCTestCase {
 
     func testMarkdownEmphasisAndHeadingMarkersAreRemoved() {
         let preview = EmailBodyPreviewSanitizer.preview(
-            from: "## Weekly digest\n> quoted line\nSee [our site](https://example.com) for details."
+            from: "## Weekly digest\n> quoted line\nSee [our site](https://example.com) for details.",
+            htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText
         )
 
         let text = preview ?? ""

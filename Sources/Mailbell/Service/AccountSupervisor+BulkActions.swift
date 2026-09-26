@@ -1,4 +1,5 @@
 import Foundation
+import MailbellKit
 
 extension AccountSupervisor {
     /// Outcome of a bulk action over every item awaiting review. Bulk work is

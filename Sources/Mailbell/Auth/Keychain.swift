@@ -1,5 +1,6 @@
 import Foundation
 import LocalAuthentication
+import MailbellKit
 import Security
 
 /// Thin wrapper over the macOS Keychain for storing a single string secret

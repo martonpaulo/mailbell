@@ -5,7 +5,7 @@
 ## Checklist
 
 - [ ] `make check` passes (build, lint, tests, repository validation)
-- [ ] Business-rule changes come with tests in `Tests/MailbellTests`
+- [ ] Business-rule changes come with tests in `Tests/MailbellKitTests` or `Tests/MailbellTests`
 - [ ] Every user-facing behavior declares its default and configurability decision
 - [ ] New preferences use the centralized defaults, preserve existing values, and are reset by Restore Defaults
 - [ ] Non-configurable behavior is justified (bug/security/internal/accessibility/single valid outcome)

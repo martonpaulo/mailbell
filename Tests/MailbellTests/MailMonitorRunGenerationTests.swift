@@ -1,5 +1,6 @@
 import Foundation
 @testable import Mailbell
+@testable import MailbellKit
 import XCTest
 
 /// A run suspends on the network several times. Cancelling its task does not

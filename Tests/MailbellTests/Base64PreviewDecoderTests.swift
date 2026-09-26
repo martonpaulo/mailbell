@@ -1,4 +1,5 @@
 @testable import Mailbell
+@testable import MailbellKit
 import XCTest
 
 /// A bounded BODY.PEEK slice cuts a base64 payload anywhere, and some
@@ -16,7 +17,7 @@ final class Base64PreviewDecoderTests: XCTestCase {
         + "YXMgZ3JhdGlzISBDb24gdG9kb3MgbG9zIGJlbmVmaWNpb3MgZXhjbHVzaXZvcyBxdWUgeWEgY29u b2Nlcy4="
 
     func testDecodesWellFormedFoldedPayload() {
-        let preview = EmailBodyPreviewSanitizer.preview(from: wrapped)
+        let preview = EmailBodyPreviewSanitizer.preview(from: wrapped, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText)
 
         XCTAssertNotNil(preview)
         XCTAssertTrue(
@@ -29,7 +30,7 @@ final class Base64PreviewDecoderTests: XCTestCase {
     func testDecodesPayloadTruncatedToAnUnpaddableLength() {
         // 101 base64 characters: length % 4 == 1, so no padding is valid and
         // the whole block used to be emitted raw.
-        let preview = EmailBodyPreviewSanitizer.preview(from: truncatedAtResidueOne)
+        let preview = EmailBodyPreviewSanitizer.preview(from: truncatedAtResidueOne, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText)
 
         XCTAssertNotNil(preview)
         XCTAssertTrue(
@@ -40,7 +41,7 @@ final class Base64PreviewDecoderTests: XCTestCase {
     }
 
     func testDecodesPayloadFoldedOnSpaces() {
-        let preview = EmailBodyPreviewSanitizer.preview(from: spaceFolded)
+        let preview = EmailBodyPreviewSanitizer.preview(from: spaceFolded, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText)
 
         XCTAssertNotNil(preview)
         XCTAssertTrue(
@@ -55,12 +56,12 @@ final class Base64PreviewDecoderTests: XCTestCase {
         // recognised by uniform wide chunks, which a sentence never has.
         let prose = "Reserve your seat today because the early rate ends on Friday"
 
-        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: prose), prose)
+        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: prose, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText), prose)
     }
 
     func testLeavesLongIdentifiersAlone() {
         let text = "Your reference is 4f9a2c7be1d84a35b0c6e2f71a9d3c85 for support"
 
-        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: text), text)
+        XCTAssertEqual(EmailBodyPreviewSanitizer.preview(from: text, htmlTextExtractor: SwiftSoupPreviewTextExtractor.extractText), text)
     }
 }
