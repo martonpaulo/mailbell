@@ -89,9 +89,34 @@ for key in MailbellGoogleClientID MailbellGoogleClientSecret; do
     fi
 done
 
+# A release tag must be able to match the shipped version.
+PLIST_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Support/Info.plist)
+echo "$PLIST_VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' \
+    || note "CFBundleShortVersionString must be X.Y.Z (got $PLIST_VERSION)"
+
 # The changelog is Keep a Changelog, read by the canonical release-notes script;
 # its newest version must be the shipped one.
 scripts/release-notes.sh --check || note "CHANGELOG.md must pass scripts/release-notes.sh --check"
+
+# The website as one set of pages: the canonical validator owns the shared rules
+# (links, breadcrumbs, canonical URLs, sitemap, header and footer parity, asset
+# versions). Mailbell's own site rules, which read its own data, follow it.
+scripts/validate-site.sh --generated release-notes/ \
+    || note "site/ must pass scripts/validate-site.sh"
+# The deploy renders the release notes into a staged copy; render them the same
+# way so a changelog the renderer cannot read, or a newest version without its
+# Sparkle update page, fails here instead of in the deploy.
+staged=$(mktemp -d "${TMPDIR:-/tmp}/mailbell-site.XXXXXX")
+trap 'rm -rf "$staged"' EXIT
+cp -R site "$staged/site"
+if scripts/render-release-notes.sh --site "$staged/site" 2>/dev/null; then
+    [ -f "$staged/site/release-notes/$PLIST_VERSION/update/index.html" ] \
+        || note "the staged site has no release-notes/$PLIST_VERSION/update/index.html"
+    scripts/validate-site.sh --site "$staged/site" --generated release-notes/ >/dev/null \
+        || note "the staged site with its release notes must pass scripts/validate-site.sh"
+else
+    note "scripts/render-release-notes.sh could not render the release notes"
+fi
 
 # The public beta must be honest about Google's review status everywhere it
 # tells users what to expect.
@@ -116,15 +141,15 @@ if grep -hiE 'unlimited' README.md site/*.html 2>/dev/null \
     note "public copy must not promise unlimited use before Google verification"
 fi
 
-# Every website page shares one navigation and one footer. A visitor must never
-# see the site's structure change from page to page.
+# validate-site.sh keeps every page's header and footer equal to index.html's;
+# which labels index.html carries is Mailbell's own list.
 # The header nav carries this site's own destinations and no outward link; the
 # footer carries the outward links and no internal one. Neither repeats the
 # other, so a link appears once per page.
 # Download is the last item in the header nav, fleet-wide.
-expected_navigation="Features|Privacy|Terms|Download"
-expected_footer="Source|Issues|Releases"
-for page in site/index.html site/privacy.html site/terms.html; do
+expected_navigation="Features|Privacy|Terms|Releases|Download"
+expected_footer="Source|Issues"
+for page in site/index.html; do
     [ -f "$page" ] || continue
     navigation=$(sed -n '/<nav aria-label="Page sections">/,/<\/nav>/p' "$page" \
         | sed -E 's/<svg[^>]*>.*<\/svg>//g' \
@@ -136,6 +161,8 @@ for page in site/index.html site/privacy.html site/terms.html; do
         | sed -E -n 's/.*>([^<]+)<\/a>.*/\1/p' | paste -sd '|' -)
     [ "$footer" = "$expected_footer" ] \
         || note "$page footer must be $expected_footer (got $footer)"
+done
+for page in site/index.html site/privacy.html site/terms.html; do
     grep -q 'aria-current="page"' "$page" \
         || note "$page must identify the current page"
 done
@@ -209,19 +236,14 @@ else
         || note "Dependabot must monitor GitHub Actions"
 fi
 
-# A release tag must be able to match the shipped version.
-PLIST_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Support/Info.plist)
-echo "$PLIST_VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' \
-    || note "CFBundleShortVersionString must be X.Y.Z (got $PLIST_VERSION)"
-
 # The website names the shipped version on its download buttons, so a release
 # that forgets the site fails here instead of shipping a page that advertises
 # the previous version.
 for page in site/index.html; do
     grep -Fq "Download Mailbell $PLIST_VERSION" "$page" \
         || note "$page must name the shipped version on its download button (Download Mailbell $PLIST_VERSION)"
-    grep -Fq "releases/tag/v$PLIST_VERSION" "$page" \
-        || note "$page release notes link must point at releases/tag/v$PLIST_VERSION"
+    grep -Fq "href=\"/release-notes/$PLIST_VERSION/\"" "$page" \
+        || note "$page release notes link must point at /release-notes/$PLIST_VERSION/"
 done
 
 # The 404 page is part of the site, not a bare fallback: same header, same
@@ -234,12 +256,9 @@ else
     done
 fi
 
-# Every link that leaves the site carries the external-link arrow and rel="noopener".
+# Every link that leaves the site carries the external-link arrow. validate-site.sh
+# owns its target and rel.
 while IFS= read -r line; do
-    case "$line" in
-        *'rel="noopener"'*) ;;
-        *) note "external link without rel=\"noopener\": $(printf '%s' "$line" | cut -c1-80)" ;;
-    esac
     case "$line" in
         *'class="external-icon"'*) ;;
         *) note "external link without the external-link icon: $(printf '%s' "$line" | cut -c1-80)" ;;
