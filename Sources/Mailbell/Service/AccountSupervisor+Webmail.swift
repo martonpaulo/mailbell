@@ -29,7 +29,7 @@ extension AccountSupervisor {
     }
 
     func openEmail(id: String?, accountID: UUID?, url: URL) async {
-        let storedItem = id.flatMap { emailStore.firstItemInGroup(containing: $0) }
+        let storedItem = id.flatMap { reviewQueue.firstItemInGroup(containing: $0) }
         let resolvedAccountID = storedItem?.accountID ?? accountID
         let account = resolvedAccountID.flatMap { id in accounts.first(where: { $0.id == id }) }
         let outcome = await applyWebmailOpen(
@@ -39,30 +39,30 @@ extension AccountSupervisor {
         )
         if outcome.didOpen, let id {
             do {
-                try emailStore.markOpened(id: id)
-                applyEmailStoreWarning(accountID: resolvedAccountID)
+                try reviewQueue.markOpened(id: id)
+                applyReviewQueueWarning(accountID: resolvedAccountID)
                 publish()
             } catch {
-                handleEmailStorePersistenceFailure(error, accountID: resolvedAccountID)
+                handleHandledHistoryFailure(error, accountID: resolvedAccountID)
             }
         }
     }
 
     func openEmail(id: String) async {
-        guard let item = emailStore.firstItemInGroup(containing: id) else { return }
+        guard let item = reviewQueue.firstItemInGroup(containing: id) else { return }
         await openEmail(id: id, accountID: item.accountID, url: item.webmailURL)
     }
 
     func dismissEmail(id: String?) {
         guard let id else { return }
-        let accountID = emailStore.item(id: id)?.accountID
-            ?? emailStore.firstItemInGroup(containing: id)?.accountID
+        let accountID = reviewQueue.item(id: id)?.accountID
+            ?? reviewQueue.firstItemInGroup(containing: id)?.accountID
         do {
-            try emailStore.dismiss(id: id)
-            applyEmailStoreWarning(accountID: accountID)
+            try reviewQueue.dismiss(id: id)
+            applyReviewQueueWarning(accountID: accountID)
             publish()
         } catch {
-            handleEmailStorePersistenceFailure(error, accountID: accountID)
+            handleHandledHistoryFailure(error, accountID: accountID)
         }
     }
 

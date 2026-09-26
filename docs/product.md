@@ -74,7 +74,7 @@ and interrupted monitoring clearly asks for the user's attention. Numeric
 performance targets are not established here. The
 [queue limits](feature-defaults.md#queue-limits) keep a per-account recent
 window with separate retention and menu-display limits, implemented by
-`PendingQueueBudget`.
+`ReviewQueueBudget`.
 
 Mailbell targets macOS 26 or later on Apple silicon, because every Swift app of
 the owner targets the current major macOS (owner decision, 2026-09-17, recorded

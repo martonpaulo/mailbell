@@ -164,7 +164,7 @@ struct SettingsView: View {
         appState.launchAtLogin.refresh()
     }
 
-    func pendingCount(accountID: UUID) -> Int {
-        appState.pendingCount(accountID: accountID)
+    func shownConversationCount(accountID: UUID) -> Int {
+        appState.shownConversationCount(accountID: accountID)
     }
 }

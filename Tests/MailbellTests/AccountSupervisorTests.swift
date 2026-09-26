@@ -178,7 +178,7 @@ final class AccountSupervisorTests: XCTestCase {
         let supervisor = AccountSupervisor(
             notifier: RecordingNotifier(),
             accountStore: failingStore,
-            emailStore: EmailStore(persistence: EmailStorePersistence(userDefaults: defaults)),
+            reviewQueue: ReviewQueue(persistence: HandledHistory(userDefaults: defaults)),
             monitorFactory: { account, _, includeSpam in
                 SpyMonitor(account: account, hasSession: false, includeSpam: includeSpam)
             }
@@ -192,7 +192,7 @@ final class AccountSupervisorTests: XCTestCase {
     }
 
     @MainActor
-    func testMenuIconIsFilledOnlyWhenEmailStoreHasItems() async throws {
+    func testMenuIconIsFilledOnlyWhenReviewQueueHasItems() async throws {
         let (supervisor, account) = SupervisorFixture.makeSupervisor()
 
         XCTAssertEqual(supervisor.menuBarIconSystemImage, "bell")
@@ -205,7 +205,7 @@ final class AccountSupervisorTests: XCTestCase {
         XCTAssertTrue(didAdmit)
         XCTAssertEqual(supervisor.menuBarIconSystemImage, "bell.fill")
 
-        let item = try XCTUnwrap(supervisor.emailStoreItems.first)
+        let item = try XCTUnwrap(supervisor.shownItems.first)
         supervisor.dismissEmail(id: item.id)
 
         XCTAssertEqual(supervisor.menuBarIconSystemImage, "bell")

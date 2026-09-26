@@ -4,8 +4,8 @@ import Foundation
 /// server receipt first, and the first-admitted message as each conversation's
 /// representative.
 @MainActor
-extension EmailStore {
-    public var items: [EmailStoreItem] {
+extension ReviewQueue {
+    public var shownItems: [ReviewItem] {
         let chronology = groupChronology()
         let ordered = groupedItems().sorted { left, right in
             isNewerInQueue(left, than: right, chronology: chronology)
@@ -15,29 +15,29 @@ extension EmailStore {
         var shownPerAccount: [UUID: Int] = [:]
         return ordered.filter { item in
             let shown = shownPerAccount[item.accountID, default: 0]
-            guard shown < PendingQueueBudget.visibleConversationsPerAccount else { return false }
+            guard shown < ReviewQueueBudget.shownConversationsPerAccount else { return false }
             shownPerAccount[item.accountID] = shown + 1
             return true
         }
     }
 
-    func groupedItems() -> [EmailStoreItem] {
-        var firstItemsByGroupID: [String: EmailStoreItem] = [:]
+    func groupedItems() -> [ReviewItem] {
+        var firstItemsByConversationID: [String: ReviewItem] = [:]
         for item in itemsByID.values {
-            guard let existing = firstItemsByGroupID[item.groupID] else {
-                firstItemsByGroupID[item.groupID] = item
+            guard let existing = firstItemsByConversationID[item.conversationID] else {
+                firstItemsByConversationID[item.conversationID] = item
                 continue
             }
             if isEarlierInGroup(item, than: existing) {
-                firstItemsByGroupID[item.groupID] = item
+                firstItemsByConversationID[item.conversationID] = item
             }
         }
-        return Array(firstItemsByGroupID.values)
+        return Array(firstItemsByConversationID.values)
     }
 
-    func firstItem(groupID: String) -> EmailStoreItem? {
+    func firstItem(conversationID: String) -> ReviewItem? {
         itemsByID.values
-            .filter { $0.groupID == groupID }
+            .filter { $0.conversationID == conversationID }
             .min { left, right in
                 isEarlierInGroup(left, than: right)
             }
@@ -49,16 +49,16 @@ extension EmailStore {
     func groupChronology() -> [String: Date] {
         itemsByID.values.reduce(into: [:]) { latest, item in
             guard let receivedAt = item.serverReceivedAt else { return }
-            latest[item.groupID] = Swift.max(latest[item.groupID] ?? receivedAt, receivedAt)
+            latest[item.conversationID] = Swift.max(latest[item.conversationID] ?? receivedAt, receivedAt)
         }
     }
 
     func isNewerInQueue(
-        _ left: EmailStoreItem,
-        than right: EmailStoreItem,
+        _ left: ReviewItem,
+        than right: ReviewItem,
         chronology: [String: Date]
     ) -> Bool {
-        switch (chronology[left.groupID], chronology[right.groupID]) {
+        switch (chronology[left.conversationID], chronology[right.conversationID]) {
         case let (leftDate?, rightDate?) where leftDate != rightDate:
             return leftDate > rightDate
         case (.some, .none):
@@ -73,12 +73,12 @@ extension EmailStore {
         if left.admissionOrder != right.admissionOrder {
             return left.admissionOrder < right.admissionOrder
         }
-        return left.title.localizedCaseInsensitiveCompare(right.title) == .orderedAscending
+        return left.subject.localizedCaseInsensitiveCompare(right.subject) == .orderedAscending
     }
 
-    func isEarlierInGroup(_ left: EmailStoreItem, than right: EmailStoreItem) -> Bool {
-        if left.receivedAt != right.receivedAt {
-            return left.receivedAt < right.receivedAt
+    func isEarlierInGroup(_ left: ReviewItem, than right: ReviewItem) -> Bool {
+        if left.admittedAt != right.admittedAt {
+            return left.admittedAt < right.admittedAt
         }
         if left.admissionOrder != right.admissionOrder {
             return left.admissionOrder < right.admissionOrder
@@ -88,6 +88,6 @@ extension EmailStore {
            leftUID != rightUID {
             return leftUID < rightUID
         }
-        return left.title.localizedCaseInsensitiveCompare(right.title) == .orderedAscending
+        return left.subject.localizedCaseInsensitiveCompare(right.subject) == .orderedAscending
     }
 }

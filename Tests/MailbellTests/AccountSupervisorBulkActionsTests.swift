@@ -17,7 +17,7 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
             makeHeader(uid: 11, gmMessageId: "two"),
             makeHeader(uid: 12, gmMessageId: "three")
         ])
-        XCTAssertEqual(supervisor.emailStoreItems.count, 3)
+        XCTAssertEqual(supervisor.shownItems.count, 3)
 
         let result = await supervisor.markAllEmailsAsRead()
 
@@ -31,7 +31,7 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
                 IMAPMessageIdentity(uid: 12, mailboxName: "INBOX", uidValidity: 1)
             ])
         )
-        XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
+        XCTAssertTrue(supervisor.shownItems.isEmpty)
     }
 
     @MainActor
@@ -47,7 +47,7 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
         let result = await supervisor.markAllEmailsAsRead()
 
         XCTAssertEqual(result, .markAsReadFailed)
-        XCTAssertEqual(supervisor.emailStoreItems.count, 2)
+        XCTAssertEqual(supervisor.shownItems.count, 2)
     }
 
     @MainActor
@@ -57,12 +57,12 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
             makeHeader(uid: 30, gmMessageId: "with-uid"),
             makeHeader(uid: 0, gmMessageId: "legacy-without-uid")
         ])
-        XCTAssertEqual(supervisor.emailStoreItems.count, 2)
+        XCTAssertEqual(supervisor.shownItems.count, 2)
 
         let result = await supervisor.markAllEmailsAsRead()
 
         XCTAssertEqual(result, .partiallyMarkedAsRead(marked: 1, failed: 1))
-        XCTAssertEqual(supervisor.emailStoreItems.count, 1)
+        XCTAssertEqual(supervisor.shownItems.count, 1)
         XCTAssertFalse(supervisor.canMarkAllAsRead)
     }
 
@@ -91,7 +91,7 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
 
         XCTAssertEqual(result, .dismissedAll(count: 2))
         XCTAssertFalse(didCallMarker)
-        XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
+        XCTAssertTrue(supervisor.shownItems.isEmpty)
 
         let readmitted = await supervisor.monitor(account.id, shouldNotify: headers)
         XCTAssertTrue(readmitted.isEmpty, "dismissed messages must not come back")
@@ -104,7 +104,7 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
             makeHeader(uid: 50, gmMessageId: "message-1", gmThreadId: "thread-1"),
             makeHeader(uid: 51, gmMessageId: "message-2", gmThreadId: "thread-1")
         ])
-        XCTAssertEqual(supervisor.emailStoreItems.count, 1)
+        XCTAssertEqual(supervisor.shownItems.count, 1)
 
         XCTAssertEqual(supervisor.dismissAllEmails(), .dismissedAll(count: 1))
     }
@@ -137,7 +137,7 @@ final class AccountSupervisorBulkActionsTests: XCTestCase {
                 )
             },
             accountStore: store,
-            emailStore: EmailStore(persistence: EmailStorePersistence(userDefaults: defaults)),
+            reviewQueue: ReviewQueue(persistence: HandledHistory(userDefaults: defaults)),
             monitorFactory: { account, _, includeSpam in
                 BulkActionSpyMonitor(account: account, includeSpam: includeSpam)
             },

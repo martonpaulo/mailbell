@@ -5,19 +5,19 @@ import XCTest
 /// The review queue is a recent, reconstructible window over Gmail. Without a
 /// bound on retained messages it grows with the mailbox; without a bound on
 /// rows the menu does. Gmail stays authoritative for everything outside it.
-final class EmailStoreRetentionTests: XCTestCase {
+final class ReviewQueueRetentionTests: XCTestCase {
     @MainActor
     func testAnAccountRetainsAtMostItsMessageBudget() throws {
         let store = makeStore()
         let account = makeAccount()
 
-        for uid in 1 ... (PendingQueueBudget.retainedMessagesPerAccount + 120) {
+        for uid in 1 ... (ReviewQueueBudget.retainedMessagesPerAccount + 120) {
             _ = try store.admit(header: makeHeader(uid: uid), account: account)
         }
 
         XCTAssertEqual(
             store.retainedMessageCount(accountID: account.id),
-            PendingQueueBudget.retainedMessagesPerAccount
+            ReviewQueueBudget.retainedMessagesPerAccount
         )
     }
 
@@ -27,18 +27,18 @@ final class EmailStoreRetentionTests: XCTestCase {
         let first = makeAccount()
         let second = makeAccount(id: "55555555-5555-5555-5555-555555555555", email: "other@example.com")
 
-        for uid in 1 ... (PendingQueueBudget.retainedMessagesPerAccount + 50) {
+        for uid in 1 ... (ReviewQueueBudget.retainedMessagesPerAccount + 50) {
             _ = try store.admit(header: makeHeader(uid: uid), account: first)
             _ = try store.admit(header: makeHeader(uid: uid), account: second)
         }
 
         XCTAssertEqual(
             store.retainedMessageCount(accountID: first.id),
-            PendingQueueBudget.retainedMessagesPerAccount
+            ReviewQueueBudget.retainedMessagesPerAccount
         )
         XCTAssertEqual(
             store.retainedMessageCount(accountID: second.id),
-            PendingQueueBudget.retainedMessagesPerAccount
+            ReviewQueueBudget.retainedMessagesPerAccount
         )
     }
 
@@ -46,13 +46,13 @@ final class EmailStoreRetentionTests: XCTestCase {
     func testTheMenuShowsAtMostTheVisibleConversationBudget() throws {
         let store = makeStore()
         let account = makeAccount()
-        let conversations = PendingQueueBudget.visibleConversationsPerAccount + 20
+        let conversations = ReviewQueueBudget.shownConversationsPerAccount + 20
 
         for uid in 1 ... conversations {
             _ = try store.admit(header: makeHeader(uid: uid, gmThreadId: "T\(uid)"), account: account)
         }
 
-        XCTAssertEqual(store.items.count, PendingQueueBudget.visibleConversationsPerAccount)
+        XCTAssertEqual(store.shownItems.count, ReviewQueueBudget.shownConversationsPerAccount)
         XCTAssertEqual(store.hiddenConversationCount(accountID: account.id), 20)
         XCTAssertEqual(store.retainedMessageCount(accountID: account.id), conversations)
     }
@@ -62,14 +62,14 @@ final class EmailStoreRetentionTests: XCTestCase {
         let store = makeStore()
         let first = makeAccount()
         let second = makeAccount(id: "55555555-5555-5555-5555-555555555555", email: "other@example.com")
-        let conversations = PendingQueueBudget.visibleConversationsPerAccount + 5
+        let conversations = ReviewQueueBudget.shownConversationsPerAccount + 5
 
         for uid in 1 ... conversations {
             _ = try store.admit(header: makeHeader(uid: uid, gmThreadId: "T\(uid)"), account: first)
             _ = try store.admit(header: makeHeader(uid: uid, gmThreadId: "T\(uid)"), account: second)
         }
 
-        XCTAssertEqual(store.items.count, PendingQueueBudget.visibleConversationsPerAccount * 2)
+        XCTAssertEqual(store.shownItems.count, ReviewQueueBudget.shownConversationsPerAccount * 2)
     }
 
     @MainActor
@@ -79,13 +79,13 @@ final class EmailStoreRetentionTests: XCTestCase {
         let oldest = makeHeader(uid: 1)
         _ = try store.admit(header: oldest, account: account)
 
-        for uid in 2 ... (PendingQueueBudget.retainedMessagesPerAccount + 40) {
+        for uid in 2 ... (ReviewQueueBudget.retainedMessagesPerAccount + 40) {
             _ = try store.admit(header: makeHeader(uid: uid), account: account)
         }
 
         // Evicted, not handled: Gmail still has it, so it must be admissible
         // again rather than suppressed as if the user had dealt with it.
-        XCTAssertNil(store.item(id: EmailStoreIdentity.id(accountID: account.id, header: oldest)))
+        XCTAssertNil(store.item(id: ReviewItemIdentity.id(accountID: account.id, header: oldest)))
         XCTAssertTrue(try store.admit(header: oldest, account: account))
     }
 
@@ -98,7 +98,7 @@ final class EmailStoreRetentionTests: XCTestCase {
         for uid in 1 ... 200 {
             _ = try store.admit(header: makeHeader(uid: uid, gmThreadId: "long"), account: account)
         }
-        let representative = EmailStoreIdentity.id(
+        let representative = ReviewItemIdentity.id(
             accountID: account.id,
             header: makeHeader(uid: 1, gmThreadId: "long")
         )
@@ -108,7 +108,7 @@ final class EmailStoreRetentionTests: XCTestCase {
 
         XCTAssertEqual(
             store.retainedMessageCount(accountID: account.id),
-            PendingQueueBudget.retainedMessagesPerAccount
+            ReviewQueueBudget.retainedMessagesPerAccount
         )
         XCTAssertNotNil(store.item(id: representative), "the conversation keeps its representative")
     }
@@ -117,13 +117,13 @@ final class EmailStoreRetentionTests: XCTestCase {
     func testBulkActionsReachRetainedMessagesBeyondTheVisibleRows() throws {
         let store = makeStore()
         let account = makeAccount()
-        let conversations = PendingQueueBudget.visibleConversationsPerAccount + 15
+        let conversations = ReviewQueueBudget.shownConversationsPerAccount + 15
 
         for uid in 1 ... conversations {
             _ = try store.admit(header: makeHeader(uid: uid, gmThreadId: "T\(uid)"), account: account)
         }
 
-        XCTAssertEqual(store.items.count, PendingQueueBudget.visibleConversationsPerAccount)
+        XCTAssertEqual(store.shownItems.count, ReviewQueueBudget.shownConversationsPerAccount)
         // Dismiss All clears the retained store, not just what was on screen.
         XCTAssertEqual(try store.dismissAll(), conversations)
         XCTAssertEqual(store.retainedMessageCount(accountID: account.id), 0)
@@ -132,9 +132,9 @@ final class EmailStoreRetentionTests: XCTestCase {
     // MARK: - Helpers
 
     @MainActor
-    private func makeStore() -> EmailStore {
-        EmailStore(
-            persistence: EmailStorePersistence(
+    private func makeStore() -> ReviewQueue {
+        ReviewQueue(
+            persistence: HandledHistory(
                 userDefaults: TestDefaults.make()
             )
         )
@@ -144,7 +144,7 @@ final class EmailStoreRetentionTests: XCTestCase {
         id: String = "66666666-6666-6666-6666-666666666666",
         email: String = "account@example.com"
     ) -> MailAccount {
-        EmailStoreFixture.makeAccount(id: id, email: email)
+        ReviewQueueFixture.makeAccount(id: id, email: email)
     }
 
     private func makeHeader(uid: Int, gmThreadId: String? = nil) -> MessageHeader {

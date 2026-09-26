@@ -53,7 +53,7 @@ MenuBarExtra
   -> IMAP IDLE session to imap.gmail.com:993
   -> unread UID reconciliation
   -> metadata fetch + bounded body-preview fetch
-  -> EmailStore admission/grouping
+  -> ReviewQueue admission/grouping
   -> UNUserNotificationCenter notification
   -> Gmail Web through WebmailOpener
 ```
@@ -154,10 +154,10 @@ Notification and menu behavior intentionally differ:
 
 ## Pending Store Contract
 
-`EmailStore` owns local pending-review state. It is not a durable mailbox cache.
+`ReviewQueue` owns local pending-review state. It is not a durable mailbox cache.
 
-- `EmailStoreIdentity.id` is per message using Gmail message ID, Gmail thread ID, RFC message ID, or mailbox UID fallback.
-- `EmailStoreIdentity.groupID` groups by Gmail thread ID when available.
+- `ReviewItemIdentity.id` is per message using Gmail message ID, Gmail thread ID, RFC message ID, or mailbox UID fallback.
+- `ReviewItemIdentity.conversationID` groups by Gmail thread ID when available.
 - The menu and counter show grouped pending items.
 - Multiple unread messages in the same Gmail thread can still produce notifications, but the pending count remains one.
 - Opening a pending item, dismissing it, or marking it read removes the whole known group from the menu.

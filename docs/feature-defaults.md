@@ -29,9 +29,9 @@ A missing decision is a review failure.
 ## Queue limits
 
 The owner delegated the retention decision on 2026-09-09. Decided on #27;
-`PendingQueueBudget` implements it. Capacity eviction is not a handled
+`ReviewQueueBudget` implements it. Capacity eviction is not a handled
 disposition: Gmail remains authoritative, and retained membership and the
-visible menu projection have one owner each in `EmailStore`.
+visible menu projection have one owner each in `ReviewQueue`.
 
 | Boundary | Approved value | Configurable | Reason |
 |---|---|---|---|
@@ -72,7 +72,7 @@ late-arrival protections. Explicit dismissals remain suppressed while their
 bounded history records exist; eviction is never treated as dismissal.
 
 These are product budgets, not benchmark-derived performance guarantees. They
-live once in `PendingQueueBudget` and are deliberately not preferences: there is
+live once in `ReviewQueueBudget` and are deliberately not preferences: there is
 no legitimate second answer for a user to choose, so they carry no settings key
 and no Restore Defaults entry.
 

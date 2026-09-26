@@ -6,7 +6,7 @@ import XCTest
 /// When that whole window is already dismissed, re-selecting it on every cycle
 /// spends the entire budget on messages that are discarded on arrival, and
 /// older unread mail never enters the queue.
-final class EmailStoreReconciliationProgressTests: XCTestCase {
+final class ReviewQueueReconciliationProgressTests: XCTestCase {
     private let mailboxName = "INBOX"
     private let generation = 1
 
@@ -53,7 +53,7 @@ final class EmailStoreReconciliationProgressTests: XCTestCase {
 
         XCTAssertTrue(try store.admit(header: makeHeader(uid: 10), account: account))
         XCTAssertTrue(try store.admit(header: makeHeader(uid: 20), account: account))
-        try store.dismiss(id: EmailStoreIdentity.id(accountID: account.id, header: makeHeader(uid: 20)))
+        try store.dismiss(id: ReviewItemIdentity.id(accountID: account.id, header: makeHeader(uid: 20)))
 
         let skipped = try store.uidsToSkip(
             accountID: account.id,
@@ -74,7 +74,7 @@ final class EmailStoreReconciliationProgressTests: XCTestCase {
         // A record written before Mailbell stored locations: dismissed while the
         // item was not pending, so no identity was available.
         let header = makeHeader(uid: 150)
-        try store.dismiss(id: EmailStoreIdentity.id(accountID: account.id, header: header))
+        try store.dismiss(id: ReviewItemIdentity.id(accountID: account.id, header: header))
         XCTAssertTrue(
             try store.uidsToSkip(
                 accountID: account.id,
@@ -109,7 +109,7 @@ final class EmailStoreReconciliationProgressTests: XCTestCase {
         let account = makeAccount()
         let store = makeStore(defaults: makeDefaults())
         let header = makeHeader(uid: 150)
-        try store.dismiss(id: EmailStoreIdentity.id(accountID: account.id, header: header))
+        try store.dismiss(id: ReviewItemIdentity.id(accountID: account.id, header: header))
 
         _ = try store.reconcileUnread(
             snapshots: [makeSnapshot(unreadUIDs: [150])],
@@ -117,7 +117,7 @@ final class EmailStoreReconciliationProgressTests: XCTestCase {
             account: account
         )
 
-        XCTAssertTrue(store.items.isEmpty, "backfilling a location must not re-admit the message")
+        XCTAssertTrue(store.shownItems.isEmpty, "backfilling a location must not re-admit the message")
         XCTAssertFalse(try store.admit(header: header, account: account))
     }
 
@@ -126,7 +126,7 @@ final class EmailStoreReconciliationProgressTests: XCTestCase {
         let account = makeAccount()
         let store = makeStore(defaults: makeDefaults())
         XCTAssertTrue(try store.admit(header: makeHeader(uid: 42), account: account))
-        try store.dismiss(id: EmailStoreIdentity.id(accountID: account.id, header: makeHeader(uid: 42)))
+        try store.dismiss(id: ReviewItemIdentity.id(accountID: account.id, header: makeHeader(uid: 42)))
 
         XCTAssertEqual(
             try store.uidsToSkip(
@@ -164,7 +164,7 @@ final class EmailStoreReconciliationProgressTests: XCTestCase {
         let account = makeAccount()
         let store = makeStore(defaults: makeDefaults())
         XCTAssertTrue(try store.admit(header: makeHeader(uid: 42), account: account))
-        try store.dismiss(id: EmailStoreIdentity.id(accountID: account.id, header: makeHeader(uid: 42)))
+        try store.dismiss(id: ReviewItemIdentity.id(accountID: account.id, header: makeHeader(uid: 42)))
 
         try store.removeAccountRecords(accountID: account.id)
 
@@ -184,12 +184,12 @@ final class EmailStoreReconciliationProgressTests: XCTestCase {
     }
 
     @MainActor
-    private func makeStore(defaults: UserDefaults) -> EmailStore {
-        EmailStore(persistence: EmailStorePersistence(userDefaults: defaults))
+    private func makeStore(defaults: UserDefaults) -> ReviewQueue {
+        ReviewQueue(persistence: HandledHistory(userDefaults: defaults))
     }
 
     private func makeAccount() -> MailAccount {
-        EmailStoreFixture.makeAccount(id: "33333333-3333-3333-3333-333333333333")
+        ReviewQueueFixture.makeAccount(id: "33333333-3333-3333-3333-333333333333")
     }
 
     private func makeSnapshot(unreadUIDs: Set<Int>) -> MailboxUnreadSnapshot {

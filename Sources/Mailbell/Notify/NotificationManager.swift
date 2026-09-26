@@ -121,7 +121,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, Mai
             webmailURL: webmailURL(for: header, account: account),
             accountID: account.id,
             playNotificationSounds: playNotificationSounds,
-            emailID: EmailStoreIdentity.id(accountID: account.id, header: header)
+            emailID: ReviewItemIdentity.id(accountID: account.id, header: header)
         )
     }
 

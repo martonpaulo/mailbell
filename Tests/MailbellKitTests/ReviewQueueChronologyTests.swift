@@ -5,7 +5,7 @@ import XCTest
 /// Queue order must follow Gmail's ordinary inbox chronology: newest server
 /// receipt first. Local admission time is not a stand-in — a backlog fetched
 /// after a reconnect arrives in whatever order the server answered.
-final class EmailStoreChronologyTests: XCTestCase {
+final class ReviewQueueChronologyTests: XCTestCase {
     @MainActor
     func testOrdersGroupsByNewestServerReceiptRatherThanAdmissionTime() throws {
         let store = makeStore()
@@ -21,7 +21,7 @@ final class EmailStoreChronologyTests: XCTestCase {
             account: account
         ))
 
-        XCTAssertEqual(store.items.map(\.imapIdentity?.uid), [2, 1])
+        XCTAssertEqual(store.shownItems.map(\.imapIdentity?.uid), [2, 1])
     }
 
     @MainActor
@@ -55,9 +55,9 @@ final class EmailStoreChronologyTests: XCTestCase {
 
         // The thread leads on its reply's receipt time, but still shows the
         // first-admitted member as its representative.
-        XCTAssertEqual(store.items.count, 2)
-        XCTAssertEqual(store.items.first?.imapIdentity?.uid, 1)
-        XCTAssertEqual(store.items.last?.imapIdentity?.uid, 3)
+        XCTAssertEqual(store.shownItems.count, 2)
+        XCTAssertEqual(store.shownItems.first?.imapIdentity?.uid, 1)
+        XCTAssertEqual(store.shownItems.last?.imapIdentity?.uid, 3)
     }
 
     @MainActor
@@ -78,7 +78,7 @@ final class EmailStoreChronologyTests: XCTestCase {
             account: account
         ))
 
-        XCTAssertEqual(store.items.map(\.imapIdentity?.uid), [3, 1, 2])
+        XCTAssertEqual(store.shownItems.map(\.imapIdentity?.uid), [3, 1, 2])
     }
 
     // MARK: - Helpers
@@ -93,16 +93,16 @@ final class EmailStoreChronologyTests: XCTestCase {
     }
 
     @MainActor
-    private func makeStore() -> EmailStore {
-        EmailStore(
-            persistence: EmailStorePersistence(
+    private func makeStore() -> ReviewQueue {
+        ReviewQueue(
+            persistence: HandledHistory(
                 userDefaults: TestDefaults.make()
             )
         )
     }
 
     private func makeAccount() -> MailAccount {
-        EmailStoreFixture.makeAccount(id: "11111111-1111-1111-1111-111111111111")
+        ReviewQueueFixture.makeAccount(id: "11111111-1111-1111-1111-111111111111")
     }
 
     private func makeHeader(

@@ -19,7 +19,7 @@ final class MenuBarIconTests: XCTestCase {
                 OAuthConfig(clientID: "dummy.apps.googleusercontent.com", clientSecret: nil)
             },
             accountStore: store,
-            emailStore: EmailStore(persistence: EmailStorePersistence(userDefaults: defaults)),
+            reviewQueue: ReviewQueue(persistence: HandledHistory(userDefaults: defaults)),
             monitorFactory: { account, _, includeSpam in
                 MenuBarIconSpyMonitor(account: account, includeSpam: includeSpam)
             },

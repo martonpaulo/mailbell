@@ -5,10 +5,10 @@ import Foundation
 /// to be able to say so without inventing a total for the mail it cannot see.
 extension AccountSupervisor {
     func hiddenConversationCount(accountID: UUID) -> Int {
-        emailStore.hiddenConversationCount(accountID: accountID)
+        reviewQueue.hiddenConversationCount(accountID: accountID)
     }
 
     var retainedMessageCount: Int {
-        accountStates.reduce(0) { $0 + emailStore.retainedMessageCount(accountID: $1.account.id) }
+        accountStates.reduce(0) { $0 + reviewQueue.retainedMessageCount(accountID: $1.account.id) }
     }
 }

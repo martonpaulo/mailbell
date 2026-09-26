@@ -48,7 +48,7 @@ enum SupervisorFixture {
         monitorFactory: @escaping AccountMonitorFactory = { account, _, includeSpam in
             SpyMonitor(account: account, hasSession: false, includeSpam: includeSpam)
         },
-        emailStore: EmailStore? = nil,
+        reviewQueue: ReviewQueue? = nil,
         webmailOpen: @escaping @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome = { _, _ in .opened },
         signInNeededNotifier: @escaping SignInNeededNotifier = { _ in }
     ) -> AccountSupervisor {
@@ -59,12 +59,12 @@ enum SupervisorFixture {
         } catch {
             XCTFail("Could not seed account store: \(error)")
         }
-        let emailStore = emailStore ?? EmailStore(persistence: EmailStorePersistence(userDefaults: defaults))
+        let reviewQueue = reviewQueue ?? ReviewQueue(persistence: HandledHistory(userDefaults: defaults))
         return AccountSupervisor(
             notifier: RecordingNotifier(),
             configProvider: configProvider,
             accountStore: store,
-            emailStore: emailStore,
+            reviewQueue: reviewQueue,
             includeSpam: includeSpam,
             monitorFactory: monitorFactory,
             webmailOpen: webmailOpen,
@@ -99,8 +99,8 @@ enum SupervisorFixture {
     ) async -> Bool {
         let admittedIdentities = await supervisor.monitor(account.id, shouldNotify: [header])
         guard let identity = header.imapIdentity else {
-            let id = EmailStoreIdentity.id(accountID: account.id, header: header)
-            return supervisor.emailStoreItems.contains { $0.id == id }
+            let id = ReviewItemIdentity.id(accountID: account.id, header: header)
+            return supervisor.shownItems.contains { $0.id == id }
         }
         return admittedIdentities.contains(identity)
     }

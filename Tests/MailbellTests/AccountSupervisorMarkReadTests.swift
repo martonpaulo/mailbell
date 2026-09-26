@@ -16,13 +16,13 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
 
         let didAdmit = await admit(header, into: supervisor, account: account)
         XCTAssertTrue(didAdmit)
-        let item = try XCTUnwrap(supervisor.emailStoreItems.first)
+        let item = try XCTUnwrap(supervisor.shownItems.first)
 
         await supervisor.markEmailAsRead(id: item.id)
 
         XCTAssertEqual(markedAccounts, [account.id])
         XCTAssertEqual(markedIdentities, [IMAPMessageIdentity(uid: 42, mailboxName: "INBOX", uidValidity: 1)])
-        XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
+        XCTAssertTrue(supervisor.shownItems.isEmpty)
         let didReadmit = await supervisor.monitor(account.id, shouldNotify: [header])
         XCTAssertTrue(didReadmit.isEmpty)
     }
@@ -40,7 +40,7 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
         let didAdmitSecond = await admit(secondHeader, into: supervisor, account: account)
         XCTAssertTrue(didAdmitFirst)
         XCTAssertTrue(didAdmitSecond)
-        let item = try XCTUnwrap(supervisor.emailStoreItems.first)
+        let item = try XCTUnwrap(supervisor.shownItems.first)
 
         await supervisor.markEmailAsRead(id: item.id)
 
@@ -51,7 +51,7 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
                 IMAPMessageIdentity(uid: 42, mailboxName: "INBOX", uidValidity: 1)
             ])
         )
-        XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
+        XCTAssertTrue(supervisor.shownItems.isEmpty)
     }
 
     @MainActor
@@ -63,42 +63,42 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
 
         let didAdmit = await admit(header, into: supervisor, account: account)
         XCTAssertTrue(didAdmit)
-        let item = try XCTUnwrap(supervisor.emailStoreItems.first)
+        let item = try XCTUnwrap(supervisor.shownItems.first)
 
         await supervisor.markEmailAsRead(id: item.id)
 
-        XCTAssertEqual(supervisor.emailStoreItems.map(\.id), [item.id])
+        XCTAssertEqual(supervisor.shownItems.map(\.id), [item.id])
     }
 
     @MainActor
     func testMarkAsReadPersistenceFailureKeepsEmailInStoreAndSurfacesError() async throws {
         let defaults = makeDefaults()
         var shouldFail = false
-        let emailStore = EmailStore(
-            persistence: EmailStorePersistence(
+        let reviewQueue = ReviewQueue(
+            persistence: HandledHistory(
                 userDefaults: defaults,
                 saveData: { data, key in
                     if shouldFail {
-                        throw EmailStorePersistence.PersistenceError.saveFailed("disk full")
+                        throw HandledHistory.PersistenceError.saveFailed("disk full")
                     }
                     defaults.set(data, forKey: key)
                 }
             )
         )
         let (supervisor, account) = makeSupervisor(
-            emailStore: emailStore,
+            reviewQueue: reviewQueue,
             emailReadMarker: { _, _, _ in }
         )
         let header = makeHeader(uid: 44, mailboxName: "INBOX", gmMessageId: "mark-read-persistence-failure")
 
         let didAdmit = await admit(header, into: supervisor, account: account)
         XCTAssertTrue(didAdmit)
-        let item = try XCTUnwrap(supervisor.emailStoreItems.first)
+        let item = try XCTUnwrap(supervisor.shownItems.first)
         shouldFail = true
 
         await supervisor.markEmailAsRead(id: item.id)
 
-        XCTAssertEqual(supervisor.emailStoreItems.map(\.id), [item.id])
+        XCTAssertEqual(supervisor.shownItems.map(\.id), [item.id])
         XCTAssertEqual(
             supervisor.accountStates.first?.lastError,
             "Couldn't save Mailbell's review history. Try again."
@@ -114,22 +114,22 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
         let header = makeHeader(uid: 0, gmMessageId: "legacy-without-uid")
 
         _ = await supervisor.monitor(account.id, shouldNotify: [header])
-        let didAdmit = supervisor.emailStoreItems.contains {
-            $0.id == EmailStoreIdentity.id(accountID: account.id, header: header)
+        let didAdmit = supervisor.shownItems.contains {
+            $0.id == ReviewItemIdentity.id(accountID: account.id, header: header)
         }
         XCTAssertTrue(didAdmit)
-        let item = try XCTUnwrap(supervisor.emailStoreItems.first)
+        let item = try XCTUnwrap(supervisor.shownItems.first)
         XCTAssertFalse(item.canMarkAsRead)
 
         await supervisor.markEmailAsRead(id: item.id)
 
         XCTAssertFalse(didCallMarker)
-        XCTAssertEqual(supervisor.emailStoreItems.map(\.id), [item.id])
+        XCTAssertEqual(supervisor.shownItems.map(\.id), [item.id])
     }
 
     @MainActor
     private func makeSupervisor(
-        emailStore: EmailStore? = nil,
+        reviewQueue: ReviewQueue? = nil,
         emailReadMarker: @escaping EmailReadMarker
     ) -> (AccountSupervisor, MailAccount) {
         let account = MailAccount(providerID: .gmail, email: "test@example.com")
@@ -140,7 +140,7 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
         } catch {
             XCTFail("Could not seed account store: \(error)")
         }
-        let emailStore = emailStore ?? EmailStore(persistence: EmailStorePersistence(userDefaults: defaults))
+        let reviewQueue = reviewQueue ?? ReviewQueue(persistence: HandledHistory(userDefaults: defaults))
         let supervisor = AccountSupervisor(
             notifier: RecordingNotifier(),
             configProvider: {
@@ -150,7 +150,7 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
                 )
             },
             accountStore: store,
-            emailStore: emailStore,
+            reviewQueue: reviewQueue,
             monitorFactory: { account, _, includeSpam in
                 MarkReadSpyMonitor(account: account, includeSpam: includeSpam)
             },
@@ -190,8 +190,8 @@ final class AccountSupervisorMarkReadTests: XCTestCase {
     ) async -> Bool {
         guard let identity = header.imapIdentity else {
             _ = await supervisor.monitor(account.id, shouldNotify: [header])
-            let id = EmailStoreIdentity.id(accountID: account.id, header: header)
-            return supervisor.emailStoreItems.contains { $0.id == id }
+            let id = ReviewItemIdentity.id(accountID: account.id, header: header)
+            return supervisor.shownItems.contains { $0.id == id }
         }
         let admittedIdentities = await supervisor.monitor(account.id, shouldNotify: [header])
         return admittedIdentities.contains(identity)

@@ -1,8 +1,8 @@
 import Foundation
 
-private struct EmailStoreRecord: Codable, Equatable {
+private struct HandledRecord: Codable, Equatable {
     var id: String
-    var disposition: EmailStoreDisposition
+    var disposition: HandledDisposition
     var updatedAt: Date
     /// Where the message sat when it was handled. Optional because records
     /// written before this existed decode without it; they are backfilled the
@@ -13,7 +13,7 @@ private struct EmailStoreRecord: Codable, Equatable {
     var uid: Int?
 }
 
-public final class EmailStorePersistence {
+public final class HandledHistory {
     public enum PersistenceError: Error, LocalizedError {
         case decodingFailed(String)
         case encodingFailed(String)
@@ -38,7 +38,7 @@ public final class EmailStorePersistence {
     private let maxRecordCount: Int
     private let now: () -> Date
     private let saveData: (_ data: Data, _ key: String) throws -> Void
-    private var cachedRecords: [String: EmailStoreRecord]?
+    private var cachedRecords: [String: HandledRecord]?
     private var pendingRecoveryWarning: String?
 
     public init(
@@ -63,16 +63,16 @@ public final class EmailStorePersistence {
         try records()[id]?.disposition == .dismissed
     }
 
-    func mark(_ handled: HandledMessage, disposition: EmailStoreDisposition) throws {
+    func mark(_ handled: HandledMessage, disposition: HandledDisposition) throws {
         try mark([handled], disposition: disposition)
     }
 
-    func mark(_ handled: [HandledMessage], disposition: EmailStoreDisposition) throws {
+    func mark(_ handled: [HandledMessage], disposition: HandledDisposition) throws {
         guard !handled.isEmpty else { return }
         var records = try records()
         let updatedAt = now()
         for message in handled {
-            records[message.id] = EmailStoreRecord(
+            records[message.id] = HandledRecord(
                 id: message.id,
                 disposition: disposition,
                 updatedAt: updatedAt,
@@ -111,7 +111,7 @@ public final class EmailStorePersistence {
     /// reconciliation can look past them instead of spending its whole budget
     /// re-fetching the same discarded window on every cycle.
     func handledUIDs(accountID: UUID, mailboxName: String, uidValidity: Int) throws -> Set<Int> {
-        let prefix = EmailStoreIdentity.accountPrefix(accountID: accountID)
+        let prefix = ReviewItemIdentity.accountPrefix(accountID: accountID)
         return try records().values.reduce(into: Set<Int>()) { result, record in
             guard record.id.hasPrefix(prefix),
                   record.mailboxName == mailboxName,
@@ -125,7 +125,7 @@ public final class EmailStorePersistence {
     }
 
     func removeRecords(accountID: UUID) throws {
-        let prefix = EmailStoreIdentity.accountPrefix(accountID: accountID)
+        let prefix = ReviewItemIdentity.accountPrefix(accountID: accountID)
         let records = try records()
         let filtered = records.filter { id, _ in
             !id.hasPrefix(prefix)
@@ -140,7 +140,7 @@ public final class EmailStorePersistence {
         return warning
     }
 
-    private func records() throws -> [String: EmailStoreRecord] {
+    private func records() throws -> [String: HandledRecord] {
         if let cachedRecords {
             return cachedRecords
         }
@@ -149,7 +149,7 @@ public final class EmailStorePersistence {
             return [:]
         }
         do {
-            let decoded = try JSONDecoder().decode([String: EmailStoreRecord].self, from: data)
+            let decoded = try JSONDecoder().decode([String: HandledRecord].self, from: data)
             cachedRecords = decoded
             return decoded
         } catch {
@@ -161,7 +161,7 @@ public final class EmailStorePersistence {
     }
 
     private func recoverCorruptRecords(_ data: Data) throws {
-        let emptyRecords = [String: EmailStoreRecord]()
+        let emptyRecords = [String: HandledRecord]()
         do {
             try saveData(data, StorageKeys.handledRecordsCorruptBackup)
             let emptyData = try JSONEncoder().encode(emptyRecords)
@@ -175,7 +175,7 @@ public final class EmailStorePersistence {
         }
     }
 
-    private func save(_ records: [String: EmailStoreRecord]) throws {
+    private func save(_ records: [String: HandledRecord]) throws {
         let data: Data
         do {
             data = try JSONEncoder().encode(records)
@@ -193,7 +193,7 @@ public final class EmailStorePersistence {
         cachedRecords = records
     }
 
-    private func pruned(_ records: [String: EmailStoreRecord]) -> [String: EmailStoreRecord] {
+    private func pruned(_ records: [String: HandledRecord]) -> [String: HandledRecord] {
         guard records.count > maxRecordCount else { return records }
 
         let retained = records.values

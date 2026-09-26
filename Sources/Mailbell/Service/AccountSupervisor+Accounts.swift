@@ -73,7 +73,7 @@ extension AccountSupervisor {
         for monitor in monitors.values {
             monitor.setIncludeSpam(includeSpam)
         }
-        if !includeSpam, emailStore.removeSpamItems() {
+        if !includeSpam, reviewQueue.removeSpamItems() {
             publish()
             return
         }
@@ -103,7 +103,7 @@ extension AccountSupervisor {
         guard accounts.contains(where: { $0.id == accountID }) else { return }
         let remainingAccounts: [MailAccount]
         do {
-            try emailStore.removeAccountRecords(accountID: accountID)
+            try reviewQueue.removeAccountRecords(accountID: accountID)
             remainingAccounts = try accountStore.remove(accountID: accountID)
             accountStoreError = nil
         } catch {
@@ -123,9 +123,9 @@ extension AccountSupervisor {
         CheckpointStore(accountID: accountID).reset()
         CheckpointStore(accountID: accountID, mailbox: "SPAM").reset()
         TokenStore(accountID: accountID).clear()
-        emailStore.removeAccountItems(accountID: accountID)
+        reviewQueue.removeAccountItems(accountID: accountID)
         accounts = remainingAccounts
-        applyEmailStoreWarning(accountID: nil)
+        applyReviewQueueWarning(accountID: nil)
         publish()
     }
 

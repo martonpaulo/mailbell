@@ -30,14 +30,14 @@ extension AccountSupervisor {
     /// True when at least one pending group carries an IMAP UID, which is what
     /// the server-side `UID STORE` needs.
     var canMarkAllAsRead: Bool {
-        emailStoreItems.contains(where: \.canMarkAsRead)
+        shownItems.contains(where: \.canMarkAsRead)
     }
 
     /// Marks every pending group as read on the server, one authenticated IMAP
     /// session per account, then removes the groups locally. Publishes once.
     @discardableResult
     func markAllEmailsAsRead() async -> BulkActionResult {
-        let groups = emailStoreItems
+        let groups = shownItems
         guard !groups.isEmpty else { return .nothingPending }
 
         var marked = 0
@@ -49,7 +49,7 @@ extension AccountSupervisor {
 
             var identities: [IMAPMessageIdentity] = []
             var submissions: [ReadSubmission] = []
-            for submission in emailStore.readSubmissions(containing: accountGroups.map(\.id)) {
+            for submission in reviewQueue.readSubmissions(containing: accountGroups.map(\.id)) {
                 if submission.isEmpty {
                     failed += 1
                     continue
@@ -62,7 +62,7 @@ extension AccountSupervisor {
             do {
                 let config = try configProvider()
                 try await emailReadMarker(account, config, identities)
-                try emailStore.markRead(submissions: submissions)
+                try reviewQueue.markRead(submissions: submissions)
                 marked += submissions.count
             } catch {
                 failed += submissions.count
@@ -75,7 +75,7 @@ extension AccountSupervisor {
         let orphanCount = groups.filter { !knownAccountIDs.contains($0.accountID) }.count
         failed += orphanCount
 
-        applyEmailStoreWarning(accountID: nil)
+        applyReviewQueueWarning(accountID: nil)
         publish()
 
         if marked == 0 {
@@ -91,13 +91,13 @@ extension AccountSupervisor {
     @discardableResult
     func dismissAllEmails() -> BulkActionResult {
         do {
-            let count = try emailStore.dismissAll()
+            let count = try reviewQueue.dismissAll()
             guard count > 0 else { return .nothingPending }
-            applyEmailStoreWarning(accountID: nil)
+            applyReviewQueueWarning(accountID: nil)
             publish()
             return .dismissedAll(count: count)
         } catch {
-            handleEmailStorePersistenceFailure(error, accountID: nil)
+            handleHandledHistoryFailure(error, accountID: nil)
             return .nothingPending
         }
     }

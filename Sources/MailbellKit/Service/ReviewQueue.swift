@@ -1,20 +1,20 @@
 import Foundation
 
-public struct EmailStoreItem: Identifiable, Equatable, Sendable {
+public struct ReviewItem: Identifiable, Equatable, Sendable {
     public let id: String
-    let groupID: String
+    let conversationID: String
     public let accountID: UUID
     let accountEmail: String
     let mailbox: MessageMailbox
     let imapIdentity: IMAPMessageIdentity?
-    public let title: String
+    public let subject: String
     public let sender: String
-    public let time: String
+    public let timeText: String
     let bodyPreview: String?
     public let webmailURL: URL
     /// When Mailbell admitted the item. Orders members inside a group, so the
     /// first-admitted message stays the group's representative.
-    let receivedAt: Date
+    let admittedAt: Date
     /// When the server received the message (IMAP INTERNALDATE). Orders the
     /// queue itself. Absent when the server did not answer a usable value.
     let serverReceivedAt: Date?
@@ -31,13 +31,13 @@ public struct EmailStoreItem: Identifiable, Equatable, Sendable {
     }
 }
 
-public enum EmailStoreIdentity {
+public enum ReviewItemIdentity {
     public static func id(accountID: UUID, header: MessageHeader) -> String {
         let source = source(for: header)
         return "\(accountPrefix(accountID: accountID))\(source.kind).\(source.value)"
     }
 
-    static func groupID(accountID: UUID, header: MessageHeader) -> String {
+    static func conversationID(accountID: UUID, header: MessageHeader) -> String {
         if let value = normalized(header.gmThreadId) {
             return "\(accountPrefix(accountID: accountID))gmailThread.\(value)"
         }
@@ -84,14 +84,14 @@ public enum EmailStoreIdentity {
 /// mirror of it. Both limits are fixed product budgets rather than preferences:
 /// there is no legitimate second answer for a user to choose, and Gmail remains
 /// authoritative for everything outside the window.
-enum PendingQueueBudget {
+enum ReviewQueueBudget {
     /// Message records kept per account, shared by Inbox and Spam.
     static let retainedMessagesPerAccount = 500
     /// Conversation rows projected into the menu per account.
-    static let visibleConversationsPerAccount = 50
+    static let shownConversationsPerAccount = 50
 }
 
-enum EmailStoreDisposition: String, Codable, Equatable {
+enum HandledDisposition: String, Codable, Equatable {
     case dismissed
     case markedRead
     case opened
@@ -112,16 +112,16 @@ struct HandledMessage: Equatable {
 }
 
 @MainActor
-public final class EmailStore {
-    /// Not private: EmailStore+Retention owns trimming this back to budget.
-    var itemsByID: [String: EmailStoreItem] = [:]
-    /// Not private: EmailStore+Actions records dispositions through it.
-    let persistence: EmailStorePersistence
+public final class ReviewQueue {
+    /// Not private: ReviewQueue+Retention owns trimming this back to budget.
+    var itemsByID: [String: ReviewItem] = [:]
+    /// Not private: ReviewQueue+Actions records dispositions through it.
+    let persistence: HandledHistory
     private let now: () -> Date
     private var nextAdmissionOrder = 0
 
     public init(
-        persistence: EmailStorePersistence = EmailStorePersistence(),
+        persistence: HandledHistory = HandledHistory(),
         now: @escaping () -> Date = Date.init
     ) {
         self.persistence = persistence
@@ -136,12 +136,12 @@ public final class EmailStore {
 
     /// Conversations this account holds beyond the rows the menu can show.
     public func hiddenConversationCount(accountID: UUID) -> Int {
-        let total = Set(itemsByID.values.filter { $0.accountID == accountID }.map(\.groupID)).count
-        return max(total - PendingQueueBudget.visibleConversationsPerAccount, 0)
+        let total = Set(itemsByID.values.filter { $0.accountID == accountID }.map(\.conversationID)).count
+        return max(total - ReviewQueueBudget.shownConversationsPerAccount, 0)
     }
 
-    public var pendingCountsByAccountID: [UUID: Int] {
-        items.reduce(into: [:]) { counts, item in
+    public var shownConversationCounts: [UUID: Int] {
+        shownItems.reduce(into: [:]) { counts, item in
             counts[item.accountID, default: 0] += 1
         }
     }
@@ -151,7 +151,7 @@ public final class EmailStore {
     }
 
     public func admit(header: MessageHeader, account: MailAccount) throws -> Bool {
-        let id = EmailStoreIdentity.id(accountID: account.id, header: header)
+        let id = ReviewItemIdentity.id(accountID: account.id, header: header)
         guard try !persistence.isHandled(id) else {
             itemsByID[id] = nil
             return false
@@ -236,7 +236,7 @@ public final class EmailStore {
         // fetching the same discarded window again.
         try persistence.backfillLocation(fetchedHeaders.map { header in
             HandledMessage(
-                id: EmailStoreIdentity.id(accountID: account.id, header: header),
+                id: ReviewItemIdentity.id(accountID: account.id, header: header),
                 identity: header.imapIdentity
             )
         })
@@ -247,13 +247,13 @@ public final class EmailStore {
             else {
                 continue
             }
-            let id = EmailStoreIdentity.id(accountID: account.id, header: header)
+            let id = ReviewItemIdentity.id(accountID: account.id, header: header)
             guard try !persistence.suppressesUnreadSync(id) else { continue }
             nextItems[id] = makeItem(
                 id: id,
                 header: header,
                 account: account,
-                receivedAt: previousItems[id]?.receivedAt ?? now(),
+                admittedAt: previousItems[id]?.admittedAt ?? now(),
                 admissionOrder: previousItems[id]?.admissionOrder
             )
         }
@@ -264,13 +264,13 @@ public final class EmailStore {
         return true
     }
 
-    public func item(id: String) -> EmailStoreItem? {
+    public func item(id: String) -> ReviewItem? {
         itemsByID[id]
     }
 
-    public func firstItemInGroup(containing id: String) -> EmailStoreItem? {
+    public func firstItemInGroup(containing id: String) -> ReviewItem? {
         guard let item = itemsByID[id] else { return nil }
-        return firstItem(groupID: item.groupID)
+        return firstItem(conversationID: item.conversationID)
     }
 
     /// The members of a group, captured before the server round trip.
@@ -281,7 +281,7 @@ public final class EmailStore {
     /// is fixed here and carried through.
     public func readSubmission(containing id: String) -> ReadSubmission {
         guard let item = itemsByID[id] else { return ReadSubmission(itemIDs: [], identities: []) }
-        let members = itemsByID.values.filter { $0.groupID == item.groupID }
+        let members = itemsByID.values.filter { $0.conversationID == item.conversationID }
         return ReadSubmission(
             itemIDs: members.map(\.id),
             identities: members.compactMap(\.imapIdentity)
@@ -292,12 +292,12 @@ public final class EmailStore {
     /// rescans the whole store each time, so a bulk run over N conversations
     /// costs N scans for no reason.
     public func readSubmissions(containing ids: [String]) -> [ReadSubmission] {
-        var membersByGroup: [String: [EmailStoreItem]] = [:]
+        var membersByGroup: [String: [ReviewItem]] = [:]
         for item in itemsByID.values {
-            membersByGroup[item.groupID, default: []].append(item)
+            membersByGroup[item.conversationID, default: []].append(item)
         }
         return ids.map { id in
-            guard let item = itemsByID[id], let members = membersByGroup[item.groupID] else {
+            guard let item = itemsByID[id], let members = membersByGroup[item.conversationID] else {
                 return ReadSubmission(itemIDs: [], identities: [])
             }
             return ReadSubmission(
@@ -312,7 +312,7 @@ public final class EmailStore {
     }
 
     public func removeAccountItems(accountID: UUID) {
-        let prefix = EmailStoreIdentity.accountPrefix(accountID: accountID)
+        let prefix = ReviewItemIdentity.accountPrefix(accountID: accountID)
         itemsByID = itemsByID.filter { id, _ in
             !id.hasPrefix(prefix)
         }
@@ -334,9 +334,9 @@ public final class EmailStore {
         id: String,
         header: MessageHeader,
         account: MailAccount,
-        receivedAt: Date? = nil,
+        admittedAt: Date? = nil,
         admissionOrder: Int? = nil
-    ) -> EmailStoreItem {
+    ) -> ReviewItem {
         let resolvedAdmissionOrder: Int
         if let admissionOrder {
             resolvedAdmissionOrder = admissionOrder
@@ -345,20 +345,20 @@ public final class EmailStore {
             nextAdmissionOrder += 1
         }
 
-        return EmailStoreItem(
+        return ReviewItem(
             id: id,
-            groupID: EmailStoreIdentity.groupID(accountID: account.id, header: header),
+            conversationID: ReviewItemIdentity.conversationID(accountID: account.id, header: header),
             accountID: account.id,
             accountEmail: account.email,
             mailbox: header.mailbox,
             imapIdentity: header.imapIdentity,
-            title: EmailHeaderFormatter.title(for: header),
+            subject: EmailHeaderFormatter.title(for: header),
             sender: EmailHeaderFormatter.senderDetail(from: header.from),
-            time: EmailHeaderFormatter.timeText(for: header),
+            timeText: EmailHeaderFormatter.timeText(for: header),
             bodyPreview: header.bodyPreview,
             webmailURL: MailProviderRegistry.provider(for: account.providerID)
                 .webmailURL(for: header, account: account),
-            receivedAt: receivedAt ?? now(),
+            admittedAt: admittedAt ?? now(),
             serverReceivedAt: header.serverReceivedAt,
             admissionOrder: resolvedAdmissionOrder
         )

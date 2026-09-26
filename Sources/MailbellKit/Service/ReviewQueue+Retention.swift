@@ -9,7 +9,7 @@ private struct EvictionCandidate {
 }
 
 @MainActor
-extension EmailStore {
+extension ReviewQueue {
     /// Keeps one account inside its retained-message budget.
     ///
     /// Eviction releases reconstructible local context only. It never records a
@@ -20,7 +20,7 @@ extension EmailStore {
     /// left of it.
     func enforceRetentionBudget(accountID: UUID) {
         let retained = itemsByID.values.filter { $0.accountID == accountID }
-        var overflow = retained.count - PendingQueueBudget.retainedMessagesPerAccount
+        var overflow = retained.count - ReviewQueueBudget.retainedMessagesPerAccount
         guard overflow > 0 else { return }
 
         // Sort keys are precomputed rather than derived inside the comparator:
@@ -29,17 +29,17 @@ extension EmailStore {
         // Scoped to this account: another account's mail cannot influence how
         // this one is trimmed, and iterating it would only cost time.
         var chronology: [String: Date] = [:]
-        var representatives: [String: EmailStoreItem] = [:]
+        var representatives: [String: ReviewItem] = [:]
         for item in retained {
             if let receivedAt = item.serverReceivedAt {
-                chronology[item.groupID] = Swift.max(chronology[item.groupID] ?? receivedAt, receivedAt)
+                chronology[item.conversationID] = Swift.max(chronology[item.conversationID] ?? receivedAt, receivedAt)
             }
-            guard let existing = representatives[item.groupID] else {
-                representatives[item.groupID] = item
+            guard let existing = representatives[item.conversationID] else {
+                representatives[item.conversationID] = item
                 continue
             }
             if isEarlierInGroup(item, than: existing) {
-                representatives[item.groupID] = item
+                representatives[item.conversationID] = item
             }
         }
         let representativeIDs = Set(representatives.values.map(\.id))
@@ -49,7 +49,7 @@ extension EmailStore {
                     id: item.id,
                     isRepresentative: representativeIDs.contains(item.id),
                     // Undated groups are the oldest thing we know of.
-                    groupAge: chronology[item.groupID]?.timeIntervalSinceReferenceDate
+                    groupAge: chronology[item.conversationID]?.timeIntervalSinceReferenceDate
                         ?? -.greatestFiniteMagnitude,
                     order: item.admissionOrder
                 )

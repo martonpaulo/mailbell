@@ -5,7 +5,7 @@ import XCTest
 /// Marking as read awaits the network. A reply can join the same thread while
 /// that request is in flight, and the server was never asked about it — so it
 /// must not be recorded as read when the request completes.
-final class EmailStoreReadSubmissionTests: XCTestCase {
+final class ReviewQueueReadSubmissionTests: XCTestCase {
     @MainActor
     func testAMemberThatJoinsDuringTheRequestStaysPending() throws {
         let store = makeStore()
@@ -15,7 +15,7 @@ final class EmailStoreReadSubmissionTests: XCTestCase {
 
         // Captured before the round trip, as the action does.
         let submission = store.readSubmission(
-            containing: EmailStoreIdentity.id(accountID: account.id, header: first)
+            containing: ReviewItemIdentity.id(accountID: account.id, header: first)
         )
         XCTAssertEqual(submission.identities.count, 1)
 
@@ -25,8 +25,8 @@ final class EmailStoreReadSubmissionTests: XCTestCase {
 
         try store.markRead(submission: submission)
 
-        XCTAssertEqual(store.items.count, 1, "the late reply must survive")
-        XCTAssertEqual(store.items.first?.imapIdentity?.uid, 2)
+        XCTAssertEqual(store.shownItems.count, 1, "the late reply must survive")
+        XCTAssertEqual(store.shownItems.first?.imapIdentity?.uid, 2)
         // And it must still be admissible, i.e. not recorded as handled.
         XCTAssertFalse(try store.admit(header: first, account: account), "A was marked read")
     }
@@ -41,13 +41,13 @@ final class EmailStoreReadSubmissionTests: XCTestCase {
         XCTAssertTrue(try store.admit(header: second, account: account))
 
         let submission = store.readSubmission(
-            containing: EmailStoreIdentity.id(accountID: account.id, header: first)
+            containing: ReviewItemIdentity.id(accountID: account.id, header: first)
         )
         XCTAssertEqual(submission.itemIDs.count, 2, "both members go to the server")
 
         try store.markRead(submission: submission)
 
-        XCTAssertTrue(store.items.isEmpty)
+        XCTAssertTrue(store.shownItems.isEmpty)
         XCTAssertFalse(try store.admit(header: first, account: account))
         XCTAssertFalse(try store.admit(header: second, account: account))
     }
@@ -62,7 +62,7 @@ final class EmailStoreReadSubmissionTests: XCTestCase {
 
         XCTAssertTrue(submission.isEmpty)
         try store.markRead(submission: submission)
-        XCTAssertEqual(store.items.count, 1)
+        XCTAssertEqual(store.shownItems.count, 1)
     }
 
     @MainActor
@@ -76,7 +76,7 @@ final class EmailStoreReadSubmissionTests: XCTestCase {
                 account: account
             ))
         }
-        let ids = store.items.map(\.id)
+        let ids = store.shownItems.map(\.id)
 
         let batched = store.readSubmissions(containing: ids)
         let individually = ids.map { store.readSubmission(containing: $0) }
@@ -95,17 +95,17 @@ final class EmailStoreReadSubmissionTests: XCTestCase {
                 account: account
             ))
         }
-        let capturedIDs = Array(store.items.map(\.id).prefix(3))
-        let survivorID = store.items.map(\.id).last
+        let capturedIDs = Array(store.shownItems.map(\.id).prefix(3))
+        let survivorID = store.shownItems.map(\.id).last
 
         try store.markRead(submissions: store.readSubmissions(containing: capturedIDs))
 
-        XCTAssertEqual(store.items.map(\.id), [survivorID].compactMap { $0 })
+        XCTAssertEqual(store.shownItems.map(\.id), [survivorID].compactMap { $0 })
         // Recorded as handled, not merely removed from the queue: a handled
         // message is refused on re-admission.
         for uid in 1 ... 4 {
             let header = makeHeader(uid: uid, gmMessageId: "M\(uid)")
-            let id = EmailStoreIdentity.id(accountID: account.id, header: header)
+            let id = ReviewItemIdentity.id(accountID: account.id, header: header)
             guard capturedIDs.contains(id) else { continue }
             XCTAssertFalse(try store.admit(header: header, account: account), "uid \(uid) was marked read")
         }
@@ -120,22 +120,22 @@ final class EmailStoreReadSubmissionTests: XCTestCase {
         try store.markRead(submissions: [])
         try store.markRead(submissions: [ReadSubmission(itemIDs: [], identities: [])])
 
-        XCTAssertEqual(store.items.count, 1)
+        XCTAssertEqual(store.shownItems.count, 1)
     }
 
     // MARK: - Helpers
 
     @MainActor
-    private func makeStore() -> EmailStore {
-        EmailStore(
-            persistence: EmailStorePersistence(
+    private func makeStore() -> ReviewQueue {
+        ReviewQueue(
+            persistence: HandledHistory(
                 userDefaults: TestDefaults.make()
             )
         )
     }
 
     private func makeAccount() -> MailAccount {
-        EmailStoreFixture.makeAccount(id: "44444444-4444-4444-4444-444444444444")
+        ReviewQueueFixture.makeAccount(id: "44444444-4444-4444-4444-444444444444")
     }
 
     private func makeHeader(uid: Int, gmMessageId: String, gmThreadId: String? = nil) -> MessageHeader {

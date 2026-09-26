@@ -17,7 +17,7 @@ final class AccountSupervisor {
 
     let configProvider: () throws -> OAuthConfig
     let accountStore: AccountStore
-    let emailStore: EmailStore
+    let reviewQueue: ReviewQueue
     private let monitorFactory: AccountMonitorFactory
     let emailReadMarker: EmailReadMarker
     let webmailOpen: @MainActor (URL, MailAccount?) async -> WebmailOpenOutcome
@@ -44,7 +44,7 @@ final class AccountSupervisor {
         notifier: any MailNotifying,
         configProvider: @escaping () throws -> OAuthConfig = OAuthConfig.loadOrThrow,
         accountStore: AccountStore = AccountStore(),
-        emailStore: EmailStore = EmailStore(),
+        reviewQueue: ReviewQueue = ReviewQueue(),
         includeSpam: Bool = false,
         monitorFactory: AccountMonitorFactory? = nil,
         emailReadMarker: @escaping EmailReadMarker = IMAPMessageReadMarker.markAsRead,
@@ -55,7 +55,7 @@ final class AccountSupervisor {
     ) {
         self.configProvider = configProvider
         self.accountStore = accountStore
-        self.emailStore = emailStore
+        self.reviewQueue = reviewQueue
         self.includeSpam = includeSpam
         self.monitorFactory = monitorFactory ?? { account, config, includeSpam in
             MailMonitor(account: account, config: config, includeSpam: includeSpam, notifier: notifier)
@@ -110,8 +110,8 @@ final class AccountSupervisor {
             }
     }
 
-    var emailStoreItems: [EmailStoreItem] {
-        emailStore.items
+    var shownItems: [ReviewItem] {
+        reviewQueue.shownItems
     }
 
     /// True while any enabled account cannot monitor Gmail without the user
@@ -125,7 +125,7 @@ final class AccountSupervisor {
     }
 
     var menuBarIconSystemImage: String {
-        MenuBarIcon.systemImage(needsAttention: needsAttention, hasPendingItems: emailStore.hasItems)
+        MenuBarIcon.systemImage(needsAttention: needsAttention, hasPendingItems: reviewQueue.hasItems)
     }
 
     var aggregateStatus: MonitorStatus {
@@ -234,16 +234,16 @@ final class AccountSupervisor {
         }
     }
 
-    func handleEmailStorePersistenceFailure(_ error: Error, accountID: UUID?) {
-        applyEmailStorePersistenceFailure(error, accountID: accountID)
+    func handleHandledHistoryFailure(_ error: Error, accountID: UUID?) {
+        applyHandledHistoryFailure(error, accountID: accountID)
         publish()
     }
 
     /// Records a persistence failure without publishing, so bulk callers can
     /// batch a single update after every account has been processed.
-    func applyEmailStorePersistenceFailure(_ error: Error, accountID: UUID?) {
+    func applyHandledHistoryFailure(_ error: Error, accountID: UUID?) {
         let message = error.localizedDescription
-        Log.monitor.error("Email store persistence failed: \(Log.detail(error), privacy: .private)")
+        Log.monitor.error("Handled history persistence failed: \(Log.detail(error), privacy: .private)")
         if let accountID {
             statuses[accountID] = .error
             connectionErrors[accountID] = message
@@ -253,9 +253,9 @@ final class AccountSupervisor {
     }
 
     @discardableResult
-    func applyEmailStoreWarning(accountID: UUID?) -> Bool {
-        guard let warning = emailStore.takePersistenceWarning() else { return false }
-        Log.monitor.error("Email store warning: \(warning, privacy: .public)")
+    func applyReviewQueueWarning(accountID: UUID?) -> Bool {
+        guard let warning = reviewQueue.takePersistenceWarning() else { return false }
+        Log.monitor.error("Review queue warning: \(warning, privacy: .public)")
         if let accountID {
             connectionErrors[accountID] = warning
         } else {

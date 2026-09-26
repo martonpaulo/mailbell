@@ -17,8 +17,8 @@ final class AppState {
     var notificationStatusMessage: String?
     var notificationTestMessage: String?
     var manualRefreshMessage: String?
-    private(set) var emailStoreItems: [EmailStoreItem] = []
-    private(set) var pendingCountsByAccountID: [UUID: Int] = [:]
+    private(set) var shownItems: [ReviewItem] = []
+    private(set) var shownConversationCounts: [UUID: Int] = [:]
     private(set) var menuBarIconSystemImage = MenuBarIcon.idle
     private(set) var needsAttention = false
     private(set) var needsSignIn = false
@@ -53,8 +53,8 @@ final class AppState {
         supervisor.delegate = self
         accounts = supervisor.accountStates
         status = supervisor.aggregateStatus
-        emailStoreItems = supervisor.emailStoreItems
-        pendingCountsByAccountID = supervisor.emailStore.pendingCountsByAccountID
+        shownItems = supervisor.shownItems
+        shownConversationCounts = supervisor.reviewQueue.shownConversationCounts
         menuBarIconSystemImage = supervisor.menuBarIconSystemImage
         needsAttention = supervisor.needsAttention
         needsSignIn = supervisor.needsSignIn
@@ -150,8 +150,8 @@ final class AppState {
         includeSpam = isIncluded
         settingsStore.includeSpam = isIncluded
         supervisor.setIncludeSpam(isIncluded)
-        emailStoreItems = supervisor.emailStoreItems
-        pendingCountsByAccountID = supervisor.emailStore.pendingCountsByAccountID
+        shownItems = supervisor.shownItems
+        shownConversationCounts = supervisor.reviewQueue.shownConversationCounts
         menuBarIconSystemImage = supervisor.menuBarIconSystemImage
         needsAttention = supervisor.needsAttention
         needsSignIn = supervisor.needsSignIn
@@ -163,8 +163,8 @@ final class AppState {
         settingsStore.playNotificationSounds = isEnabled
     }
 
-    func pendingCount(accountID: UUID) -> Int {
-        pendingCountsByAccountID[accountID, default: 0]
+    func shownConversationCount(accountID: UUID) -> Int {
+        shownConversationCounts[accountID, default: 0]
     }
 
     func reconnect(accountID: UUID) {
@@ -220,7 +220,7 @@ final class AppState {
     }
 
     var hasPendingEmails: Bool {
-        !emailStoreItems.isEmpty
+        !shownItems.isEmpty
     }
 
     var canMarkAllAsRead: Bool {
@@ -270,8 +270,8 @@ final class AppState {
             includeSpam = restoredIncludeSpam
             supervisor.setIncludeSpam(restoredIncludeSpam)
         }
-        emailStoreItems = supervisor.emailStoreItems
-        pendingCountsByAccountID = supervisor.emailStore.pendingCountsByAccountID
+        shownItems = supervisor.shownItems
+        shownConversationCounts = supervisor.reviewQueue.shownConversationCounts
         menuBarIconSystemImage = supervisor.menuBarIconSystemImage
         needsAttention = supervisor.needsAttention
         needsSignIn = supervisor.needsSignIn
@@ -291,8 +291,8 @@ extension AppState: AccountSupervisorDelegate {
     func accountSupervisorDidUpdate(states: [AccountRuntimeState], aggregateStatus: MonitorStatus) {
         accounts = states
         status = aggregateStatus
-        emailStoreItems = supervisor.emailStoreItems
-        pendingCountsByAccountID = supervisor.emailStore.pendingCountsByAccountID
+        shownItems = supervisor.shownItems
+        shownConversationCounts = supervisor.reviewQueue.shownConversationCounts
         menuBarIconSystemImage = supervisor.menuBarIconSystemImage
         needsAttention = supervisor.needsAttention
         needsSignIn = supervisor.needsSignIn

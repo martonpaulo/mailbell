@@ -3,8 +3,8 @@ import MailbellKit
 
 extension AccountSupervisor {
     func markEmailAsRead(id: String) async {
-        guard let item = emailStore.item(id: id) else { return }
-        let submission = emailStore.readSubmission(containing: id)
+        guard let item = reviewQueue.item(id: id) else { return }
+        let submission = reviewQueue.readSubmission(containing: id)
         guard !submission.isEmpty else {
             Log.monitor.error("Cannot mark email as read because the pending item has no IMAP UID.")
             return
@@ -17,8 +17,8 @@ extension AccountSupervisor {
         do {
             let config = try configProvider()
             try await emailReadMarker(account, config, submission.identities)
-            try emailStore.markRead(submission: submission)
-            applyEmailStoreWarning(accountID: account.id)
+            try reviewQueue.markRead(submission: submission)
+            applyReviewQueueWarning(accountID: account.id)
             publish()
         } catch {
             applyMarkAsReadFailure(error, accountID: account.id)
@@ -30,8 +30,8 @@ extension AccountSupervisor {
     /// collect every account's outcome and notify observers exactly once.
     func applyMarkAsReadFailure(_ error: Error, accountID: UUID) {
         Log.monitor.error("Failed to mark email as read: \(Log.detail(error), privacy: .private)")
-        if error is EmailStorePersistence.PersistenceError {
-            applyEmailStorePersistenceFailure(error, accountID: accountID)
+        if error is HandledHistory.PersistenceError {
+            applyHandledHistoryFailure(error, accountID: accountID)
             return
         }
         guard let oauthError = error as? OAuthClient.OAuthError else {

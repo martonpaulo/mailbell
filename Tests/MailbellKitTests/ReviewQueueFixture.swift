@@ -4,11 +4,11 @@ import XCTest
 
 /// Shared fixtures for the store suites, so the files that exercise the queue
 /// and its handled history cannot drift apart.
-enum EmailStoreFixture {
+enum ReviewQueueFixture {
     @MainActor
-    static func makeStore(defaults: UserDefaults? = nil) -> EmailStore {
-        let persistence = EmailStorePersistence(userDefaults: defaults ?? makeDefaults())
-        return EmailStore(
+    static func makeStore(defaults: UserDefaults? = nil) -> ReviewQueue {
+        let persistence = HandledHistory(userDefaults: defaults ?? makeDefaults())
+        return ReviewQueue(
             persistence: persistence,
             now: { Date(timeIntervalSince1970: 1_806_000_000) }
         )

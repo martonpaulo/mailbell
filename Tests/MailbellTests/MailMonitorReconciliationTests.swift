@@ -66,7 +66,7 @@ final class MailMonitorReconciliationTests: XCTestCase {
             mailboxes: [MonitoredMailbox(role: .inbox, name: "INBOX")]
         )
 
-        XCTAssertTrue(store.items.isEmpty)
+        XCTAssertTrue(store.shownItems.isEmpty)
         XCTAssertEqual(
             connection.sentLines,
             [
@@ -185,14 +185,14 @@ final class MailMonitorReconciliationTests: XCTestCase {
             )
             XCTFail("Expected IMAP failure.")
         } catch {
-            XCTAssertEqual(store.items.map(\.id), [EmailStoreIdentity.id(accountID: account.id, header: pendingHeader)])
+            XCTAssertEqual(store.shownItems.map(\.id), [ReviewItemIdentity.id(accountID: account.id, header: pendingHeader)])
         }
     }
 
     @MainActor
     private func makeMonitor(
         account: MailAccount,
-        store: EmailStore,
+        store: ReviewQueue,
         notifier: RecordingNotifier = RecordingNotifier()
     ) -> (MailMonitor, ReconciliationDelegate) {
         let monitor = MailMonitor(
@@ -209,9 +209,9 @@ final class MailMonitorReconciliationTests: XCTestCase {
     }
 
     @MainActor
-    private func makeStore() -> EmailStore {
+    private func makeStore() -> ReviewQueue {
         let defaults = TestDefaults.make()
-        return EmailStore(persistence: EmailStorePersistence(userDefaults: defaults))
+        return ReviewQueue(persistence: HandledHistory(userDefaults: defaults))
     }
 
     private func makeHeader(uid: Int, gmMessageId: String) -> MessageHeader {
@@ -230,9 +230,9 @@ final class MailMonitorReconciliationTests: XCTestCase {
 
 private final class ReconciliationDelegate: MailMonitorDelegate {
     private let account: MailAccount
-    private let store: EmailStore
+    private let store: ReviewQueue
 
-    init(account: MailAccount, store: EmailStore) {
+    init(account: MailAccount, store: ReviewQueue) {
         self.account = account
         self.store = store
     }

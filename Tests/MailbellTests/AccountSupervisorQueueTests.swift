@@ -7,7 +7,7 @@ import XCTest
 
 final class AccountSupervisorQueueTests: XCTestCase {
     @MainActor
-    func testUnreadSyncPopulatesEmailStoreWithoutPostingNotification() async {
+    func testUnreadSyncPopulatesReviewQueueWithoutPostingNotification() async {
         let (supervisor, account) = SupervisorFixture.makeSupervisor()
 
         await supervisor.monitor(
@@ -19,7 +19,7 @@ final class AccountSupervisorQueueTests: XCTestCase {
             ]
         )
 
-        XCTAssertEqual(Set(supervisor.emailStoreItems.map(\.title)), Set(["First unread", "Second unread"]))
+        XCTAssertEqual(Set(supervisor.shownItems.map(\.subject)), Set(["First unread", "Second unread"]))
         XCTAssertNil(supervisor.accountStates.first?.lastError)
     }
 
@@ -30,7 +30,7 @@ final class AccountSupervisorQueueTests: XCTestCase {
 
         let didAdmit = await SupervisorFixture.admit(header, into: supervisor, account: account)
         XCTAssertTrue(didAdmit)
-        XCTAssertEqual(supervisor.emailStoreItems.count, 1)
+        XCTAssertEqual(supervisor.shownItems.count, 1)
         XCTAssertEqual(supervisor.menuBarIconSystemImage, "bell.fill")
 
         await supervisor.monitor(account.id, didReconcileUnread: [SupervisorFixture.makeSnapshot(
@@ -38,7 +38,7 @@ final class AccountSupervisorQueueTests: XCTestCase {
             fetchedHeaders: []
         )
 
-        XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
+        XCTAssertTrue(supervisor.shownItems.isEmpty)
         XCTAssertEqual(supervisor.menuBarIconSystemImage, "bell")
     }
 
@@ -56,12 +56,12 @@ final class AccountSupervisorQueueTests: XCTestCase {
         let didAdmit = await SupervisorFixture.admit(header, into: supervisor, account: account)
         XCTAssertTrue(didAdmit)
 
-        let item = try XCTUnwrap(supervisor.emailStoreItems.first)
+        let item = try XCTUnwrap(supervisor.shownItems.first)
         await supervisor.openEmail(id: item.id, accountID: account.id, url: item.webmailURL)
 
         XCTAssertEqual(openedURLs, [item.webmailURL])
         XCTAssertEqual(openedAccountIDs, [account.id])
-        XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
+        XCTAssertTrue(supervisor.shownItems.isEmpty)
         let didReadmit = await SupervisorFixture.admit(header, into: supervisor, account: account)
         XCTAssertFalse(didReadmit)
     }
@@ -91,12 +91,12 @@ final class AccountSupervisorQueueTests: XCTestCase {
 
         let didAdmit = await SupervisorFixture.admit(header, into: supervisor, account: account)
         XCTAssertTrue(didAdmit)
-        let item = try XCTUnwrap(supervisor.emailStoreItems.first)
+        let item = try XCTUnwrap(supervisor.shownItems.first)
 
         supervisor.dismissEmail(id: item.id)
         supervisor.dismissEmail(id: item.id)
 
-        XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
+        XCTAssertTrue(supervisor.shownItems.isEmpty)
         let didReadmit = await SupervisorFixture.admit(header, into: supervisor, account: account)
         XCTAssertFalse(didReadmit)
     }
@@ -106,28 +106,28 @@ final class AccountSupervisorQueueTests: XCTestCase {
         let account = MailAccount(providerID: .gmail, email: "test@example.com")
         let defaults = SupervisorFixture.makeDefaults()
         var shouldFail = false
-        let emailStore = EmailStore(
-            persistence: EmailStorePersistence(
+        let reviewQueue = ReviewQueue(
+            persistence: HandledHistory(
                 userDefaults: defaults,
                 saveData: { data, key in
                     if shouldFail {
-                        throw EmailStorePersistence.PersistenceError.saveFailed("disk full")
+                        throw HandledHistory.PersistenceError.saveFailed("disk full")
                     }
                     defaults.set(data, forKey: key)
                 }
             )
         )
-        let supervisor = SupervisorFixture.makeSupervisor(accounts: [account], emailStore: emailStore)
+        let supervisor = SupervisorFixture.makeSupervisor(accounts: [account], reviewQueue: reviewQueue)
         let header = SupervisorFixture.makeHeader(gmMessageId: "dismiss-persistence-failure")
 
         let didAdmit = await SupervisorFixture.admit(header, into: supervisor, account: account)
         XCTAssertTrue(didAdmit)
-        let item = try XCTUnwrap(supervisor.emailStoreItems.first)
+        let item = try XCTUnwrap(supervisor.shownItems.first)
         shouldFail = true
 
         supervisor.dismissEmail(id: item.id)
 
-        XCTAssertEqual(supervisor.emailStoreItems.map(\.id), [item.id])
+        XCTAssertEqual(supervisor.shownItems.map(\.id), [item.id])
         XCTAssertEqual(
             supervisor.accountStates.first?.lastError,
             "Couldn't save Mailbell's review history. Try again."
@@ -139,28 +139,28 @@ final class AccountSupervisorQueueTests: XCTestCase {
         let account = MailAccount(providerID: .gmail, email: "test@example.com")
         let defaults = SupervisorFixture.makeDefaults()
         var shouldFail = false
-        let emailStore = EmailStore(
-            persistence: EmailStorePersistence(
+        let reviewQueue = ReviewQueue(
+            persistence: HandledHistory(
                 userDefaults: defaults,
                 saveData: { data, key in
                     if shouldFail {
-                        throw EmailStorePersistence.PersistenceError.saveFailed("disk full")
+                        throw HandledHistory.PersistenceError.saveFailed("disk full")
                     }
                     defaults.set(data, forKey: key)
                 }
             )
         )
-        let supervisor = SupervisorFixture.makeSupervisor(accounts: [account], emailStore: emailStore)
+        let supervisor = SupervisorFixture.makeSupervisor(accounts: [account], reviewQueue: reviewQueue)
         let header = SupervisorFixture.makeHeader(gmMessageId: "open-persistence-failure")
 
         let didAdmit = await SupervisorFixture.admit(header, into: supervisor, account: account)
         XCTAssertTrue(didAdmit)
-        let item = try XCTUnwrap(supervisor.emailStoreItems.first)
+        let item = try XCTUnwrap(supervisor.shownItems.first)
         shouldFail = true
 
         await supervisor.openEmail(id: item.id, accountID: account.id, url: item.webmailURL)
 
-        XCTAssertEqual(supervisor.emailStoreItems.map(\.id), [item.id])
+        XCTAssertEqual(supervisor.shownItems.map(\.id), [item.id])
         XCTAssertEqual(
             supervisor.accountStates.first?.lastError,
             "Couldn't save Mailbell's review history. Try again."
@@ -178,7 +178,7 @@ final class AccountSupervisorQueueTests: XCTestCase {
         )
 
         XCTAssertFalse(didAdmit)
-        XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
+        XCTAssertTrue(supervisor.shownItems.isEmpty)
     }
 
     @MainActor
@@ -192,7 +192,7 @@ final class AccountSupervisorQueueTests: XCTestCase {
         )
 
         XCTAssertTrue(didAdmit)
-        let item = try XCTUnwrap(supervisor.emailStoreItems.first)
+        let item = try XCTUnwrap(supervisor.shownItems.first)
         XCTAssertEqual(item.mailbox, .spam)
     }
 
@@ -215,7 +215,7 @@ final class AccountSupervisorQueueTests: XCTestCase {
 
         supervisor.setIncludeSpam(false)
 
-        XCTAssertTrue(supervisor.emailStoreItems.isEmpty)
+        XCTAssertTrue(supervisor.shownItems.isEmpty)
         XCTAssertEqual(monitors.first?.includeSpam, false)
     }
 

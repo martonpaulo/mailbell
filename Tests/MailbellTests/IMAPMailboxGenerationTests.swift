@@ -103,7 +103,7 @@ final class IMAPMailboxGenerationTests: XCTestCase {
             account: account
         )
 
-        XCTAssertTrue(store.items.isEmpty, "a stale identity must not survive as an actionable item")
+        XCTAssertTrue(store.shownItems.isEmpty, "a stale identity must not survive as an actionable item")
     }
 
     @MainActor
@@ -123,7 +123,7 @@ final class IMAPMailboxGenerationTests: XCTestCase {
             account: account
         )
 
-        XCTAssertEqual(store.items.count, 1)
+        XCTAssertEqual(store.shownItems.count, 1)
     }
 
     @MainActor
@@ -139,15 +139,15 @@ final class IMAPMailboxGenerationTests: XCTestCase {
     }
 
     @MainActor
-    private func makeStore() -> EmailStore {
-        EmailStore(
-            persistence: EmailStorePersistence(
+    private func makeStore() -> ReviewQueue {
+        ReviewQueue(
+            persistence: HandledHistory(
                 userDefaults: TestDefaults.make()
             )
         )
     }
 
-    // EmailStoreFixture lives in MailbellKitTests; this is its makeAccount.
+    // ReviewQueueFixture lives in MailbellKitTests; this is its makeAccount.
     private func makeAccount() -> MailAccount {
         guard let id = UUID(uuidString: "22222222-2222-2222-2222-222222222222") else {
             preconditionFailure("fixture account id is not a UUID")

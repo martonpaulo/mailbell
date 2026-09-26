@@ -17,12 +17,12 @@ extension AccountSupervisor {
             else {
                 return []
             }
-            return (try? emailStore.uidsToSkip(
+            return (try? reviewQueue.uidsToSkip(
                 accountID: account.id,
                 mailbox: mailbox,
                 mailboxName: mailboxName,
                 uidValidity: uidValidity
-            )) ?? emailStore.pendingUIDs(
+            )) ?? reviewQueue.pendingUIDs(
                 accountID: account.id,
                 mailbox: mailbox,
                 uidValidity: uidValidity
@@ -44,16 +44,16 @@ extension AccountSupervisor {
             let visibleSnapshots = includeSpam ? snapshots : snapshots.filter { $0.mailbox != .spam }
             let visibleHeaders = includeSpam ? fetchedHeaders : fetchedHeaders.filter { $0.mailbox != .spam }
             do {
-                let didChange = try emailStore.reconcileUnread(
+                let didChange = try reviewQueue.reconcileUnread(
                     snapshots: visibleSnapshots,
                     fetchedHeaders: visibleHeaders,
                     account: account
                 )
-                let didWarn = applyEmailStoreWarning(accountID: account.id)
+                let didWarn = applyReviewQueueWarning(accountID: account.id)
                 guard didChange || didWarn else { return }
                 publish()
             } catch {
-                handleEmailStorePersistenceFailure(error, accountID: account.id)
+                handleHandledHistoryFailure(error, accountID: account.id)
             }
         }
     }
@@ -74,18 +74,18 @@ extension AccountSupervisor {
 
             for header in visibleHeaders {
                 do {
-                    guard try emailStore.admit(header: header, account: account) else { continue }
+                    guard try reviewQueue.admit(header: header, account: account) else { continue }
                     didChange = true
                     if let identity = header.imapIdentity {
                         admittedIdentities.insert(identity)
                     }
                 } catch {
-                    handleEmailStorePersistenceFailure(error, accountID: account.id)
+                    handleHandledHistoryFailure(error, accountID: account.id)
                     return []
                 }
             }
 
-            let didWarn = applyEmailStoreWarning(accountID: account.id)
+            let didWarn = applyReviewQueueWarning(accountID: account.id)
             if didChange || didWarn {
                 publish()
             }

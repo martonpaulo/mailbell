@@ -180,7 +180,7 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
         XCTAssertEqual(content.userInfo[notificationAccountIDKey] as? String, account.id.uuidString)
         XCTAssertEqual(
             content.userInfo[notificationEmailIDKey] as? String,
-            EmailStoreIdentity.id(accountID: account.id, header: header)
+            ReviewItemIdentity.id(accountID: account.id, header: header)
         )
     }
 
@@ -216,7 +216,7 @@ final class EmailNotificationContentBuilderTests: XCTestCase {
         XCTAssertEqual(content.body, "Second preview")
         XCTAssertEqual(
             content.userInfo[notificationEmailIDKey] as? String,
-            EmailStoreIdentity.id(accountID: account.id, header: secondHeader)
+            ReviewItemIdentity.id(accountID: account.id, header: secondHeader)
         )
     }
 

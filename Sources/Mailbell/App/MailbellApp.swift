@@ -19,7 +19,7 @@ struct MailbellApp: App {
         } label: {
             MenuBarLabel(
                 systemImage: appState.menuBarIconSystemImage,
-                pendingCount: appState.emailStoreItems.count,
+                pendingCount: appState.shownItems.count,
                 showsPendingCount: appState.showPendingCount,
                 needsAttention: appState.needsAttention,
                 needsSignIn: appState.needsSignIn
@@ -106,7 +106,7 @@ struct MenuContent: View {
 
         Divider()
 
-        emailStoreSection
+        reviewQueueSection
 
         Divider()
 
@@ -184,22 +184,22 @@ struct MenuContent: View {
         }
     }
 
-    private var emailStoreSection: some View {
+    private var reviewQueueSection: some View {
         Section(PendingCopy.menuSectionTitle) {
             if let message = appState.bulkActionMessage {
                 Text(PendingCopy.lastActionPrefix + message)
             }
-            if appState.emailStoreItems.isEmpty {
+            if appState.shownItems.isEmpty {
                 Text(PendingCopy.emptyMenuTitle)
             } else {
-                ForEach(appState.emailStoreItems) { email in
+                ForEach(appState.shownItems) { email in
                     let sender = EmailHeaderFormatter.senderIdentity(from: email.sender)
                     Menu {
                         Label(sender.name, systemImage: "person.crop.circle")
                         if let address = sender.address, address != sender.name {
                             Label(address, systemImage: "at")
                         }
-                        Label(email.time, systemImage: "clock")
+                        Label(email.timeText, systemImage: "clock")
                         if !email.bodyPreviewLines.isEmpty {
                             Divider()
                             ForEach(Array(email.bodyPreviewLines.enumerated()), id: \.offset) { index, line in
@@ -224,7 +224,7 @@ struct MenuContent: View {
                             Text(PendingCopy.dismissActionTitle)
                         }
                     } label: {
-                        Label(email.title, systemImage: "envelope")
+                        Label(email.subject, systemImage: "envelope")
                     }
                 }
 
@@ -261,12 +261,12 @@ struct MenuContent: View {
         }
     }
 
-    private func pendingCount(accountID: UUID) -> Int {
-        appState.pendingCount(accountID: accountID)
+    private func shownConversationCount(accountID: UUID) -> Int {
+        appState.shownConversationCount(accountID: accountID)
     }
 
     private func reviewMenuCount(accountID: UUID) -> Int? {
-        appState.showPendingCount ? pendingCount(accountID: accountID) : nil
+        appState.showPendingCount ? shownConversationCount(accountID: accountID) : nil
     }
 
     private func perform(_ action: AccountRecoveryAction, accountID: UUID) {

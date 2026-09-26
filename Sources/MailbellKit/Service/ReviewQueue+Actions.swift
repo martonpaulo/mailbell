@@ -4,7 +4,7 @@ import Foundation
 /// whole-queue forms. Separated from the store itself, which is about what the
 /// queue holds rather than how it is acted on.
 @MainActor
-extension EmailStore {
+extension ReviewQueue {
     public func dismiss(id: String) throws {
         try removeGroup(containing: id, disposition: .dismissed)
     }
@@ -39,30 +39,30 @@ extension EmailStore {
     @discardableResult
     public func dismissAll() throws -> Int {
         guard !itemsByID.isEmpty else { return 0 }
-        let groupCount = Set(itemsByID.values.map(\.groupID)).count
+        let groupCount = Set(itemsByID.values.map(\.conversationID)).count
         try persistence.mark(itemsByID.values.map(handledMessage), disposition: .dismissed)
         itemsByID = [:]
         return groupCount
     }
 
-    func removeGroup(containing id: String, disposition: EmailStoreDisposition) throws {
+    func removeGroup(containing id: String, disposition: HandledDisposition) throws {
         guard let item = itemsByID[id] else {
             try persistence.mark(HandledMessage(id: id, identity: nil), disposition: disposition)
             itemsByID[id] = nil
             return
         }
 
-        let groupID = item.groupID
+        let conversationID = item.conversationID
         let grouped = itemsByID.values
-            .filter { $0.groupID == groupID }
+            .filter { $0.conversationID == conversationID }
             .map(handledMessage)
         try persistence.mark(grouped, disposition: disposition)
         itemsByID = itemsByID.filter { _, item in
-            item.groupID != groupID
+            item.conversationID != conversationID
         }
     }
 
-    func handledMessage(for item: EmailStoreItem) -> HandledMessage {
+    func handledMessage(for item: ReviewItem) -> HandledMessage {
         HandledMessage(id: item.id, identity: item.imapIdentity)
     }
 }
